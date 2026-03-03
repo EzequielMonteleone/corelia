@@ -1,0 +1,161 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ExpensePeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum ExpenseStatus {
+  PENDING
+  PAID
+  PARTIAL
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Building {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  city      String
+  country   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  active    Boolean  @default(true)
+  taxId     String?
+  logo      String?
+  planType  String?
+
+  units          Unit[]
+  expensePeriods ExpensePeriod[]
+  buildingUsers  BuildingUser[]
+  expenses       Expense[]
+  payments       Payment[]
+}
+
+enum GlobalRole {
+  SUPERADMIN
+  USER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  globalRole   GlobalRole @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  isActive     Boolean  @default(true)
+
+  buildingUsers BuildingUser[]
+}
+
+model Role {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  buildingUsers   BuildingUser[]
+  rolePermissions RolePermission[]
+}
+
+model Unit {
+  id          String   @id @default(uuid())
+  buildingId  String
+  name        String
+  floor       String?
+  coefficient Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  building Building  @relation(fields: [buildingId], references: [id])
+  expenses Expense[]
+}
+
+model ExpensePeriod {
+  id          String              @id @default(uuid())
+  buildingId  String
+  period      String
+  generatedAt DateTime            @default(now())
+  status      ExpensePeriodStatus @default(OPEN)
+
+  building Building  @relation(fields: [buildingId], references: [id])
+  expenses Expense[]
+}
+
+model BuildingUser {
+  id         String   @id @default(uuid())
+  buildingId String
+  userId     String
+  roleId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  building Building @relation(fields: [buildingId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  role     Role     @relation(fields: [roleId], references: [id])
+}
+
+model Permission {
+  id   String @id @default(uuid())
+  key  String @unique
+  name String
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+}
+
+model Expense {
+  id         String        @id @default(uuid())
+  buildingId String
+  unitId     String
+  periodId   String
+  amount     Float
+  status     ExpenseStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  building Building      @relation(fields: [buildingId], references: [id])
+  unit     Unit          @relation(fields: [unitId], references: [id])
+  period   ExpensePeriod @relation(fields: [periodId], references: [id])
+  payments Payment[]
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  buildingId        String
+  expenseId         String
+  amount            Float
+  paymentMethod     String?
+  externalPaymentId String?
+  status            PaymentStatus @default(PENDING)
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  building Building @relation(fields: [buildingId], references: [id])
+  expense  Expense  @relation(fields: [expenseId], references: [id])
+}

@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: corelia_db
+    restart: always
+    environment:
+      POSTGRES_USER: corelia
+      POSTGRES_PASSWORD: corelia123
+      POSTGRES_DB: corelia_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - corelia_data:/var/lib/postgresql/data
+
+volumes:
+  corelia_data:
