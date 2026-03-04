@@ -3,7 +3,7 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import authRoutes from "./routes/authRoutes.js";
 import meRoutes from "./routes/meRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
+import buildingRoutes from "./routes/buildingRoutes.js";
 
 const requiredEnvVars = ["JWT_SECRET", "DATABASE_URL"] as const;
 for (const key of requiredEnvVars) {
@@ -18,7 +18,7 @@ const app = express();
 app.use(express.json());
 
 app.use("/auth", authRoutes);
-app.use("/buildings", userRoutes);
+app.use("/buildings", buildingRoutes);
 app.use(meRoutes);
 
 app.use(

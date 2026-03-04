@@ -5,10 +5,10 @@ import { findUserById, createUserWithRole } from "../services/userService.js";
 import { prisma } from "../prismaClient.js";
 import { canCreateRole } from "../utils/rbacHelper.js";
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 router.post(
-  "/:buildingId/users",
+  "/",
   authMiddleware,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
