@@ -1,5 +1,5 @@
-import { GlobalRole } from '@prisma/client'
-import type { UserRoleName } from '../types/index.js'
+import {GlobalRole} from '@prisma/client';
+import type {UserRoleName} from '../types/index.js';
 
 /**
  * Verifica si el usuario creador tiene permisos para asignar un rol específico.
@@ -11,32 +11,32 @@ import type { UserRoleName } from '../types/index.js'
 export function canCreateRole(
   creatorGlobalRole: GlobalRole,
   creatorBuildingRoleName: string | null,
-  targetRoleName: UserRoleName | string
+  targetRoleName: UserRoleName | string,
 ): boolean {
   // 1. SUPERADMIN puede crear cualquier tipo de rol
   if (creatorGlobalRole === GlobalRole.SUPERADMIN) {
-    return true
+    return true;
   }
 
   // Si no es superadmin, necesita tener un rol válido en el edificio
   if (!creatorBuildingRoleName) {
-    return false
+    return false;
   }
 
   // 2. ADMIN puede crear Owner y Roomer
   if (creatorBuildingRoleName === 'Admin') {
-    return targetRoleName === 'Owner' || targetRoleName === 'Roomer'
+    return targetRoleName === 'Owner' || targetRoleName === 'Roomer';
   }
 
   // 3. OWNER puede crear Roomer
   if (creatorBuildingRoleName === 'Owner') {
-    return targetRoleName === 'Roomer'
+    return targetRoleName === 'Roomer';
   }
 
   // 4. ROOMER no puede crear a nadie
   if (creatorBuildingRoleName === 'Roomer') {
-    return false
+    return false;
   }
 
-  return false
+  return false;
 }

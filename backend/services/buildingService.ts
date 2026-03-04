@@ -1,15 +1,15 @@
-import { prisma } from "../prismaClient.js";
+import {prisma} from '../prismaClient.js';
 
 export async function getAllBuildings() {
   return await prisma.building.findMany({
-    where: { active: true },
-    orderBy: { createdAt: "desc" },
+    where: {active: true},
+    orderBy: {createdAt: 'desc'},
   });
 }
 
 export async function getBuildingById(id: string) {
   return await prisma.building.findUnique({
-    where: { id },
+    where: {id},
   });
 }
 
@@ -38,16 +38,16 @@ export async function updateBuilding(
     logo?: string;
     planType?: string;
     active?: boolean;
-  }
+  },
 ) {
   return await prisma.building.update({
-    where: { id },
+    where: {id},
     data,
   });
 }
 
 export async function deleteBuilding(id: string) {
   return await prisma.building.delete({
-    where: { id },
+    where: {id},
   });
 }

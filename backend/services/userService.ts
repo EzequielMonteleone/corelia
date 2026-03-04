@@ -1,31 +1,37 @@
-import { prisma } from "../prismaClient.js";
-import bcrypt from "bcrypt";
+import {prisma} from '../prismaClient.js';
+import bcrypt from 'bcrypt';
 
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({
-    where: { email },
+    where: {email},
   });
 }
 
 export async function findUserById(id: string) {
   return prisma.user.findUnique({
-    where: { id },
+    where: {id},
     include: {
       buildingUsers: {
-        include: { role: true },
+        include: {role: true},
       },
     },
   });
 }
 
 export async function createUserWithRole(
-  data: { email: string; firstName: string; lastName: string; phone?: string; passwordPlain: string },
+  data: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    passwordPlain: string;
+  },
   buildingId: string,
-  roleId: string
+  roleId: string,
 ) {
   const passwordHash = await bcrypt.hash(data.passwordPlain, 10);
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async tx => {
     // 1. Crear usuario
     const user = await tx.user.create({
       data: {
@@ -46,10 +52,9 @@ export async function createUserWithRole(
       },
       include: {
         role: true,
-      }
+      },
     });
 
-    return { user, buildingUser };
+    return {user, buildingUser};
   });
 }
-

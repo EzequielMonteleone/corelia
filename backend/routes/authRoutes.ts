@@ -1,17 +1,17 @@
-import { Router } from "express";
-import type { Request, Response, NextFunction } from "express";
-import { verifyCredentials, generateJwt } from "../services/authService.js";
+import {Router} from 'express';
+import type {Request, Response, NextFunction} from 'express';
+import {verifyCredentials, generateJwt} from '../services/authService.js';
 
 const router = Router();
 
 router.post(
-  "/login",
+  '/login',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, password } = req.body ?? {};
+      const {email, password} = req.body ?? {};
 
-      if (typeof email !== "string" || typeof password !== "string") {
-        return res.status(400).json({ error: "INVALID_PAYLOAD" });
+      if (typeof email !== 'string' || typeof password !== 'string') {
+        return res.status(400).json({error: 'INVALID_PAYLOAD'});
       }
 
       const user = await verifyCredentials(email, password);
@@ -27,13 +27,13 @@ router.post(
         },
       });
     } catch (err) {
-      if (err instanceof Error && err.message === "INVALID_CREDENTIALS") {
-        return res.status(401).json({ error: "INVALID_CREDENTIALS" });
+      if (err instanceof Error && err.message === 'INVALID_CREDENTIALS') {
+        return res.status(401).json({error: 'INVALID_CREDENTIALS'});
       }
 
       return next(err);
     }
-  }
+  },
 );
 
 export default router;

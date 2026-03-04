@@ -1,6 +1,6 @@
-import type { Request } from "express";
+import type {Request} from 'express';
 
-export type UserRoleName = "Admin" | "Owner" | "Roomer";
+export type UserRoleName = 'Admin' | 'Owner' | 'Roomer';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
