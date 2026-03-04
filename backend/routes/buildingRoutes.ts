@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Response, NextFunction } from "express";
-import { authMiddleware, type AuthenticatedRequest } from "../middleware/authMiddleware.js";
+import { authMiddleware, superAdminOnly, type AuthenticatedRequest } from "../middleware/authMiddleware.js";
 import {
   getAllBuildings,
   getBuildingById,
@@ -8,25 +8,9 @@ import {
   updateBuilding,
   deleteBuilding,
 } from "../services/buildingService.js";
-import { findUserById } from "../services/userService.js";
-import { GlobalRole } from "@prisma/client";
 import userRoutes from "./userRoutes.js";
 
 const router = Router();
-
-// Middleware helper to restrict to SUPERADMIN
-async function superAdminOnly(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  if (!req.user?.id) {
-    return res.status(401).json({ error: "UNAUTHENTICATED" });
-  }
-
-  const user = await findUserById(req.user.id);
-  if (!user || user.globalRole !== GlobalRole.SUPERADMIN) {
-    return res.status(403).json({ error: "SUPER_ADMIN_ONLY" });
-  }
-
-  next();
-}
 
 // GET /
 router.get("/", authMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

@@ -1,6 +1,8 @@
 import type { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import type { AuthenticatedRequest } from "../types/index.js";
+import { findUserById } from "../services/userService.js";
+import { GlobalRole } from "@prisma/client";
 
 export type { AuthenticatedRequest };
 
@@ -38,5 +40,22 @@ export function authMiddleware(
   } catch (err) {
     return res.status(401).json({ error: "INVALID_TOKEN" });
   }
+}
+
+export async function superAdminOnly(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: "UNAUTHENTICATED" });
+  }
+
+  const user = await findUserById(req.user.id);
+  if (!user || user.globalRole !== GlobalRole.SUPERADMIN) {
+    return res.status(403).json({ error: "SUPER_ADMIN_ONLY" });
+  }
+
+  next();
 }
 
