@@ -19,12 +19,7 @@ router.post(
 
       return res.json({
         token,
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-        },
+        user,
       });
     } catch (err) {
       if (err instanceof Error && err.message === 'INVALID_CREDENTIALS') {

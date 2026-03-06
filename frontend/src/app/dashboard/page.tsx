@@ -14,7 +14,8 @@ export default function DashboardPage() {
               Corelia Dashboard
             </h1>
             <p className="text-gray-400 mt-2">
-              Bienvenido de nuevo, {user?.name || user?.email}
+              Bienvenido de nuevo,{' '}
+              {user ? `${user.firstName} ${user.lastName}` : ''}
             </p>
           </div>
           <button

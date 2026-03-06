@@ -2,16 +2,100 @@ import {Router} from 'express';
 import type {Response, NextFunction} from 'express';
 import {
   authMiddleware,
+  superAdminOnly,
   type AuthenticatedRequest,
 } from '../middleware/authMiddleware.js';
-import {findUserById, createUserWithRole} from '../services/userService.js';
+import {
+  findUserById,
+  createUserWithRole,
+  getAllUsers,
+  getUsersByBuildings,
+  updateUser,
+  deleteUser,
+} from '../services/userService.js';
 import {prisma} from '../prismaClient.js';
 import {canCreateRole} from '../utils/rbacHelper.js';
+import {GlobalRole} from '@prisma/client';
 
-const router = Router({mergeParams: true});
+const router = Router();
+
+router.get(
+  '/',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({error: 'UNAUTHENTICATED'});
+      }
+
+      const user = await findUserById(req.user.id);
+      if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
+
+      if (user.globalRole === GlobalRole.SUPERADMIN) {
+        const users = await getAllUsers();
+        return res.json(users);
+      }
+
+      // If not SuperAdmin, check if they are Admin in any building
+      const managedBuildingIds = user.buildingUsers
+        .filter(bu => bu.role.name === 'Admin')
+        .map(bu => bu.buildingId);
+
+      if (managedBuildingIds.length === 0) {
+        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      }
+
+      const users = await getUsersByBuildings(managedBuildingIds);
+      res.json(users);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  '/:id',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const user = await findUserById(req.params.id as string);
+      if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.put(
+  '/:id',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const user = await updateUser(req.params.id as string, req.body);
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.delete(
+  '/:id',
+  authMiddleware,
+  superAdminOnly,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      await deleteUser(req.params.id as string);
+      res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 router.post(
-  '/',
+  '/building/:buildingId',
   authMiddleware,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -31,20 +115,17 @@ router.post(
         return res.status(401).json({error: 'UNAUTHENTICATED'});
       }
 
-      // 1. Obtener el usuario actual (el que hace la petición)
       const creator = await findUserById(req.user.id);
       if (!creator || !creator.isActive) {
         return res.status(404).json({error: 'CREATOR_NOT_FOUND'});
       }
 
-      // 2. Determinar el rol del creador en el edificio específico
       const creatorBuildingUser = creator.buildingUsers.find(
         (bu: {buildingId: string}) => bu.buildingId === buildingId,
       );
 
       const creatorBuildingRoleName = creatorBuildingUser?.role?.name || null;
 
-      // 3. Verificar permisos de creación usando el helper RBAC
       const isAllowed = canCreateRole(
         creator.globalRole,
         creatorBuildingRoleName,
@@ -55,7 +136,6 @@ router.post(
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
-      // 4. Buscar el ID del rol que se quiere asignar
       const targetRole = await prisma.role.findFirst({
         where: {name: roleName},
       });
@@ -64,7 +144,6 @@ router.post(
         return res.status(400).json({error: 'INVALID_ROLE_NAME'});
       }
 
-      // 5. Crear el usuario y asignar el rol en la DB
       const {user, buildingUser} = await createUserWithRole(
         {email, firstName, lastName, phone, passwordPlain: password},
         buildingId as string,

@@ -4,6 +4,11 @@ import bcrypt from 'bcrypt';
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({
     where: {email},
+    include: {
+      buildingUsers: {
+        include: {role: true},
+      },
+    },
   });
 }
 
@@ -56,5 +61,72 @@ export async function createUserWithRole(
     });
 
     return {user, buildingUser};
+  });
+}
+export async function getAllUsers() {
+  return prisma.user.findMany({
+    include: {
+      buildingUsers: {
+        include: {
+          building: true,
+          role: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getUsersByBuildings(buildingIds: string[]) {
+  return prisma.user.findMany({
+    where: {
+      buildingUsers: {
+        some: {
+          buildingId: {
+            in: buildingIds,
+          },
+        },
+      },
+    },
+    include: {
+      buildingUsers: {
+        include: {
+          building: true,
+          role: true,
+        },
+      },
+    },
+  });
+}
+
+export async function updateUser(
+  id: string,
+  data: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    isActive?: boolean;
+    passwordPlain?: string;
+  },
+) {
+  const updateData: any = {...data};
+  delete updateData.passwordPlain;
+
+  if (data.passwordPlain) {
+    updateData.passwordHash = await bcrypt.hash(data.passwordPlain, 10);
+  }
+
+  return prisma.user.update({
+    where: {id},
+    data: updateData,
+  });
+}
+
+export async function deleteUser(id: string) {
+  // We might want to do a soft delete or just remove associated building relations
+  // For now, let's do a complete delete (Prisma will handle relations if set to cascade,
+  // but buildingUser usually doesn't cascade delete the User)
+  return prisma.user.delete({
+    where: {id},
   });
 }
