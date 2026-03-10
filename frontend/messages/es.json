@@ -21,10 +21,101 @@
     "roles": "Roles",
     "users": "Usuarios",
     "buildings": "Edificios",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "filters": "Filtros",
+    "actions": "Acciones",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "noDescription": "Sin descripción",
+    "seeDetails": "Ver Detalles"
   },
   "Dashboard": {
-    "welcome": "Bienvenido, {name}",
-    "rolesDescription": "Gestiona los roles y permisos de tu organización."
+    "welcome": "Bienvenido de nuevo, {name}",
+    "rolesDescription": "Gestiona los roles y permisos de tu organización.",
+    "buildingsCard": "Edificios",
+    "buildingsCardDesc": "Gestiona las propiedades y unidades registradas.",
+    "usersCard": "Usuarios",
+    "usersCardDesc": "Administra inquilinos, propietarios y administradores.",
+    "paymentsCard": "Pagos",
+    "paymentsCardDesc": "Control de expensas y estados de cuenta."
+  },
+  "Login": {
+    "welcome": "Bienvenido a Corelia",
+    "subtitle": "Inicia sesión en tu cuenta",
+    "email": "Email",
+    "emailPlaceholder": "tu@email.com",
+    "password": "Contraseña",
+    "passwordPlaceholder": "••••••••",
+    "submit": "Iniciar Sesión",
+    "loading": "Cargando..."
+  },
+  "Users": {
+    "title": "Usuarios",
+    "description": "Administra el acceso global y roles de los usuarios.",
+    "inviteUser": "Invitar Usuario",
+    "searchPlaceholder": "Buscar por nombre o email...",
+    "loading": "Cargando usuarios...",
+    "user": "Usuario",
+    "globalRole": "Rol Global",
+    "status": "Estado",
+    "empty": "No se encontraron usuarios."
+  },
+  "Roles": {
+    "title": "Roles y Permisos",
+    "description": "Configura los niveles de acceso y permisos granulares del sistema.",
+    "createRole": "Crear Nuevo Rol",
+    "loading": "Cargando roles...",
+    "rolesList": "Listado de Roles",
+    "editRole": "Editar Rol",
+    "delete": "Eliminar",
+    "deleting": "Eliminando...",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar este rol?",
+    "assignedPermissions": "Permisos Asignados",
+    "selectRole": "Selecciona un Rol",
+    "selectRoleHint": "Haz clic en un rol del listado para ver y gestionar sus permisos específicos.",
+    "noDescriptionDefined": "Este rol no tiene una descripción definida.",
+    "modalEditTitle": "Editar Rol",
+    "modalNewTitle": "Nuevo Rol",
+    "modalEditDesc": "Modifica los detalles del rol.",
+    "modalNewDesc": "Define un nuevo rol y selecciona los permisos básicos.",
+    "roleName": "Nombre del Rol",
+    "roleNamePlaceholder": "Ej: Administrador Jr",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Describe brevemente el propósito de este rol...",
+    "defaultPermissions": "Permisos por Defecto",
+    "saveChanges": "Guardar Cambios",
+    "createRoleButton": "Crear Rol"
+  },
+  "Buildings": {
+    "title": "Edificios",
+    "description": "Gestiona las propiedades y su información general.",
+    "registerBuilding": "Registrar Edificio",
+    "searchPlaceholder": "Buscar por nombre o dirección...",
+    "loading": "Cargando edificios...",
+    "empty": "No se encontraron edificios.",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar este edificio?",
+    "modalTitle": "Nuevo Edificio",
+    "name": "Nombre",
+    "namePlaceholder": "Nombre del edificio",
+    "address": "Dirección",
+    "addressPlaceholder": "Dirección completa",
+    "city": "Ciudad",
+    "cityPlaceholder": "Ciudad",
+    "country": "País",
+    "countryPlaceholder": "País"
+  },
+  "Sidebar": {
+    "rolesAndPermissions": "Roles y Permisos"
+  },
+  "Footer": {
+    "copyright": "© 2026 Corelia Platform. Construido para la excelencia."
+  },
+  "Auth": {
+    "loginError": "Error al iniciar sesión",
+    "unexpectedError": "Ocurrió un error inesperado"
+  },
+  "Metadata": {
+    "title": "Corelia",
+    "description": "Plataforma de Gestión Corelia"
   }
 }

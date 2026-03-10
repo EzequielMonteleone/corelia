@@ -11,39 +11,46 @@ import {
 import {useAuthStore} from '@/store/authStore';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/Button';
+import {useTranslations} from 'next-intl';
 
-const menuItems = [
-  {
-    icon: LayoutDashboard,
-    label: 'Dashboard',
-    href: '/dashboard',
-    roles: ['admin'],
-  },
-  {
-    icon: Building2,
-    label: 'Edificios',
-    href: '/dashboard/buildings',
-    roles: ['admin'],
-  },
-  {icon: Users, label: 'Usuarios', href: '/dashboard/users', roles: ['admin']},
-  {
-    icon: ShieldCheck,
-    label: 'Roles y Permisos',
-    href: '/dashboard/roles',
-    justSuperAdmin: true,
-  },
-];
+function useMenuItems() {
+  const tCommon = useTranslations('Common');
+  const tSidebar = useTranslations('Sidebar');
+  return [
+    {
+      icon: LayoutDashboard,
+      label: tCommon('dashboard'),
+      href: '/dashboard',
+      roles: ['admin'],
+    },
+    {
+      icon: Building2,
+      label: tCommon('buildings'),
+      href: '/dashboard/buildings',
+      roles: ['admin'],
+    },
+    {icon: Users, label: tCommon('users'), href: '/dashboard/users', roles: ['admin']},
+    {
+      icon: ShieldCheck,
+      label: tSidebar('rolesAndPermissions'),
+      href: '/dashboard/roles',
+      justSuperAdmin: true,
+    },
+  ];
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
   const {logout} = useAuthStore();
   const user = useAuthStore(state => state.user);
+  const menuItems = useMenuItems();
+  const tCommon = useTranslations('Common');
 
   return (
     <aside className="w-64 bg-[#0a0a0a] border-r border-white/10 flex flex-col h-screen sticky top-0">
       <div className="p-6">
         <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500">
-          Corelia
+          {tCommon('title')}
         </h2>
       </div>
 
@@ -89,7 +96,7 @@ export default function Sidebar() {
           onClick={logout}
           className="group justify-start gap-3 w-full py-6 bg-transparent hover:bg-red-500/10">
           <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className="font-medium">Cerrar Sesión</span>
+          <span className="font-medium">{tCommon('logout')}</span>
         </Button>
       </div>
     </aside>

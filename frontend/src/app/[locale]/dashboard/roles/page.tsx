@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useRoles';
 import {Role} from '@/types/role';
 import {RoleFormValues} from '@/schemas/role';
+import {useTranslations} from 'next-intl';
 
 export default function RolesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,6 +40,8 @@ export default function RolesPage() {
   const deleteMutation = useDeleteRole();
 
   const selectedRole = roles?.find(r => r.id === selectedRoleId) || null;
+  const t = useTranslations('Roles');
+  const tCommon = useTranslations('Common');
 
   const handleOpenCreateModal = useCallback(() => {
     setEditingRole(null);
@@ -81,7 +84,7 @@ export default function RolesPage() {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      if (window.confirm('¿Estás seguro de que deseas eliminar este rol?')) {
+      if (window.confirm(t('deleteConfirm'))) {
         deleteMutation.mutate(id, {
           onSuccess: () => {
             setSelectedRoleId(null);
@@ -89,7 +92,7 @@ export default function RolesPage() {
         });
       }
     },
-    [deleteMutation],
+    [deleteMutation, t],
   );
 
   const togglePermission = useCallback(
@@ -117,21 +120,21 @@ export default function RolesPage() {
   return (
     <div className="p-8">
       <PageHeader
-        title="Roles y Permisos"
-        description="Configura los niveles de acceso y permisos granulares del sistema."
+        title={t('title')}
+        description={t('description')}
         titleClassName="tracking-tight"
         className="mb-12">
         <Button
           onClick={handleOpenCreateModal}
           className="gap-2 bg-purple-500 hover:bg-purple-600 shadow-purple-500/20">
           <Plus className="w-5 h-5" />
-          Crear Nuevo Rol
+          {t('createRole')}
         </Button>
       </PageHeader>
 
       {loadingRoles ? (
         <LoadingState
-          message="Cargando roles..."
+          message={t('loading')}
           iconClassName="text-purple-500"
         />
       ) : (
@@ -139,7 +142,7 @@ export default function RolesPage() {
           {/* Roles List */}
           <div className="lg:col-span-1 space-y-4">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-widest px-2">
-              Listado de Roles
+              {t('rolesList')}
             </h2>
             {roles?.map(role => (
               <Card
@@ -162,7 +165,7 @@ export default function RolesPage() {
                     {role.name}
                   </h3>
                   <p className="text-sm text-gray-500 line-clamp-1">
-                    {role.description || 'Sin descripción'}
+                    {role.description || tCommon('noDescription')}
                   </p>
                 </div>
                 <ChevronRight
@@ -193,7 +196,7 @@ export default function RolesPage() {
                     </div>
                     <p className="text-gray-400">
                       {selectedRole.description ||
-                        'Este rol no tiene una descripción definida.'}
+                        t('noDescriptionDefined')}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -202,7 +205,7 @@ export default function RolesPage() {
                       onClick={handleOpenEditModal}
                       className="gap-2 text-sm">
                       <Edit className="w-4 h-4" />
-                      Editar Rol
+                      {t('editRole')}
                     </Button>
                     <Button
                       intent="destructive"
@@ -210,7 +213,7 @@ export default function RolesPage() {
                       disabled={deleteMutation.isPending}
                       className="gap-2 text-sm">
                       <Trash2 className="w-4 h-4" />
-                      {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+                      {deleteMutation.isPending ? t('deleting') : t('delete')}
                     </Button>
                   </div>
                 </div>
@@ -218,7 +221,7 @@ export default function RolesPage() {
                 <div className="space-y-6">
                   <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-500 uppercase tracking-widest">
                     <Key className="w-4 h-4 text-purple-500" />
-                    Permisos Asignados
+                    {t('assignedPermissions')}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {permissions?.map(permission => {
@@ -259,11 +262,10 @@ export default function RolesPage() {
                   <ShieldCheck className="w-12 h-12 text-gray-700" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-400 mb-2">
-                  Selecciona un Rol
+                  {t('selectRole')}
                 </h3>
                 <p className="text-gray-500 max-w-xs">
-                  Haz clic en un rol del listado para ver y gestionar sus
-                  permisos específicos.
+                  {t('selectRoleHint')}
                 </p>
               </div>
             )}

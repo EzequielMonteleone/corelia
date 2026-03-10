@@ -22,9 +22,14 @@ export function useLoginMutation() {
   });
 }
 
-export function getErrorMessage(error: unknown): string {
+export type AuthTranslateFn = (key: 'loginError' | 'unexpectedError') => string;
+
+export function getErrorMessage(error: unknown, t?: AuthTranslateFn): string {
   if (isAxiosError(error)) {
-    return error.response?.data?.error || 'Error al iniciar sesión';
+    return (
+      error.response?.data?.error ||
+      (t ? t('loginError') : 'Error al iniciar sesión')
+    );
   }
-  return 'Ocurrió un error inesperado';
+  return t ? t('unexpectedError') : 'Ocurrió un error inesperado';
 }

@@ -9,6 +9,7 @@ export default function Home() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const t = useTranslations('Index');
   const tCommon = useTranslations('Common');
+  const tFooter = useTranslations('Footer');
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-blue-500/30 overflow-hidden">
@@ -94,7 +95,7 @@ export default function Home() {
 
       {/* Footer Decoration */}
       <footer className="relative z-10 py-12 border-t border-white/5 text-center text-gray-500 text-sm">
-        <p>© 2026 Corelia Platform. Built for Excellence.</p>
+        <p>{tFooter('copyright')}</p>
       </footer>
     </div>
   );

@@ -3,9 +3,9 @@ import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
 import QueryProvider from '@/components/providers/query-provider';
 import {NextIntlClientProvider} from 'next-intl';
-import {getMessages} from 'next-intl/server';
+import {getMessages, getTranslations} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-import { locales, Locale } from '@/i18n/config';
+import { locales } from '@/i18n/config';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -17,17 +17,25 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const metadata: Metadata = {
-  title: 'Corelia',
-  description: 'Corelia Management Platform',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{locale: string}>;
+}): Promise<Metadata> {
+  const {locale} = await params;
+  const t = await getTranslations({locale, namespace: 'Metadata'});
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 export default async function RootLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{locale: Locale}>;
+  params: Promise<{locale: string}>;
 }) {
   const {locale} = await params;
 

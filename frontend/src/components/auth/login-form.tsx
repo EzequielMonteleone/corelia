@@ -7,9 +7,11 @@ import {useLoginMutation, getErrorMessage} from '@/hooks/useAuth';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {useCallback} from 'react';
+import {useTranslations} from 'next-intl';
 
 export default function LoginForm() {
   const loginMutation = useLoginMutation();
+  const t = useTranslations('Login');
 
   const {
     register,
@@ -26,8 +28,9 @@ export default function LoginForm() {
     [loginMutation],
   );
 
+  const tAuth = useTranslations('Auth');
   const error = loginMutation.error
-    ? getErrorMessage(loginMutation.error)
+    ? getErrorMessage(loginMutation.error, key => tAuth(key))
     : null;
   const loading = loginMutation.isPending;
 
@@ -35,32 +38,32 @@ export default function LoginForm() {
     <div className="w-full max-w-md space-y-8 p-8 bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 animate-in fade-in zoom-in-95 duration-500">
       <div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-white tracking-tight">
-          Bienvenido a Corelia
+          {t('welcome')}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-400">
-          Inicia sesión en tu cuenta
+          {t('subtitle')}
         </p>
       </div>
       <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1.5">
-              Email
+              {t('email')}
             </label>
             <Input
               {...register('email')}
-              placeholder="tu@email.com"
+              placeholder={t('emailPlaceholder')}
               error={errors.email?.message}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1.5">
-              Contraseña
+              {t('password')}
             </label>
             <Input
               type="password"
               {...register('password')}
-              placeholder="••••••••"
+              placeholder={t('passwordPlaceholder')}
               error={errors.password?.message}
             />
           </div>
@@ -81,7 +84,7 @@ export default function LoginForm() {
             size="lg"
             className="text-base"
             disabled={loading}>
-            {loading ? 'Cargando...' : 'Iniciar Sesión'}
+            {loading ? t('loading') : t('submit')}
           </Button>
         </div>
       </form>

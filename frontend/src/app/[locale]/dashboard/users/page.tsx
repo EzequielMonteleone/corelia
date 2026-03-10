@@ -11,17 +11,20 @@ import {
   Edit,
   Filter,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
-import { LoadingState } from '@/components/ui/LoadingState';
-import { PageHeader } from '@/components/dashboard/PageHeader';
+import {Button} from '@/components/ui/Button';
+import {Input} from '@/components/ui/Input';
+import {Badge} from '@/components/ui/Badge';
+import {LoadingState} from '@/components/ui/LoadingState';
+import {PageHeader} from '@/components/dashboard/PageHeader';
 import {useUsers, useUpdateUser} from '@/hooks/useUsers';
+import {useTranslations} from 'next-intl';
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const {data: users, isLoading} = useUsers();
   const updateMutation = useUpdateUser();
+  const t = useTranslations('Users');
+  const tCommon = useTranslations('Common');
 
   const filteredUsers = useMemo(
     () =>
@@ -37,24 +40,21 @@ export default function UsersPage() {
 
   return (
     <div className="p-8">
-      <PageHeader 
-        title="Usuarios" 
-        description="Administra el acceso global y roles de los usuarios."
-      >
+      <PageHeader title={t('title')} description={t('description')}>
         <Button intent="outline" className="gap-2">
           <Filter className="w-5 h-5" />
-          Filtros
+          {tCommon('filters')}
         </Button>
         <Button className="gap-2 bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20">
           <Plus className="w-5 h-5" />
-          Invitar Usuario
+          {t('inviteUser')}
         </Button>
       </PageHeader>
 
       <div className="mb-6 max-w-md">
         <Input
           type="text"
-          placeholder="Buscar por nombre o email..."
+          placeholder={t('searchPlaceholder')}
           icon={<Search className="w-5 h-5" />}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -62,23 +62,23 @@ export default function UsersPage() {
       </div>
 
       {isLoading ? (
-        <LoadingState message="Cargando usuarios..." iconClassName="text-indigo-500" />
+        <LoadingState message={t('loading')} iconClassName="text-indigo-500" />
       ) : (
         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.02]">
                 <th className="px-6 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                  Usuario
+                  {t('user')}
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                  Rol Global
+                  {t('globalRole')}
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                  Estado
+                  {t('status')}
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider text-right">
-                  Acciones
+                  {tCommon('actions')}
                 </th>
               </tr>
             </thead>
@@ -119,19 +119,26 @@ export default function UsersPage() {
                           isActive: !user.isActive,
                         })
                       }
-                      className="cursor-pointer border-0 p-0 m-0 bg-transparent transform transition-transform hover:scale-105"
-                    >
+                      className="cursor-pointer border-0 p-0 m-0 bg-transparent transform transition-transform hover:scale-105">
                       <Badge intent={user.isActive ? 'success' : 'danger'}>
-                        {user.isActive ? 'Activo' : 'Inactivo'}
+                        {user.isActive
+                          ? tCommon('active')
+                          : tCommon('inactive')}
                       </Badge>
                     </button>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button intent="ghost" size="icon" className="w-8 h-8 rounded-full">
+                      <Button
+                        intent="ghost"
+                        size="icon"
+                        className="w-8 h-8 rounded-full">
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button intent="ghost" size="icon" className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400">
+                      <Button
+                        intent="ghost"
+                        size="icon"
+                        className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -143,7 +150,7 @@ export default function UsersPage() {
 
           {!filteredUsers?.length && (
             <div className="py-20 text-center">
-              <p className="text-gray-500">No se encontraron usuarios.</p>
+              <p className="text-gray-500">{t('empty')}</p>
             </div>
           )}
         </div>

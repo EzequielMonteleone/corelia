@@ -10,6 +10,7 @@ import {Button} from '@/components/ui/Button';
 import {cn} from '@/lib/utils';
 import {usePermissions} from '@/hooks/useRoles';
 import {Role} from '@/types/role';
+import {useTranslations} from 'next-intl';
 
 interface RoleModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function RoleModal({
 }: RoleModalProps) {
   const isEditing = !!initialData;
   const {data: allPermissions} = usePermissions();
+  const t = useTranslations('Roles');
 
   const {
     register,
@@ -90,27 +92,25 @@ export function RoleModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={isEditing ? 'Editar Rol' : 'Nuevo Rol'}>
+      title={isEditing ? t('modalEditTitle') : t('modalNewTitle')}>
       <p className="text-gray-400 mb-6 mt-[-1rem]">
-        {isEditing
-          ? 'Modifica los detalles del rol.'
-          : 'Define un nuevo rol y selecciona los permisos básicos.'}
+        {isEditing ? t('modalEditDesc') : t('modalNewDesc')}
       </p>
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1.5">
-              Nombre del Rol
+              {t('roleName')}
             </label>
             <Input
               {...register('name')}
-              placeholder="Ej: Administrador Jr"
+              placeholder={t('roleNamePlaceholder')}
               error={errors.name?.message}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1.5">
-              Descripción
+              {t('description')}
             </label>
             <textarea
               {...register('description')}
@@ -118,7 +118,7 @@ export function RoleModal({
                 'w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500/50 h-24 transition-all',
                 errors.description && 'border-red-500/50',
               )}
-              placeholder="Describe brevemente el propósito de este rol..."
+              placeholder={t('descriptionPlaceholder')}
             />
             {errors.description && (
               <p className="mt-1 text-xs text-red-400">
@@ -130,7 +130,7 @@ export function RoleModal({
 
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-400">
-            Permisos por Defecto
+            {t('defaultPermissions')}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
             {allPermissions?.map(permission => {
@@ -169,7 +169,7 @@ export function RoleModal({
             fullWidth
             className="bg-purple-500 hover:bg-purple-600 shadow-purple-500/20"
             isLoading={isPending}>
-            {isEditing ? 'Guardar Cambios' : 'Crear Rol'}
+            {isEditing ? t('saveChanges') : t('createRoleButton')}
           </Button>
         </div>
       </form>

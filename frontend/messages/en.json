@@ -21,10 +21,101 @@
     "roles": "Roles",
     "users": "Users",
     "buildings": "Buildings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "filters": "Filters",
+    "actions": "Actions",
+    "active": "Active",
+    "inactive": "Inactive",
+    "noDescription": "No description",
+    "seeDetails": "View Details"
   },
   "Dashboard": {
-    "welcome": "Welcome, {name}",
-    "rolesDescription": "Manage your organization's roles and permissions."
+    "welcome": "Welcome back, {name}",
+    "rolesDescription": "Manage your organization's roles and permissions.",
+    "buildingsCard": "Buildings",
+    "buildingsCardDesc": "Manage registered properties and units.",
+    "usersCard": "Users",
+    "usersCardDesc": "Manage tenants, owners and administrators.",
+    "paymentsCard": "Payments",
+    "paymentsCardDesc": "Expense control and account statements."
+  },
+  "Login": {
+    "welcome": "Welcome to Corelia",
+    "subtitle": "Sign in to your account",
+    "email": "Email",
+    "emailPlaceholder": "you@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "submit": "Sign In",
+    "loading": "Loading..."
+  },
+  "Users": {
+    "title": "Users",
+    "description": "Manage global access and user roles.",
+    "inviteUser": "Invite User",
+    "searchPlaceholder": "Search by name or email...",
+    "loading": "Loading users...",
+    "user": "User",
+    "globalRole": "Global Role",
+    "status": "Status",
+    "empty": "No users found."
+  },
+  "Roles": {
+    "title": "Roles and Permissions",
+    "description": "Configure access levels and granular system permissions.",
+    "createRole": "Create New Role",
+    "loading": "Loading roles...",
+    "rolesList": "Roles List",
+    "editRole": "Edit Role",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "deleteConfirm": "Are you sure you want to delete this role?",
+    "assignedPermissions": "Assigned Permissions",
+    "selectRole": "Select a Role",
+    "selectRoleHint": "Click on a role from the list to view and manage its specific permissions.",
+    "noDescriptionDefined": "This role has no description defined.",
+    "modalEditTitle": "Edit Role",
+    "modalNewTitle": "New Role",
+    "modalEditDesc": "Modify the role details.",
+    "modalNewDesc": "Define a new role and select basic permissions.",
+    "roleName": "Role Name",
+    "roleNamePlaceholder": "E.g.: Junior Administrator",
+    "description": "Description",
+    "descriptionPlaceholder": "Briefly describe the purpose of this role...",
+    "defaultPermissions": "Default Permissions",
+    "saveChanges": "Save Changes",
+    "createRoleButton": "Create Role"
+  },
+  "Buildings": {
+    "title": "Buildings",
+    "description": "Manage properties and their general information.",
+    "registerBuilding": "Register Building",
+    "searchPlaceholder": "Search by name or address...",
+    "loading": "Loading buildings...",
+    "empty": "No buildings found.",
+    "deleteConfirm": "Are you sure you want to delete this building?",
+    "modalTitle": "New Building",
+    "name": "Name",
+    "namePlaceholder": "Building name",
+    "address": "Address",
+    "addressPlaceholder": "Full address",
+    "city": "City",
+    "cityPlaceholder": "City",
+    "country": "Country",
+    "countryPlaceholder": "Country"
+  },
+  "Sidebar": {
+    "rolesAndPermissions": "Roles and Permissions"
+  },
+  "Footer": {
+    "copyright": "© 2026 Corelia Platform. Built for Excellence."
+  },
+  "Auth": {
+    "loginError": "Error signing in",
+    "unexpectedError": "An unexpected error occurred"
+  },
+  "Metadata": {
+    "title": "Corelia",
+    "description": "Corelia Management Platform"
   }
 }

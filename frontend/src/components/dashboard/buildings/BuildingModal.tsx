@@ -7,6 +7,7 @@ import {Modal} from '@/components/ui/Modal';
 import {Input} from '@/components/ui/Input';
 import {Button} from '@/components/ui/Button';
 import {useCallback} from 'react';
+import {useTranslations} from 'next-intl';
 
 interface BuildingModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function BuildingModal({
   onSubmit,
   isPending,
 }: BuildingModalProps) {
+  const t = useTranslations('Buildings');
   const {
     register,
     handleSubmit,
@@ -43,53 +45,53 @@ export function BuildingModal({
   }, [reset, onClose]);
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Nuevo Edificio">
+    <Modal isOpen={isOpen} onClose={handleClose} title={t('modalTitle')}>
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-1.5">
-            Nombre
+            {t('name')}
           </label>
           <Input
             {...register('name')}
             error={errors.name?.message}
-            placeholder="Nombre del edificio"
+            placeholder={t('namePlaceholder')}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-1.5">
-            Dirección
+            {t('address')}
           </label>
           <Input
             {...register('address')}
             error={errors.address?.message}
-            placeholder="Dirección completa"
+            placeholder={t('addressPlaceholder')}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1.5">
-              Ciudad
+              {t('city')}
             </label>
             <Input
               {...register('city')}
               error={errors.city?.message}
-              placeholder="Ciudad"
+              placeholder={t('cityPlaceholder')}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1.5">
-              País
+              {t('country')}
             </label>
             <Input
               {...register('country')}
               error={errors.country?.message}
-              placeholder="País"
+              placeholder={t('countryPlaceholder')}
             />
           </div>
         </div>
         <div className="pt-4">
           <Button type="submit" fullWidth isLoading={isPending}>
-            Registrar Edificio
+            {t('registerBuilding')}
           </Button>
         </div>
       </form>

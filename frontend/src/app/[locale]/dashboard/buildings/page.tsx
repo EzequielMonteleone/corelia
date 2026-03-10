@@ -15,6 +15,7 @@ import {
   useDeleteBuilding,
 } from '@/hooks/useBuildings';
 import {BuildingFormValues} from '@/schemas/building';
+import {useTranslations} from 'next-intl';
 
 export default function BuildingsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +24,8 @@ export default function BuildingsPage() {
   const {data: buildings, isLoading} = useBuildings();
   const createMutation = useCreateBuilding();
   const deleteMutation = useDeleteBuilding();
+  const t = useTranslations('Buildings');
+  const tCommon = useTranslations('Common');
 
   const filteredBuildings = useMemo(
     () =>
@@ -48,18 +51,18 @@ export default function BuildingsPage() {
   return (
     <div className="p-8">
       <PageHeader
-        title="Edificios"
-        description="Gestiona las propiedades y su información general.">
+        title={t('title')}
+        description={t('description')}>
         <Button onClick={() => setIsModalOpen(true)} className="gap-2">
           <Plus className="w-5 h-5" />
-          Registrar Edificio
+          {t('registerBuilding')}
         </Button>
       </PageHeader>
 
       <div className="mb-6 max-w-md">
         <Input
           type="text"
-          placeholder="Buscar por nombre o dirección..."
+          placeholder={t('searchPlaceholder')}
           icon={<Search className="w-5 h-5" />}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -67,7 +70,7 @@ export default function BuildingsPage() {
       </div>
 
       {isLoading ? (
-        <LoadingState message="Cargando edificios..." />
+        <LoadingState message={t('loading')} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredBuildings?.map(building => (
@@ -88,11 +91,7 @@ export default function BuildingsPage() {
                     size="icon"
                     className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400"
                     onClick={() => {
-                      if (
-                        confirm(
-                          '¿Estás seguro de que deseas eliminar este edificio?',
-                        )
-                      ) {
+                      if (confirm(t('deleteConfirm'))) {
                         deleteMutation.mutate(building.id);
                       }
                     }}>
@@ -119,10 +118,10 @@ export default function BuildingsPage() {
 
               <div className="mt-6 pt-6 border-t border-white/5 flex justify-between items-center">
                 <Badge intent={building.active ? 'success' : 'danger'}>
-                  {building.active ? 'Activo' : 'Inactivo'}
+                  {building.active ? tCommon('active') : tCommon('inactive')}
                 </Badge>
                 <button className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors">
-                  Ver Detalles →
+                  {tCommon('seeDetails')} →
                 </button>
               </div>
             </Card>
@@ -130,7 +129,7 @@ export default function BuildingsPage() {
 
           {!filteredBuildings?.length && (
             <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
-              <p className="text-gray-500">No se encontraron edificios.</p>
+              <p className="text-gray-500">{t('empty')}</p>
             </div>
           )}
         </div>
