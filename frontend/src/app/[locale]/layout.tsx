@@ -5,7 +5,8 @@ import QueryProvider from '@/components/providers/query-provider';
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, getTranslations} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-import { locales } from '@/i18n/config';
+import {locales} from '@/i18n/config';
+import {ReactNode} from 'react';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -34,7 +35,7 @@ export default async function RootLayout({
   children,
   params,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   params: Promise<{locale: string}>;
 }) {
   const {locale} = await params;

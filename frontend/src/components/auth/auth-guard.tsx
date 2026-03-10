@@ -2,9 +2,9 @@
 
 import {useAuthStore} from '@/store/authStore';
 import {useRouter} from '@/i18n/navigation';
-import {useEffect} from 'react';
+import {ReactNode, useEffect} from 'react';
 
-export default function AuthGuard({children}: {children: React.ReactNode}) {
+export default function AuthGuard({children}: {children: ReactNode}) {
   const {isAuthenticated, _hasHydrated} = useAuthStore();
   const router = useRouter();
 

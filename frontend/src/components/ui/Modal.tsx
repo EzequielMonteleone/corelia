@@ -1,12 +1,13 @@
 import * as React from 'react';
 import {X} from 'lucide-react';
 import {cn} from '@/lib/utils';
+import {ReactNode} from 'react';
 
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }
 
