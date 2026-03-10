@@ -1,21 +1,22 @@
 'use client';
 
-import {useState} from 'react';
-import {useForm} from 'react-hook-form';
-import {zodResolver} from '@hookform/resolvers/zod';
+import {useCallback, useState} from 'react';
 import {
   ShieldCheck,
   Plus,
   Key,
   ChevronRight,
-  Loader2,
   Trash2,
   Edit,
-  X,
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
+import {Button} from '@/components/ui/Button';
+import {Card} from '@/components/ui/Card';
+import {LoadingState} from '@/components/ui/LoadingState';
+import {PageHeader} from '@/components/dashboard/PageHeader';
+import {RoleModal} from '@/components/dashboard/roles/RoleModal';
 import {
   useRoles,
   usePermissions,
@@ -24,93 +25,89 @@ import {
   useDeleteRole,
 } from '@/hooks/useRoles';
 import {Role} from '@/types/role';
-import {roleSchema, RoleFormValues} from '@/schemas/role';
+import {RoleFormValues} from '@/schemas/role';
 
 export default function RolesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
 
   const {data: roles, isLoading: loadingRoles} = useRoles();
   const {data: permissions} = usePermissions();
   const createMutation = useCreateRole();
-  const updateMutation = useUpdateRole(selectedRole?.id || '');
+  const updateMutation = useUpdateRole(editingRole?.id || '');
   const deleteMutation = useDeleteRole();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: {errors},
-  } = useForm<RoleFormValues>({
-    resolver: zodResolver(roleSchema),
-  });
+  const handleOpenCreateModal = useCallback(() => {
+    setEditingRole(null);
+    setIsModalOpen(true);
+  }, []);
 
-  const onSubmit = (data: RoleFormValues) => {
-    if (isEditModalOpen && selectedRole) {
-      updateMutation.mutate(data, {
-        onSuccess: updatedRole => {
-          setIsEditModalOpen(false);
-          setSelectedRole(updatedRole);
-          reset();
-        },
-      });
-    } else {
-      createMutation.mutate(data, {
-        onSuccess: () => {
-          setIsModalOpen(false);
-          reset();
-        },
-      });
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este rol?')) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          setSelectedRole(null);
-        },
-      });
-    }
-  };
-
-  const handleEditClick = () => {
+  const handleOpenEditModal = useCallback(() => {
     if (selectedRole) {
-      setValue('name', selectedRole.name);
-      setValue('description', selectedRole.description || '');
-      setIsEditModalOpen(true);
+      setEditingRole(selectedRole);
+      setIsModalOpen(true);
     }
-  };
+  }, [selectedRole]);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setEditingRole(null);
+  }, []);
+
+  const onSubmit = useCallback(
+    (data: RoleFormValues) => {
+      if (editingRole) {
+        updateMutation.mutate(data, {
+          onSuccess: updatedRole => {
+            handleCloseModal();
+            setSelectedRole(updatedRole);
+          },
+        });
+      } else {
+        createMutation.mutate(data, {
+          onSuccess: () => {
+            handleCloseModal();
+          },
+        });
+      }
+    },
+    [createMutation, updateMutation, editingRole, handleCloseModal],
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (window.confirm('¿Estás seguro de que deseas eliminar este rol?')) {
+        deleteMutation.mutate(id, {
+          onSuccess: () => {
+            setSelectedRole(null);
+          },
+        });
+      }
+    },
+    [deleteMutation],
+  );
 
   return (
     <div className="p-8">
-      <header className="flex justify-between items-center mb-12">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-            Roles y Permisos
-          </h1>
-          <p className="text-gray-400">
-            Configura los niveles de acceso y permisos granulares del sistema.
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setIsModalOpen(true);
-            reset();
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl transition-all shadow-lg shadow-purple-500/20 font-medium">
+      <PageHeader
+        title="Roles y Permisos"
+        description="Configura los niveles de acceso y permisos granulares del sistema."
+        titleClassName="tracking-tight"
+        className="mb-12">
+        <Button
+          onClick={handleOpenCreateModal}
+          className="gap-2 bg-purple-500 hover:bg-purple-600 shadow-purple-500/20">
           <Plus className="w-5 h-5" />
           Crear Nuevo Rol
-        </button>
-      </header>
+        </Button>
+      </PageHeader>
 
       {loadingRoles ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
-          <p className="text-gray-400 font-medium">Cargando roles...</p>
-        </div>
+        <LoadingState
+          message="Cargando roles..."
+          iconClassName="text-purple-500"
+        />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Roles List */}
@@ -119,11 +116,11 @@ export default function RolesPage() {
               Listado de Roles
             </h2>
             {roles?.map(role => (
-              <div
+              <Card
                 key={role.id}
                 onClick={() => setSelectedRole(role)}
                 className={cn(
-                  'p-5 rounded-2xl border transition-all cursor-pointer flex justify-between items-center group',
+                  'p-5 cursor-pointer flex justify-between items-center group',
                   selectedRole?.id === role.id
                     ? 'bg-purple-500/10 border-purple-500/50 text-purple-400'
                     : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20',
@@ -150,14 +147,14 @@ export default function RolesPage() {
                       : 'group-hover:translate-x-1',
                   )}
                 />
-              </div>
+              </Card>
             ))}
           </div>
 
           {/* Permissions View */}
           <div className="lg:col-span-2">
             {selectedRole ? (
-              <div className="bg-white/5 border border-white/10 rounded-3xl p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+              <Card className="p-8 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex justify-between items-start mb-8">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
@@ -174,19 +171,21 @@ export default function RolesPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={handleEditClick}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl transition-all font-medium text-sm">
+                    <Button
+                      intent="outline"
+                      onClick={handleOpenEditModal}
+                      className="gap-2 text-sm">
                       <Edit className="w-4 h-4" />
                       Editar Rol
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      intent="destructive"
                       onClick={() => handleDelete(selectedRole.id)}
                       disabled={deleteMutation.isPending}
-                      className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 rounded-xl transition-all font-medium text-sm disabled:opacity-50">
+                      className="gap-2 text-sm">
                       <Trash2 className="w-4 h-4" />
                       {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -224,7 +223,7 @@ export default function RolesPage() {
                     })}
                   </div>
                 </div>
-              </div>
+              </Card>
             ) : (
               <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl p-12 text-center">
                 <div className="p-4 bg-white/5 rounded-full mb-4">
@@ -243,85 +242,13 @@ export default function RolesPage() {
         </div>
       )}
 
-      {/* Modal for Creation/Edition */}
-      {(isModalOpen || isEditModalOpen) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-[#121212] border border-white/10 rounded-3xl p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">
-                {isEditModalOpen ? 'Editar Rol' : 'Nuevo Rol'}
-              </h2>
-              <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setIsEditModalOpen(false);
-                }}
-                className="p-2 text-gray-500 hover:text-white transition-colors">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <p className="text-gray-400 mb-6">
-              {isEditModalOpen
-                ? 'Modifica los detalles del rol.'
-                : 'Define un nuevo rol y selecciona los permisos básicos.'}
-            </p>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">
-                  Nombre del Rol
-                </label>
-                <input
-                  {...register('name')}
-                  className={cn(
-                    'w-full bg-white/5 border rounded-xl p-3 text-white focus:outline-none transition-all',
-                    errors.name
-                      ? 'border-red-500/50 focus:border-red-500'
-                      : 'border-white/10 focus:border-purple-500/50',
-                  )}
-                  placeholder="Ej: Administrador Jr"
-                />
-                {errors.name && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">
-                  Descripción
-                </label>
-                <textarea
-                  {...register('description')}
-                  className={cn(
-                    'w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500/50 h-24',
-                    errors.description && 'border-red-500/50',
-                  )}
-                  placeholder="Describe brevemente el propósito de este rol..."
-                />
-                {errors.description && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {errors.description.message}
-                  </p>
-                )}
-              </div>
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={
-                    createMutation.isPending || updateMutation.isPending
-                  }
-                  className="w-full py-4 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold transition-all disabled:opacity-50">
-                  {createMutation.isPending || updateMutation.isPending
-                    ? 'Guardando...'
-                    : isEditModalOpen
-                      ? 'Guardar Cambios'
-                      : 'Crear Rol'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <RoleModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={onSubmit}
+        isPending={createMutation.isPending || updateMutation.isPending}
+        initialData={editingRole}
+      />
     </div>
   );
 }

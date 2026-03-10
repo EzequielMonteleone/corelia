@@ -1,6 +1,8 @@
 'use client';
 
 import {useAuthStore} from '@/store/authStore';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 export default function DashboardPage() {
   const {user, logout} = useAuthStore();
@@ -18,38 +20,39 @@ export default function DashboardPage() {
               {user ? `${user.firstName} ${user.lastName}` : ''}
             </p>
           </div>
-          <button
+          <Button
+            intent="destructive"
             onClick={logout}
-            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg transition-all">
+          >
             Cerrar Sesión
-          </button>
+          </Button>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-blue-500/50 transition-all cursor-pointer group">
+          <Card className="p-6 hover:border-blue-500/50 cursor-pointer">
             <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-400">
               Edificios
             </h3>
             <p className="text-gray-400 text-sm">
               Gestiona las propiedades y unidades registradas.
             </p>
-          </div>
-          <div className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-indigo-500/50 transition-all cursor-pointer group">
+          </Card>
+          <Card className="p-6 hover:border-indigo-500/50 cursor-pointer">
             <h3 className="text-xl font-semibold mb-2 group-hover:text-indigo-400">
               Usuarios
             </h3>
             <p className="text-gray-400 text-sm">
               Administra inquilinos, propietarios y administradores.
             </p>
-          </div>
-          <div className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-purple-500/50 transition-all cursor-pointer group">
+          </Card>
+          <Card className="p-6 hover:border-purple-500/50 cursor-pointer">
             <h3 className="text-xl font-semibold mb-2 group-hover:text-purple-400">
               Pagos
             </h3>
             <p className="text-gray-400 text-sm">
               Control de expensas y estados de cuenta.
             </p>
-          </div>
+          </Card>
         </div>
       </div>
     </main>

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import {useAuthStore} from '@/store/authStore';
 import {cn} from '@/lib/utils';
+import {Button} from '@/components/ui/Button';
 
 const menuItems = [
   {
@@ -84,12 +85,13 @@ export default function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-white/10">
-        <button
+        <Button
+          intent="destructive"
           onClick={logout}
-          className="flex items-center gap-3 w-full px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all group">
+          className="group justify-start gap-3 w-full py-6 bg-transparent hover:bg-red-500/10">
           <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
           <span className="font-medium">Cerrar Sesión</span>
-        </button>
+        </Button>
       </div>
     </aside>
   );

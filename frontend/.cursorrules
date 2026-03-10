@@ -1,0 +1,29 @@
+# Reglas del Proyecto Corelia (Frontend)
+
+Este archivo define los estándares de arquitectura, rendimiento y legibilidad para el desarrollo del frontend de Corelia. Cualquier código nuevo o refactorizado debe apegarse estrictamente a estas directrices.
+
+## 1. Arquitectura y Componentización
+- **Regla del Tamaño Máximo**: Ningún componente o archivo `.tsx` debe exceder las **150 a 200 líneas** de código.
+- **Divide y Vencerás**: Si un componente supera el límite o tiene responsabilidades múltiples, DEBE dividirse en sub-componentes más pequeños. (Ej: Separar la Cabecera, la Tabla y los Modales de un `Page.tsx`).
+- **UI Reutilizable**: Todo elemento de interfaz estándar (botones, inputs, tarjetas, badges, modales) debe extraerse a `/src/components/ui/` utilizando `cva`, `clsx` y `tailwind-merge`. Está estrictamente prohibido usar cadenas gigantes de clases Tailwind en componentes de negocio.
+- **Archivos de Negocio vs UI**: Los archivos en `/app` solo deben orquestar la vista. La lógica de UI debe vivir en `/components`, y la lógica de estado o peticiones en `/hooks`.
+
+## 2. Rendimiento (Performance) en React
+- **`useMemo`**: Utilizar para envolver cualquier cálculo costoso o derivación de arreglos (como listas filtradas, mapeos pesados o transformaciones de datos del backend) para evitar recálculos en cada render.
+- **`useCallback`**: Envolver funciones que se pasan como props a componentes hijos altamente optimizados para evitar re-renderizados innecesarios del DOM.
+- **Memoización de Componentes**: Si un componente hijo renderiza listas grandes o elementos estáticos, usar `React.memo` si su padre cambia de estado muy a menudo.
+
+## 3. Manejo de Estado y Datos
+- **Server State (TanStack Query)**: Todas las peticiones al backend (caché, loading, re-intentos, re-validaciones) DEBEN gestionarse con los hooks personalizados de `useQuery` o `useMutation`. Ningún componente debe hacer `axios.get` o `fetch` suelto en un `useEffect`.
+- **Client State (Zustand)**: El estado local que necesita acceso global (Ej: Sesión del usuario, configuraciones visuales globales) debe vivir en las stores de Zustand de `/src/store`.
+- **Limitar `useEffect`**: Evitar el uso de `useEffect` para sincronizar estados. Si un estado puede derivarse matemáticamente de otro durante el renderizado, hazlo directamente (o usa `useMemo`).
+
+## 4. Tipado (TypeScript)
+- **Cero `any`**: Está prohibido utilizar el tipado implícito o explícito de `any`. Todo debe estar tipado mediante `interfaces` o `types`.
+- **Zod para Formularios**: Toda entrada de datos del usuario debe validarse contra un esquema de Zod en `/schemas` antes de tocar mutaciones de API.
+- **Tipos del Backend**: Mantener las interfaces TypeScript (`/types`) siempre en sincronía milimétrica con la respuesta real del backend para evitar crashes de "undefined".
+
+## 5. Limpieza y Estilos
+- **Early Returns**: Evita anidamiento profundo (Callback hell / If hell). Retorna rápido si la condición de fallo se cumple.
+- **Imports Limpios**: Agrupar imports: Primero librerías externas (react, next, lucide), luego Alias internos (`@/components`), por último rutas relativas. Borrar cualquier import no utilizado.
+- **Nombres Descriptivos**: Las funciones de manejo de eventos deben empezar con `handle` (Ej: `handleDeleteModal`), y las booleanas con `is`, `has` o `can` (Ej: `isModalOpen`, `hasPermission`).
