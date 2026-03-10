@@ -27,3 +27,7 @@ Este archivo define los estándares de arquitectura, rendimiento y legibilidad p
 - **Early Returns**: Evita anidamiento profundo (Callback hell / If hell). Retorna rápido si la condición de fallo se cumple.
 - **Imports Limpios**: Agrupar imports: Primero librerías externas (react, next, lucide), luego Alias internos (`@/components`), por último rutas relativas. Borrar cualquier import no utilizado.
 - **Nombres Descriptivos**: Las funciones de manejo de eventos deben empezar con `handle` (Ej: `handleDeleteModal`), y las booleanas con `is`, `has` o `can` (Ej: `isModalOpen`, `hasPermission`).
+- **`function` vs `const`**: 
+    - Preferir `const` con **Arrow Functions** para Hooks, Componentes y funciones internas. Esto asegura un `this` léxico y evita reasignaciones.
+    - Usar `function` solo cuando se necesite expresamente **Hoisting** o un contexto de `this` dinámico (poco común en este proyecto).
+    - Mantener consistencia: si un archivo usa `const` para componentes, no mezclar con `function`.

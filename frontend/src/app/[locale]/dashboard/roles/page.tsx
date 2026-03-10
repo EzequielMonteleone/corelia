@@ -29,19 +29,21 @@ import {RoleFormValues} from '@/schemas/role';
 
 export default function RolesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
 
   const {data: roles, isLoading: loadingRoles} = useRoles();
   const {data: permissions} = usePermissions();
   const createMutation = useCreateRole();
-  const updateMutation = useUpdateRole(editingRole?.id || '');
+  const updateMutation = useUpdateRole();
   const deleteMutation = useDeleteRole();
+
+  const selectedRole = roles?.find(r => r.id === selectedRoleId) || null;
 
   const handleOpenCreateModal = useCallback(() => {
     setEditingRole(null);
     setIsModalOpen(true);
-  }, []);
+  }, [setIsModalOpen]);
 
   const handleOpenEditModal = useCallback(() => {
     if (selectedRole) {
@@ -53,17 +55,19 @@ export default function RolesPage() {
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setEditingRole(null);
-  }, []);
+  }, [setIsModalOpen]);
 
   const onSubmit = useCallback(
     (data: RoleFormValues) => {
       if (editingRole) {
-        updateMutation.mutate(data, {
-          onSuccess: updatedRole => {
-            handleCloseModal();
-            setSelectedRole(updatedRole);
+        updateMutation.mutate(
+          {id: editingRole.id, ...data},
+          {
+            onSuccess: () => {
+              handleCloseModal();
+            },
           },
-        });
+        );
       } else {
         createMutation.mutate(data, {
           onSuccess: () => {
@@ -80,12 +84,34 @@ export default function RolesPage() {
       if (window.confirm('¿Estás seguro de que deseas eliminar este rol?')) {
         deleteMutation.mutate(id, {
           onSuccess: () => {
-            setSelectedRole(null);
+            setSelectedRoleId(null);
           },
         });
       }
     },
     [deleteMutation],
+  );
+
+  const togglePermission = useCallback(
+    (permissionId: string) => {
+      if (!selectedRole) return;
+
+      const currentPermissionIds =
+        selectedRole.rolePermissions?.map(rp => rp.permission.id) || [];
+      const hasPermission = currentPermissionIds.includes(permissionId);
+
+      const newPermissionIds = hasPermission
+        ? currentPermissionIds.filter(id => id !== permissionId)
+        : [...currentPermissionIds, permissionId];
+
+      updateMutation.mutate({
+        id: selectedRole.id,
+        name: selectedRole.name,
+        description: selectedRole.description,
+        permissionIds: newPermissionIds,
+      });
+    },
+    [selectedRole, updateMutation],
   );
 
   return (
@@ -118,10 +144,10 @@ export default function RolesPage() {
             {roles?.map(role => (
               <Card
                 key={role.id}
-                onClick={() => setSelectedRole(role)}
+                onClick={() => setSelectedRoleId(role.id)}
                 className={cn(
                   'p-5 cursor-pointer flex justify-between items-center group',
-                  selectedRole?.id === role.id
+                  selectedRoleId === role.id
                     ? 'bg-purple-500/10 border-purple-500/50 text-purple-400'
                     : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20',
                 )}>
@@ -142,7 +168,7 @@ export default function RolesPage() {
                 <ChevronRight
                   className={cn(
                     'w-5 h-5 transition-transform',
-                    selectedRole?.id === role.id
+                    selectedRoleId === role.id
                       ? 'rotate-90 text-purple-400'
                       : 'group-hover:translate-x-1',
                   )}
@@ -202,11 +228,14 @@ export default function RolesPage() {
                       return (
                         <div
                           key={permission.id}
+                          onClick={() => togglePermission(permission.id)}
                           className={cn(
-                            'flex items-center justify-between p-4 rounded-xl border transition-all',
+                            'flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer select-none',
                             hasPermission
-                              ? 'bg-purple-500/5 border-purple-500/20 text-white'
-                              : 'bg-black/20 border-white/5 text-gray-600 grayscale',
+                              ? 'bg-purple-500/5 border-purple-500/20 text-white hover:bg-purple-500/10'
+                              : 'bg-black/20 border-white/5 text-gray-600 grayscale hover:grayscale-0 hover:border-white/20',
+                            updateMutation.isPending &&
+                              'opacity-50 pointer-events-none',
                           )}>
                           <div>
                             <div className="font-semibold text-sm">

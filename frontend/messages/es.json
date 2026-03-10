@@ -1,0 +1,30 @@
+{
+  "Index": {
+    "title": "La nueva era en administración de edificios",
+    "description": "Centraliza gastos, unidades y comunidad en una plataforma diseñada para la excelencia visual y operativa.",
+    "cta": "Comenzar Ahora",
+    "demo": "Ver Demo",
+    "badge": "ESTADO DEL ARTE EN GESTIÓN",
+    "features": {
+      "units": "Gestión de Unidades",
+      "unitsDesc": "Control total sobre cada propiedad con perfiles detallados de inquilinos y propietarios.",
+      "security": "Seguridad Avanzada",
+      "securityDesc": "Acceso basado en roles y protección de datos con los estándares más altos de la industria.",
+      "payments": "Pagos Digitales",
+      "paymentsDesc": "Automatización de expensas y conciliación de pagos en tiempo real sin fricciones."
+    }
+  },
+  "Common": {
+    "title": "Corelia",
+    "dashboard": "Panel de Control",
+    "login": "Iniciar Sesión",
+    "roles": "Roles",
+    "users": "Usuarios",
+    "buildings": "Edificios",
+    "logout": "Cerrar Sesión"
+  },
+  "Dashboard": {
+    "welcome": "Bienvenido, {name}",
+    "rolesDescription": "Gestiona los roles y permisos de tu organización."
+  }
+}

@@ -39,7 +39,10 @@ export async function createRole(
       });
     }
 
-    return role;
+    return tx.role.findUnique({
+      where: {id: role.id},
+      include: roleInclude,
+    });
   });
 }
 
@@ -74,7 +77,10 @@ export async function updateRole(
       }
     }
 
-    return role;
+    return tx.role.findUnique({
+      where: {id},
+      include: roleInclude,
+    });
   });
 }
 

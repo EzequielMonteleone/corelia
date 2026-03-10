@@ -35,11 +35,12 @@ export function useCreateRole() {
     },
   });
 }
-export function useUpdateRole(id: string) {
+
+export function useUpdateRole() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (updatedRole: RoleFormValues) => {
-      const res = await apiClient.put(`/roles/${id}`, updatedRole);
+    mutationFn: async ({id, ...data}: RoleFormValues & {id: string}) => {
+      const res = await apiClient.put(`/roles/${id}`, data);
       return res.data;
     },
     onSuccess: () => {

@@ -1,0 +1,30 @@
+{
+  "Index": {
+    "title": "The new era in building management",
+    "description": "Centralize expenses, units, and community in a platform designed for visual and operational excellence.",
+    "cta": "Get Started",
+    "demo": "Watch Demo",
+    "badge": "STATE OF THE ART IN MANAGEMENT",
+    "features": {
+      "units": "Unit Management",
+      "unitsDesc": "Total control over each property with detailed tenant and owner profiles.",
+      "security": "Advanced Security",
+      "securityDesc": "Role-based access and data protection with the industry's highest standards.",
+      "payments": "Digital Payments",
+      "paymentsDesc": "Expense automation and real-time payment reconciliation without friction."
+    }
+  },
+  "Common": {
+    "title": "Corelia",
+    "dashboard": "Dashboard",
+    "login": "Login",
+    "roles": "Roles",
+    "users": "Users",
+    "buildings": "Buildings",
+    "logout": "Logout"
+  },
+  "Dashboard": {
+    "welcome": "Welcome, {name}",
+    "rolesDescription": "Manage your organization's roles and permissions."
+  }
+}
