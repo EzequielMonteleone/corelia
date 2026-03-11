@@ -1,19 +1,27 @@
 'use client';
 
+import {useCallback, useEffect} from 'react';
 import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {buildingSchema, BuildingFormValues} from '@/schemas/building';
 import {Modal} from '@/components/ui/Modal';
 import {Input} from '@/components/ui/Input';
 import {Button} from '@/components/ui/Button';
-import {useCallback} from 'react';
 import {useTranslations} from 'next-intl';
+
+const emptyValues: BuildingFormValues = {
+  name: '',
+  address: '',
+  city: '',
+  country: '',
+};
 
 interface BuildingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: BuildingFormValues) => void;
   isPending?: boolean;
+  initialValues?: BuildingFormValues;
 }
 
 export function BuildingModal({
@@ -21,6 +29,7 @@ export function BuildingModal({
   onClose,
   onSubmit,
   isPending,
+  initialValues,
 }: BuildingModalProps) {
   const t = useTranslations('Buildings');
   const {
@@ -30,7 +39,14 @@ export function BuildingModal({
     formState: {errors},
   } = useForm<BuildingFormValues>({
     resolver: zodResolver(buildingSchema),
+    defaultValues: emptyValues,
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      reset(initialValues ?? emptyValues);
+    }
+  }, [isOpen, initialValues, reset]);
 
   const handleFormSubmit = useCallback(
     (data: BuildingFormValues) => {
@@ -40,12 +56,16 @@ export function BuildingModal({
   );
 
   const handleClose = useCallback(() => {
-    reset();
+    reset(emptyValues);
     onClose();
   }, [reset, onClose]);
 
+  const isEdit = !!initialValues;
+  const modalTitle = isEdit ? t('modalEditTitle') : t('modalTitle');
+  const submitLabel = isEdit ? t('saveChanges') : t('registerBuilding');
+
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={t('modalTitle')}>
+    <Modal isOpen={isOpen} onClose={handleClose} title={modalTitle}>
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-1.5">
@@ -91,7 +111,7 @@ export function BuildingModal({
         </div>
         <div className="pt-4">
           <Button type="submit" fullWidth isLoading={isPending}>
-            {t('registerBuilding')}
+            {submitLabel}
           </Button>
         </div>
       </form>

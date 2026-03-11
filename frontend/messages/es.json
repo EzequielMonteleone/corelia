@@ -27,7 +27,8 @@
     "active": "Activo",
     "inactive": "Inactivo",
     "noDescription": "Sin descripción",
-    "seeDetails": "Ver Detalles"
+    "seeDetails": "Ver Detalles",
+    "back": "Volver"
   },
   "Dashboard": {
     "welcome": "Bienvenido de nuevo, {name}",
@@ -95,6 +96,8 @@
     "empty": "No se encontraron edificios.",
     "deleteConfirm": "¿Estás seguro de que deseas eliminar este edificio?",
     "modalTitle": "Nuevo Edificio",
+    "modalEditTitle": "Editar Edificio",
+    "saveChanges": "Guardar Cambios",
     "name": "Nombre",
     "namePlaceholder": "Nombre del edificio",
     "address": "Dirección",
@@ -102,7 +105,10 @@
     "city": "Ciudad",
     "cityPlaceholder": "Ciudad",
     "country": "País",
-    "countryPlaceholder": "País"
+    "countryPlaceholder": "País",
+    "notFound": "Edificio no encontrado.",
+    "backToList": "Volver al listado",
+    "taxId": "CUIT / NIF"
   },
   "Sidebar": {
     "rolesAndPermissions": "Roles y Permisos"

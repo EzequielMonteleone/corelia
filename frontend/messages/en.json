@@ -27,7 +27,8 @@
     "active": "Active",
     "inactive": "Inactive",
     "noDescription": "No description",
-    "seeDetails": "View Details"
+    "seeDetails": "View Details",
+    "back": "Back"
   },
   "Dashboard": {
     "welcome": "Welcome back, {name}",
@@ -95,6 +96,8 @@
     "empty": "No buildings found.",
     "deleteConfirm": "Are you sure you want to delete this building?",
     "modalTitle": "New Building",
+    "modalEditTitle": "Edit Building",
+    "saveChanges": "Save Changes",
     "name": "Name",
     "namePlaceholder": "Building name",
     "address": "Address",
@@ -102,7 +105,10 @@
     "city": "City",
     "cityPlaceholder": "City",
     "country": "Country",
-    "countryPlaceholder": "Country"
+    "countryPlaceholder": "Country",
+    "notFound": "Building not found.",
+    "backToList": "Back to list",
+    "taxId": "Tax ID"
   },
   "Sidebar": {
     "rolesAndPermissions": "Roles and Permissions"

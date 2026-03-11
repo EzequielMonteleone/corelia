@@ -27,9 +27,9 @@ function useMenuItems() {
       icon: Building2,
       label: tCommon('buildings'),
       href: '/dashboard/buildings',
-      roles: ['admin'],
+      roles: ['admin', 'owner'],
     },
-    {icon: Users, label: tCommon('users'), href: '/dashboard/users', roles: ['admin']},
+    {icon: Users, label: tCommon('users'), href: '/dashboard/users', roles: ['admin', 'owner']},
     {
       icon: ShieldCheck,
       label: tSidebar('rolesAndPermissions'),

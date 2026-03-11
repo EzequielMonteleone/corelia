@@ -10,6 +10,7 @@ import {
   createUserWithRole,
   getAllUsers,
   getUsersByBuildings,
+  getRoomersByBuildings,
   updateUser,
   deleteUser,
 } from '../services/userService.js';
@@ -36,17 +37,27 @@ router.get(
         return res.json(users);
       }
 
-      // If not SuperAdmin, check if they are Admin in any building
-      const managedBuildingIds = user.buildingUsers
+      // Admin: users from buildings where they are Admin
+      const adminBuildingIds = user.buildingUsers
         .filter(bu => bu.role.name === 'Admin')
         .map(bu => bu.buildingId);
 
-      if (managedBuildingIds.length === 0) {
-        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      if (adminBuildingIds.length > 0) {
+        const users = await getUsersByBuildings(adminBuildingIds);
+        return res.json(users);
       }
 
-      const users = await getUsersByBuildings(managedBuildingIds);
-      res.json(users);
+      // Owner: only roomers from buildings where they are Owner
+      const ownerBuildingIds = user.buildingUsers
+        .filter(bu => bu.role.name === 'Owner')
+        .map(bu => bu.buildingId);
+
+      if (ownerBuildingIds.length > 0) {
+        const users = await getRoomersByBuildings(ownerBuildingIds);
+        return res.json(users);
+      }
+
+      return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
     } catch (err) {
       next(err);
     }

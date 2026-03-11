@@ -12,17 +12,27 @@ import {BuildingModal} from '@/components/dashboard/buildings/BuildingModal';
 import {
   useBuildings,
   useCreateBuilding,
+  useUpdateBuilding,
   useDeleteBuilding,
 } from '@/hooks/useBuildings';
 import {BuildingFormValues} from '@/schemas/building';
 import {useTranslations} from 'next-intl';
+import {Link} from '@/i18n/navigation';
 
 export default function BuildingsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBuilding, setEditingBuilding] = useState<{
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    country: string;
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const {data: buildings, isLoading} = useBuildings();
   const createMutation = useCreateBuilding();
+  const updateMutation = useUpdateBuilding();
   const deleteMutation = useDeleteBuilding();
   const t = useTranslations('Buildings');
   const tCommon = useTranslations('Common');
@@ -37,15 +47,40 @@ export default function BuildingsPage() {
     [buildings, searchQuery],
   );
 
-  const handleCreateBuilding = useCallback(
-    (data: BuildingFormValues) => {
-      createMutation.mutate(data, {
-        onSuccess: () => {
-          setIsModalOpen(false);
-        },
-      });
+  const handleOpenCreate = useCallback(() => {
+    setEditingBuilding(null);
+    setIsModalOpen(true);
+  }, []);
+
+  const handleOpenEdit = useCallback(
+    (building: {id: string; name: string; address: string; city: string; country: string}) => {
+      setEditingBuilding(building);
+      setIsModalOpen(true);
     },
-    [createMutation],
+    [],
+  );
+
+  const handleSubmitBuilding = useCallback(
+    (data: BuildingFormValues) => {
+      if (editingBuilding) {
+        updateMutation.mutate(
+          {id: editingBuilding.id, ...data},
+          {
+            onSuccess: () => {
+              setEditingBuilding(null);
+              setIsModalOpen(false);
+            },
+          },
+        );
+      } else {
+        createMutation.mutate(data, {
+          onSuccess: () => {
+            setIsModalOpen(false);
+          },
+        });
+      }
+    },
+    [editingBuilding, createMutation, updateMutation],
   );
 
   return (
@@ -53,7 +88,7 @@ export default function BuildingsPage() {
       <PageHeader
         title={t('title')}
         description={t('description')}>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+        <Button onClick={handleOpenCreate} className="gap-2">
           <Plus className="w-5 h-5" />
           {t('registerBuilding')}
         </Button>
@@ -83,7 +118,9 @@ export default function BuildingsPage() {
                   <Button
                     intent="ghost"
                     size="icon"
-                    className="w-8 h-8 rounded-full">
+                    className="w-8 h-8 rounded-full"
+                    onClick={() => handleOpenEdit(building)}
+                    aria-label={t('modalEditTitle')}>
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button
@@ -120,9 +157,11 @@ export default function BuildingsPage() {
                 <Badge intent={building.active ? 'success' : 'danger'}>
                   {building.active ? tCommon('active') : tCommon('inactive')}
                 </Badge>
-                <button className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+                <Link
+                  href={`/dashboard/buildings/${building.id}`}
+                  className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors">
                   {tCommon('seeDetails')} →
-                </button>
+                </Link>
               </div>
             </Card>
           ))}
@@ -137,9 +176,22 @@ export default function BuildingsPage() {
 
       <BuildingModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleCreateBuilding}
-        isPending={createMutation.isPending}
+        onClose={() => {
+          setEditingBuilding(null);
+          setIsModalOpen(false);
+        }}
+        onSubmit={handleSubmitBuilding}
+        isPending={createMutation.isPending || updateMutation.isPending}
+        initialValues={
+          editingBuilding
+            ? {
+                name: editingBuilding.name,
+                address: editingBuilding.address,
+                city: editingBuilding.city,
+                country: editingBuilding.country,
+              }
+            : undefined
+        }
       />
     </div>
   );

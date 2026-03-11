@@ -7,6 +7,17 @@ export async function getAllBuildings() {
   });
 }
 
+export async function getBuildingsByIds(buildingIds: string[]) {
+  if (buildingIds.length === 0) return [];
+  return await prisma.building.findMany({
+    where: {
+      id: {in: buildingIds},
+      active: true,
+    },
+    orderBy: {createdAt: 'desc'},
+  });
+}
+
 export async function getBuildingById(id: string) {
   return await prisma.building.findUnique({
     where: {id},

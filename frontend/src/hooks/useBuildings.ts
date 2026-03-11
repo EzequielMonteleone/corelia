@@ -12,6 +12,18 @@ export function useBuildings() {
   });
 }
 
+export function useBuilding(id: string | null) {
+  return useQuery<Building | null>({
+    queryKey: ['buildings', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const res = await apiClient.get(`/buildings/${id}`);
+      return res.data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useCreateBuilding() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -21,6 +33,23 @@ export function useCreateBuilding() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['buildings']});
+    },
+  });
+}
+
+export function useUpdateBuilding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...data
+    }: {id: string} & Partial<Building>) => {
+      const res = await apiClient.put(`/buildings/${id}`, data);
+      return res.data;
+    },
+    onSuccess: (updated: Building) => {
+      queryClient.invalidateQueries({queryKey: ['buildings']});
+      queryClient.invalidateQueries({queryKey: ['buildings', updated.id]});
     },
   });
 }
