@@ -7,6 +7,8 @@ import meRoutes from './routes/meRoutes.js';
 import buildingRoutes from './routes/buildingRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
+import unitRoutes from './routes/unitRoutes.js';
+import amenityRoutes from './routes/amenityRoutes.js';
 
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'] as const;
 for (const key of requiredEnvVars) {
@@ -25,6 +27,8 @@ app.use('/auth', authRoutes);
 app.use('/buildings', buildingRoutes);
 app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
+app.use('/units', unitRoutes);
+app.use('/amenities', amenityRoutes);
 app.use(meRoutes);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

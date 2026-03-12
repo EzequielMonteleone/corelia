@@ -10,19 +10,37 @@ import {
   Trash2,
   Edit,
   Filter,
+  Eye,
 } from 'lucide-react';
+import {Link} from '@/i18n/navigation';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {Badge} from '@/components/ui/Badge';
 import {LoadingState} from '@/components/ui/LoadingState';
 import {PageHeader} from '@/components/dashboard/PageHeader';
-import {useUsers, useUpdateUser} from '@/hooks/useUsers';
+import {
+  useCreateBuildingUser,
+  useCreateGlobalUser,
+  useDeleteUser,
+  useUsers,
+  useUpdateUser,
+} from '@/hooks/useUsers';
 import {useTranslations} from 'next-intl';
+import {UserModal} from '@/components/dashboard/users/UserModal';
+import {UserData} from '@/types/user';
+import {UserCreateFormValues, UserEditFormValues} from '@/schemas/user';
+import {useAuthStore} from '@/store/authStore';
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const {data: users, isLoading} = useUsers();
   const updateMutation = useUpdateUser();
+  const createGlobalMutation = useCreateGlobalUser();
+  const createBuildingMutation = useCreateBuildingUser();
+  const deleteMutation = useDeleteUser();
+  const actor = useAuthStore(state => state.user);
   const t = useTranslations('Users');
   const tCommon = useTranslations('Common');
 
@@ -38,6 +56,48 @@ export default function UsersPage() {
     [searchQuery, users],
   );
 
+  const handleCreate = (data: UserCreateFormValues) => {
+    const mutation = data.globalRole === 'SUPERADMIN'
+      ? createGlobalMutation
+      : createBuildingMutation;
+    mutation.mutate(data, {
+      onSuccess: () => {
+        setIsModalOpen(false);
+      },
+      onError: () => {
+        alert(t('createError'));
+      },
+    });
+  };
+
+  const handleEdit = (data: UserEditFormValues) => {
+    if (!editingUser) return;
+    updateMutation.mutate(
+      {
+        id: editingUser.id,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        ...(data.password ? {passwordPlain: data.password} : {}),
+        ...(data.buildingId !== undefined && {
+          buildingId: data.buildingId,
+          roleName: data.roleName,
+          unitIds: data.unitIds ?? [],
+        }),
+      },
+      {
+        onSuccess: () => {
+          setEditingUser(null);
+          setIsModalOpen(false);
+        },
+        onError: () => {
+          alert(t('updateError'));
+        },
+      },
+    );
+  };
+
   return (
     <div className="p-8">
       <PageHeader title={t('title')} description={t('description')}>
@@ -45,7 +105,12 @@ export default function UsersPage() {
           <Filter className="w-5 h-5" />
           {tCommon('filters')}
         </Button>
-        <Button className="gap-2 bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20">
+        <Button
+          className="gap-2 bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
+          onClick={() => {
+            setEditingUser(null);
+            setIsModalOpen(true);
+          }}>
           <Plus className="w-5 h-5" />
           {t('inviteUser')}
         </Button>
@@ -88,12 +153,14 @@ export default function UsersPage() {
                   key={user.id}
                   className="hover:bg-white/[0.02] transition-colors group">
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
+                    <Link
+                      href={`/dashboard/users/${user.id}`}
+                      className="flex items-center gap-3 group/link">
                       <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
                         <User className="w-5 h-5" />
                       </div>
                       <div>
-                        <div className="text-white font-medium">
+                        <div className="text-white font-medium group-hover/link:text-indigo-400 transition-colors">
                           {user.firstName} {user.lastName}
                         </div>
                         <div className="text-gray-500 text-sm flex items-center gap-1">
@@ -101,7 +168,7 @@ export default function UsersPage() {
                           {user.email}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-indigo-400">
@@ -129,18 +196,34 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link
+                        href={`/dashboard/users/${user.id}`}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                        title={tCommon('seeDetails')}>
+                        <Eye className="w-4 h-4" />
+                      </Link>
                       <Button
                         intent="ghost"
                         size="icon"
-                        className="w-8 h-8 rounded-full">
+                        className="w-8 h-8 rounded-full"
+                        onClick={() => {
+                          setEditingUser(user);
+                          setIsModalOpen(true);
+                        }}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button
-                        intent="ghost"
-                        size="icon"
-                        className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {actor?.globalRole === 'SUPERADMIN' && (
+                        <Button
+                          intent="ghost"
+                          size="icon"
+                          className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400"
+                          onClick={() => {
+                            if (!confirm(t('deleteConfirm'))) return;
+                            deleteMutation.mutate(user.id);
+                          }}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -155,6 +238,22 @@ export default function UsersPage() {
           )}
         </div>
       )}
+
+      <UserModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingUser(null);
+        }}
+        editingUser={editingUser}
+        isPending={
+          updateMutation.isPending ||
+          createGlobalMutation.isPending ||
+          createBuildingMutation.isPending
+        }
+        onCreateSubmit={handleCreate}
+        onEditSubmit={handleEdit}
+      />
     </div>
   );
 }

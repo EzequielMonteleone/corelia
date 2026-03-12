@@ -1,25 +1,29 @@
 import {prisma} from '../prismaClient.js';
 import bcrypt from 'bcrypt';
+import {GlobalRole, UnitRelationType} from '@prisma/client';
+
+const userInclude = {
+  buildingUsers: {
+    include: {role: true, building: true},
+  },
+  userUnits: {
+    include: {
+      unit: true,
+    },
+  },
+};
 
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({
     where: {email},
-    include: {
-      buildingUsers: {
-        include: {role: true},
-      },
-    },
+    include: userInclude,
   });
 }
 
 export async function findUserById(id: string) {
   return prisma.user.findUnique({
     where: {id},
-    include: {
-      buildingUsers: {
-        include: {role: true},
-      },
-    },
+    include: userInclude,
   });
 }
 
@@ -33,11 +37,12 @@ export async function createUserWithRole(
   },
   buildingId: string,
   roleId: string,
+  unitIds?: string[],
+  unitRelationType?: UnitRelationType,
 ) {
   const passwordHash = await bcrypt.hash(data.passwordPlain, 10);
 
   return prisma.$transaction(async tx => {
-    // 1. Crear usuario
     const user = await tx.user.create({
       data: {
         email: data.email,
@@ -48,7 +53,6 @@ export async function createUserWithRole(
       },
     });
 
-    // 2. Asociarle el rol en el edificio
     const buildingUser = await tx.buildingUser.create({
       data: {
         userId: user.id,
@@ -60,19 +64,44 @@ export async function createUserWithRole(
       },
     });
 
+    if (unitIds?.length && unitRelationType) {
+      await tx.userUnit.createMany({
+        data: unitIds.map(unitId => ({
+          userId: user.id,
+          unitId,
+          relationType: unitRelationType,
+        })),
+      });
+    }
+
     return {user, buildingUser};
+  });
+}
+
+export async function createGlobalUser(data: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  passwordPlain: string;
+  globalRole: GlobalRole;
+}) {
+  const passwordHash = await bcrypt.hash(data.passwordPlain, 10);
+  return prisma.user.create({
+    data: {
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone ?? null,
+      passwordHash,
+      globalRole: data.globalRole,
+    },
+    include: userInclude,
   });
 }
 export async function getAllUsers() {
   return prisma.user.findMany({
-    include: {
-      buildingUsers: {
-        include: {
-          building: true,
-          role: true,
-        },
-      },
-    },
+    include: userInclude,
   });
 }
 
@@ -87,14 +116,7 @@ export async function getUsersByBuildings(buildingIds: string[]) {
         },
       },
     },
-    include: {
-      buildingUsers: {
-        include: {
-          building: true,
-          role: true,
-        },
-      },
-    },
+    include: userInclude,
   });
 }
 
@@ -109,14 +131,7 @@ export async function getRoomersByBuildings(buildingIds: string[]) {
         },
       },
     },
-    include: {
-      buildingUsers: {
-        include: {
-          building: true,
-          role: true,
-        },
-      },
-    },
+    include: userInclude,
   });
 }
 
@@ -141,7 +156,75 @@ export async function updateUser(
   return prisma.user.update({
     where: {id},
     data: updateData,
+    include: userInclude,
   });
+}
+
+export async function updateUserBuildingAssignment(
+  userId: string,
+  buildingId: string,
+  roleName: string,
+  unitIds: string[],
+) {
+  const role = await prisma.role.findFirst({
+    where: {name: roleName},
+  });
+  if (!role) {
+    throw new Error('INVALID_ROLE_NAME');
+  }
+
+  const unitRelationType =
+    roleName === 'Owner'
+      ? UnitRelationType.OWNER
+      : roleName === 'Roomer'
+        ? UnitRelationType.ROOMER
+        : undefined;
+
+  return prisma.$transaction(async tx => {
+    const existing = await tx.buildingUser.findFirst({
+      where: {userId, buildingId},
+    });
+
+    if (existing) {
+      await tx.buildingUser.update({
+        where: {id: existing.id},
+        data: {roleId: role.id},
+      });
+    } else {
+      await tx.buildingUser.create({
+        data: {
+          userId,
+          buildingId,
+          roleId: role.id,
+        },
+      });
+    }
+
+    const unitsInBuilding = await tx.unit.findMany({
+      where: {buildingId},
+      select: {id: true},
+    });
+    const unitIdsInBuilding = new Set(unitsInBuilding.map(u => u.id));
+
+    await tx.userUnit.deleteMany({
+      where: {
+        userId,
+        unitId: {in: Array.from(unitIdsInBuilding)},
+      },
+    });
+
+    if (unitIds.length > 0 && unitRelationType) {
+      await tx.userUnit.createMany({
+        data: unitIds.map(unitId => ({
+          userId,
+          unitId,
+          relationType: unitRelationType,
+        })),
+      });
+    }
+  });
+
+  return findUserById(userId);
 }
 
 export async function deleteUser(id: string) {

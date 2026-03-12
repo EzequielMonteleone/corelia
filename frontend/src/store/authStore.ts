@@ -2,6 +2,7 @@ import {UserData} from '@/types/user';
 import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
 import {immer} from 'zustand/middleware/immer';
+import {queryClient} from '@/lib/queryClient';
 
 interface AuthState {
   user: UserData | null;
@@ -27,12 +28,14 @@ export const useAuthStore = create<AuthState>()(
             state.token = token;
             state.isAuthenticated = true;
           }),
-        logout: () =>
+        logout: () => {
+          queryClient.clear();
           set(state => {
             state.user = null;
             state.token = null;
             state.isAuthenticated = false;
-          }),
+          });
+        },
         setHasHydrated: state =>
           set(s => {
             s._hasHydrated = state;

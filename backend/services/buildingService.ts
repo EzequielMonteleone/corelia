@@ -21,6 +21,19 @@ export async function getBuildingsByIds(buildingIds: string[]) {
 export async function getBuildingById(id: string) {
   return await prisma.building.findUnique({
     where: {id},
+    include: {
+      units: {
+        orderBy: [{floor: 'asc'}, {name: 'asc'}],
+      },
+      buildingAmenities: {
+        include: {
+          amenity: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
+    },
   });
 }
 

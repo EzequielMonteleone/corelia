@@ -1,5 +1,6 @@
 import {Building} from './building';
 import {Role} from './role';
+import {Unit} from './unit';
 
 export interface BuildingUser {
   id: string;
@@ -21,4 +22,9 @@ export interface UserData {
   globalRole: string;
   isActive: boolean;
   buildingUsers: BuildingUser[];
+  userUnits?: {
+    id: string;
+    relationType: 'OWNER' | 'ROOMER';
+    unit: Unit;
+  }[];
 }

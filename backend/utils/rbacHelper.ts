@@ -13,9 +13,9 @@ export function canCreateRole(
   creatorBuildingRoleName: string | null,
   targetRoleName: UserRoleName | string,
 ): boolean {
-  // 1. SUPERADMIN puede crear cualquier tipo de rol
+  // 1. SUPERADMIN en contexto de edificio solo crea Admin
   if (creatorGlobalRole === GlobalRole.SUPERADMIN) {
-    return true;
+    return targetRoleName === 'Admin';
   }
 
   // Si no es superadmin, necesita tener un rol válido en el edificio
@@ -23,9 +23,9 @@ export function canCreateRole(
     return false;
   }
 
-  // 2. ADMIN puede crear Owner y Roomer
+  // 2. ADMIN solo puede crear Owner
   if (creatorBuildingRoleName === 'Admin') {
-    return targetRoleName === 'Owner' || targetRoleName === 'Roomer';
+    return targetRoleName === 'Owner';
   }
 
   // 3. OWNER puede crear Roomer

@@ -38,6 +38,7 @@ model Building {
   planType  String?
 
   units          Unit[]
+  buildingAmenities BuildingAmenity[]
   expensePeriods ExpensePeriod[]
   buildingUsers  BuildingUser[]
   expenses       Expense[]
@@ -62,6 +63,7 @@ model User {
   isActive     Boolean  @default(true)
 
   buildingUsers BuildingUser[]
+  userUnits     UserUnit[]
 }
 
 model Role {
@@ -84,6 +86,53 @@ model Unit {
 
   building Building  @relation(fields: [buildingId], references: [id])
   expenses Expense[]
+  userUnits UserUnit[]
+
+  @@unique([buildingId, name])
+}
+
+model Amenity {
+  id        String   @id @default(uuid())
+  key       String?  @unique
+  name      String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buildingAmenities BuildingAmenity[]
+}
+
+model BuildingAmenity {
+  id         String   @id @default(uuid())
+  buildingId String
+  amenityId  String
+  isEnabled  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  building Building @relation(fields: [buildingId], references: [id])
+  amenity  Amenity  @relation(fields: [amenityId], references: [id])
+
+  @@unique([buildingId, amenityId])
+}
+
+enum UnitRelationType {
+  OWNER
+  ROOMER
+}
+
+model UserUnit {
+  id           String           @id @default(uuid())
+  userId       String
+  unitId       String
+  relationType UnitRelationType
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@unique([userId, unitId, relationType])
 }
 
 model ExpensePeriod {
