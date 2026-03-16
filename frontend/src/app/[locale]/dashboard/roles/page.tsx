@@ -15,6 +15,7 @@ import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {LoadingState} from '@/components/ui/LoadingState';
+import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {PageHeader} from '@/components/dashboard/PageHeader';
 import {RoleModal} from '@/components/dashboard/roles/RoleModal';
 import {
@@ -27,11 +28,13 @@ import {
 import {Role} from '@/types/role';
 import {RoleFormValues} from '@/schemas/role';
 import {useTranslations} from 'next-intl';
+import {toast} from 'sonner';
 
 export default function RolesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [roleToDeleteId, setRoleToDeleteId] = useState<string | null>(null);
 
   const {data: roles, isLoading: loadingRoles} = useRoles();
   const {data: permissions} = usePermissions();
@@ -68,32 +71,42 @@ export default function RolesPage() {
           {
             onSuccess: () => {
               handleCloseModal();
+              toast.success(t('updateSuccess'));
             },
+            onError: () => toast.error(t('updateError')),
           },
         );
       } else {
         createMutation.mutate(data, {
           onSuccess: () => {
             handleCloseModal();
+            toast.success(t('createSuccess'));
           },
+          onError: () => toast.error(t('createError')),
         });
       }
     },
-    [createMutation, updateMutation, editingRole, handleCloseModal],
+    [createMutation, updateMutation, editingRole, handleCloseModal, t],
   );
 
   const handleDelete = useCallback(
-    async (id: string) => {
-      if (window.confirm(t('deleteConfirm'))) {
-        deleteMutation.mutate(id, {
-          onSuccess: () => {
-            setSelectedRoleId(null);
-          },
-        });
-      }
+    (id: string) => {
+      setRoleToDeleteId(id);
     },
-    [deleteMutation, t],
+    [],
   );
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!roleToDeleteId) return;
+    deleteMutation.mutate(roleToDeleteId, {
+      onSuccess: () => {
+        setSelectedRoleId(null);
+        setRoleToDeleteId(null);
+        toast.success(t('deleteSuccess'));
+      },
+      onError: () => toast.error(t('deleteError')),
+    });
+  }, [deleteMutation, roleToDeleteId, t]);
 
   const togglePermission = useCallback(
     (permissionId: string) => {
@@ -107,14 +120,19 @@ export default function RolesPage() {
         ? currentPermissionIds.filter(id => id !== permissionId)
         : [...currentPermissionIds, permissionId];
 
-      updateMutation.mutate({
-        id: selectedRole.id,
-        name: selectedRole.name,
-        description: selectedRole.description,
-        permissionIds: newPermissionIds,
-      });
+      updateMutation.mutate(
+        {
+          id: selectedRole.id,
+          name: selectedRole.name,
+          description: selectedRole.description,
+          permissionIds: newPermissionIds,
+        },
+        {
+          onError: () => toast.error(t('permissionsUpdateError')),
+        },
+      );
     },
-    [selectedRole, updateMutation],
+    [selectedRole, t, updateMutation],
   );
 
   return (
@@ -279,6 +297,17 @@ export default function RolesPage() {
         onSubmit={onSubmit}
         isPending={createMutation.isPending || updateMutation.isPending}
         initialData={editingRole}
+      />
+
+      <ConfirmDialog
+        isOpen={!!roleToDeleteId}
+        title={t('delete')}
+        description={t('deleteConfirm')}
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        isPending={deleteMutation.isPending}
+        onCancel={() => setRoleToDeleteId(null)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

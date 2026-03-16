@@ -3,12 +3,15 @@
 import {useState} from 'react';
 import {CreditCard, Check, XCircle} from 'lucide-react';
 import {useTranslations} from 'next-intl';
+import {useLocale} from 'next-intl';
 import {Modal} from '@/components/ui/Modal';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {PaymentStatusLabel} from './PaymentStatusLabel';
 import {useCreatePayment, useUpdatePayment} from '@/hooks/useExpenses';
 import type {Expense} from '@/types/expense';
+import {formatCurrency} from '@/lib/utils';
+import {toast} from 'sonner';
 
 export interface PaymentModalProps {
   expense: Expense | null;
@@ -28,6 +31,7 @@ export const PaymentModal = ({
   canManagePeriods,
 }: PaymentModalProps) => {
   const t = useTranslations('Expenses');
+  const locale = useLocale();
   const createPayment = useCreatePayment();
   const updatePayment = useUpdatePayment();
   const [amount, setAmount] = useState('');
@@ -43,7 +47,7 @@ export const PaymentModal = ({
 
   const handleSubmit = () => {
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+    if (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > remaining) return;
     createPayment.mutate(
       {
         expenseId: expense.id,
@@ -58,16 +62,30 @@ export const PaymentModal = ({
           setPaymentMethod('');
           setExternalPaymentId('');
           onClose();
+          toast.success(t('paymentCreateSuccess'));
         },
+        onError: () => toast.error(t('paymentCreateError')),
       },
     );
   };
 
   const handleApprove = (paymentId: string) =>
-    updatePayment.mutate({paymentId, periodId, status: 'COMPLETED'});
+    updatePayment.mutate(
+      {paymentId, periodId, status: 'COMPLETED'},
+      {
+        onSuccess: () => toast.success(t('paymentApproveSuccess')),
+        onError: () => toast.error(t('paymentApproveError')),
+      },
+    );
 
   const handleReject = (paymentId: string) =>
-    updatePayment.mutate({paymentId, periodId, status: 'REJECTED'});
+    updatePayment.mutate(
+      {paymentId, periodId, status: 'REJECTED'},
+      {
+        onSuccess: () => toast.success(t('paymentRejectSuccess')),
+        onError: () => toast.error(t('paymentRejectError')),
+      },
+    );
 
   return (
     <Modal isOpen={!!expense} onClose={onClose} title={modalTitle}>
@@ -76,19 +94,19 @@ export const PaymentModal = ({
           <p className="text-sm text-gray-400">{t('unit')}</p>
           <p className="text-white font-semibold">
             {expense.unit.name}
-            {expense.unit.floor ? ` · ${t('unit')} ${expense.unit.floor}` : ''}
+            {expense.unit.floor ? ` · ${t('floor')} ${expense.unit.floor}` : ''}
           </p>
           <div className="flex gap-6 mt-2">
             <div>
               <p className="text-xs text-gray-500">{t('amount')}</p>
               <p className="text-white font-medium">
-                ${expense.amount.toFixed(2)}
+                {formatCurrency(expense.amount, locale)}
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-500">{t('totalPaid')}</p>
               <p className="text-green-400 font-medium">
-                ${totalPaid.toFixed(2)}
+                {formatCurrency(totalPaid, locale)}
               </p>
             </div>
             <div>
@@ -99,13 +117,13 @@ export const PaymentModal = ({
                     ? 'text-yellow-400 font-medium'
                     : 'text-green-400 font-medium'
                 }>
-                ${remaining.toFixed(2)}
+                {formatCurrency(remaining, locale)}
               </p>
             </div>
           </div>
         </div>
 
-        {expense.payments.length > 0 && (
+        {expense.payments.length > 0 ? (
           <div className="space-y-2">
             <p className="text-xs text-gray-500 uppercase tracking-wider">
               {t('payments')}
@@ -123,7 +141,7 @@ export const PaymentModal = ({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-white font-medium">
-                    ${p.amount.toFixed(2)}
+                    {formatCurrency(p.amount, locale)}
                   </span>
                   {canManagePeriods && p.status === 'PENDING' && (
                     <>
@@ -151,6 +169,8 @@ export const PaymentModal = ({
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-sm text-gray-400">{t('noPayments')}</p>
         )}
 
         {!canManagePeriods && (
@@ -160,7 +180,8 @@ export const PaymentModal = ({
               placeholder={t('paymentAmount')}
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              min={0}
+              min={0.01}
+              max={remaining}
               step={0.01}
             />
             <Input
@@ -177,7 +198,11 @@ export const PaymentModal = ({
               className="w-full"
               onClick={handleSubmit}
               disabled={
-                !amount || parseFloat(amount) <= 0 || createPayment.isPending
+                !amount ||
+                parseFloat(amount) <= 0 ||
+                parseFloat(amount) > remaining ||
+                remaining <= 0 ||
+                createPayment.isPending
               }>
               <CreditCard className="w-4 h-4 mr-2" />
               {confirmButtonLabel}

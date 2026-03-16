@@ -7,6 +7,7 @@ import {Link} from '@/i18n/navigation';
 import {PageHeader} from '@/components/dashboard/PageHeader';
 import {Card} from '@/components/ui/Card';
 import {LoadingState} from '@/components/ui/LoadingState';
+import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {
   PeriodHeaderCard,
   AddExpenseForm,
@@ -15,7 +16,8 @@ import {
 } from '@/components/dashboard/expenses';
 import {useExpensePeriodPage} from '@/hooks/useExpenses';
 import type {Expense} from '@/types/expense';
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
+import {toast} from 'sonner';
 
 const ExpensePeriodDetailPage = () => {
   const params = useParams();
@@ -44,17 +46,53 @@ const ExpensePeriodDetailPage = () => {
     handleSaveEdit,
     handleCancelEdit,
     handleDeleteExpense,
+    deleteExpense,
     updatePeriod,
     createExpense,
     updateExpense,
   } = useExpensePeriodPage(periodId);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
   const handleDeleteWithConfirm = useCallback(
     (expense: Expense) => {
-      if (!confirm(t('deleteExpenseConfirm'))) return;
-      handleDeleteExpense(expense);
+      setExpenseToDelete(expense);
     },
-    [handleDeleteExpense, t],
+    [],
+  );
+
+  const handleConfirmDeleteExpense = useCallback(() => {
+    if (!expenseToDelete) return;
+    handleDeleteExpense(expenseToDelete, {
+      onSuccess: () => {
+        setExpenseToDelete(null);
+        toast.success(t('deleteExpenseSuccess'));
+      },
+      onError: () => toast.error(t('deleteExpenseError')),
+    });
+  }, [expenseToDelete, handleDeleteExpense, t]);
+
+  const handleAddExpenseWithToast = useCallback(() => {
+    handleAddExpense({
+      onSuccess: () => toast.success(t('addExpenseSuccess')),
+      onError: () => toast.error(t('addExpenseError')),
+    });
+  }, [handleAddExpense, t]);
+
+  const handleTogglePeriodStatusWithToast = useCallback(() => {
+    handleTogglePeriodStatus({
+      onSuccess: () => toast.success(t('periodStatusUpdateSuccess')),
+      onError: () => toast.error(t('periodStatusUpdateError')),
+    });
+  }, [handleTogglePeriodStatus, t]);
+
+  const handleSaveEditWithToast = useCallback(
+    (expense: Expense) => {
+      handleSaveEdit(expense, {
+        onSuccess: () => toast.success(t('editExpenseSuccess')),
+        onError: () => toast.error(t('editExpenseError')),
+      });
+    },
+    [handleSaveEdit, t],
   );
 
   const paymentButtonTitle = useMemo(
@@ -107,7 +145,7 @@ const ExpensePeriodDetailPage = () => {
       <PeriodHeaderCard
         period={period}
         canManagePeriods={canManagePeriods}
-        onToggleStatus={handleTogglePeriodStatus}
+        onToggleStatus={handleTogglePeriodStatusWithToast}
         isTogglePending={updatePeriod.isPending}
       />
 
@@ -118,7 +156,7 @@ const ExpensePeriodDetailPage = () => {
           newAmount={newAmount}
           onUnitChange={setSelectedUnitId}
           onAmountChange={setNewAmount}
-          onSubmit={handleAddExpense}
+          onSubmit={handleAddExpenseWithToast}
           isPending={createExpense.isPending}
         />
       )}
@@ -132,7 +170,7 @@ const ExpensePeriodDetailPage = () => {
         paymentButtonTitle={paymentButtonTitle}
         onEditAmountChange={setEditAmount}
         onStartEdit={handleStartEdit}
-        onSaveEdit={handleSaveEdit}
+        onSaveEdit={handleSaveEditWithToast}
         onCancelEdit={handleCancelEdit}
         onDeleteExpense={handleDeleteWithConfirm}
         onOpenPayment={setPaymentExpense}
@@ -146,6 +184,17 @@ const ExpensePeriodDetailPage = () => {
         modalTitle={paymentButtonTitle}
         confirmButtonLabel={paymentConfirmLabel}
         canManagePeriods={canManagePeriods}
+      />
+
+      <ConfirmDialog
+        isOpen={!!expenseToDelete}
+        title={t('deleteExpense')}
+        description={t('deleteExpenseConfirm')}
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        isPending={deleteExpense.isPending}
+        onCancel={() => setExpenseToDelete(null)}
+        onConfirm={handleConfirmDeleteExpense}
       />
     </div>
   );

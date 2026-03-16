@@ -1,11 +1,13 @@
 'use client';
 
 import {useTranslations} from 'next-intl';
+import {useLocale} from 'next-intl';
 import {Card} from '@/components/ui/Card';
 import {Badge} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import type {ExpensePeriodDetail} from '@/types/expense';
 import {useMemo} from 'react';
+import {formatCurrency} from '@/lib/utils';
 
 interface PeriodHeaderCardProps {
   period: ExpensePeriodDetail;
@@ -21,6 +23,7 @@ export const PeriodHeaderCard = ({
   isTogglePending,
 }: PeriodHeaderCardProps) => {
   const t = useTranslations('Expenses');
+  const locale = useLocale();
   const isOpen = useMemo(() => period.status === 'OPEN', [period.status]);
   const totalAmount = useMemo(
     () => period.expenses.reduce((s, e) => s + e.amount, 0),
@@ -76,7 +79,7 @@ export const PeriodHeaderCard = ({
               {t('amount')}
             </p>
             <p className="text-xl font-bold text-white">
-              ${totalAmount.toFixed(2)}
+              {formatCurrency(totalAmount, locale)}
             </p>
           </div>
           <div>
@@ -84,7 +87,7 @@ export const PeriodHeaderCard = ({
               {t('totalPaid')}
             </p>
             <p className="text-xl font-bold text-green-400">
-              ${totalPaid.toFixed(2)}
+              {formatCurrency(totalPaid, locale)}
             </p>
           </div>
           <div>
@@ -93,7 +96,7 @@ export const PeriodHeaderCard = ({
             </p>
             <p
               className={`text-xl font-bold ${totalPending > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
-              ${totalPending.toFixed(2)}
+              {formatCurrency(totalPending, locale)}
             </p>
           </div>
         </div>

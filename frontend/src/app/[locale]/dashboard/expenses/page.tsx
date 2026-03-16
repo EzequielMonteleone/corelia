@@ -2,6 +2,7 @@
 
 import {useCallback, useMemo, useState} from 'react';
 import {useTranslations} from 'next-intl';
+import {useLocale} from 'next-intl';
 import {Link} from '@/i18n/navigation';
 import {Receipt, Plus, Trash2, ChevronRight, CalendarDays} from 'lucide-react';
 import {PageHeader} from '@/components/dashboard/PageHeader';
@@ -10,6 +11,7 @@ import {Badge} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {LoadingState} from '@/components/ui/LoadingState';
+import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {useBuildings} from '@/hooks/useBuildings';
 import {
   useExpensePeriods,
@@ -18,9 +20,13 @@ import {
 } from '@/hooks/useExpenses';
 import {useAuthStore} from '@/store/authStore';
 import type {ExpensePeriod} from '@/types/expense';
+import {formatDate} from '@/lib/utils';
+import {toast} from 'sonner';
 
 export default function ExpensesPage() {
   const t = useTranslations('Expenses');
+  const tCommon = useTranslations('Common');
+  const locale = useLocale();
 
   const user = useAuthStore(state => state.user);
   const isSuperAdmin = user?.globalRole === 'SUPERADMIN';
@@ -30,6 +36,7 @@ export default function ExpensesPage() {
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [newPeriod, setNewPeriod] = useState('');
   const [showNewPeriodForm, setShowNewPeriodForm] = useState(false);
+  const [periodToDelete, setPeriodToDelete] = useState<ExpensePeriod | null>(null);
 
   const activeBuildingId = useMemo(
     () => selectedBuildingId || (buildings.length === 1 ? buildings[0].id : ''),
@@ -60,18 +67,33 @@ export default function ExpensesPage() {
         onSuccess: () => {
           setNewPeriod('');
           setShowNewPeriodForm(false);
+          toast.success(t('createPeriodSuccess'));
         },
+        onError: () => toast.error(t('createPeriodError')),
       },
     );
-  }, [activeBuildingId, createPeriod, newPeriod]);
+  }, [activeBuildingId, createPeriod, newPeriod, t]);
 
   const handleDeletePeriod = useCallback(
     (period: ExpensePeriod) => {
-      if (!confirm(t('deletePeriodConfirm'))) return;
-      deletePeriod.mutate({periodId: period.id, buildingId: period.buildingId});
+      setPeriodToDelete(period);
     },
-    [deletePeriod, t],
+    [],
   );
+
+  const handleConfirmDeletePeriod = useCallback(() => {
+    if (!periodToDelete) return;
+    deletePeriod.mutate(
+      {periodId: periodToDelete.id, buildingId: periodToDelete.buildingId},
+      {
+        onSuccess: () => {
+          setPeriodToDelete(null);
+          toast.success(t('deletePeriodSuccess'));
+        },
+        onError: () => toast.error(t('deletePeriodError')),
+      },
+    );
+  }, [deletePeriod, periodToDelete, t]);
 
   const isLoading = loadingBuildings || (!!activeBuildingId && loadingPeriods);
 
@@ -156,13 +178,10 @@ export default function ExpensesPage() {
                       </p>
                       <p className="text-xs text-gray-500">
                         {t('generatedAt')}:{' '}
-                        {new Date(period.generatedAt).toLocaleDateString()}
+                        {formatDate(period.generatedAt, locale)}
                         {period._count !== undefined && (
                           <span className="ml-2">
-                            · {period._count.expenses}{' '}
-                            {period._count.expenses === 1
-                              ? 'expensa'
-                              : 'expensas'}
+                            · {t('periodCount', {count: period._count.expenses})}
                           </span>
                         )}
                       </p>
@@ -197,6 +216,17 @@ export default function ExpensesPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!periodToDelete}
+        title={t('deletePeriod')}
+        description={t('deletePeriodConfirm')}
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        isPending={deletePeriod.isPending}
+        onCancel={() => setPeriodToDelete(null)}
+        onConfirm={handleConfirmDeletePeriod}
+      />
     </div>
   );
 }

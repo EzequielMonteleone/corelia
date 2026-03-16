@@ -7,6 +7,7 @@ import {Input} from '@/components/ui/Input';
 import {Badge} from '@/components/ui/Badge';
 import {Card} from '@/components/ui/Card';
 import {LoadingState} from '@/components/ui/LoadingState';
+import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {PageHeader} from '@/components/dashboard/PageHeader';
 import {BuildingModal} from '@/components/dashboard/buildings/BuildingModal';
 import {
@@ -19,6 +20,7 @@ import {BuildingFormValues} from '@/schemas/building';
 import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
 import {useAuthStore} from '@/store/authStore';
+import {toast} from 'sonner';
 
 export default function BuildingsPage() {
   const user = useAuthStore(state => state.user);
@@ -33,6 +35,7 @@ export default function BuildingsPage() {
     country: string;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [buildingToDeleteId, setBuildingToDeleteId] = useState<string | null>(null);
 
   const {data: buildings, isLoading} = useBuildings();
   const createMutation = useCreateBuilding();
@@ -73,19 +76,34 @@ export default function BuildingsPage() {
             onSuccess: () => {
               setEditingBuilding(null);
               setIsModalOpen(false);
+              toast.success(t('updateSuccess'));
             },
+            onError: () => toast.error(t('updateError')),
           },
         );
       } else {
         createMutation.mutate(data, {
           onSuccess: () => {
             setIsModalOpen(false);
+            toast.success(t('createSuccess'));
           },
+          onError: () => toast.error(t('createError')),
         });
       }
     },
-    [editingBuilding, createMutation, updateMutation],
+    [editingBuilding, createMutation, updateMutation, t],
   );
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!buildingToDeleteId) return;
+    deleteMutation.mutate(buildingToDeleteId, {
+      onSuccess: () => {
+        setBuildingToDeleteId(null);
+        toast.success(t('deleteSuccess'));
+      },
+      onError: () => toast.error(t('deleteError')),
+    });
+  }, [buildingToDeleteId, deleteMutation, t]);
 
   return (
     <div className="p-8">
@@ -132,11 +150,7 @@ export default function BuildingsPage() {
                       intent="ghost"
                       size="icon"
                       className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400"
-                      onClick={() => {
-                        if (confirm(t('deleteConfirm'))) {
-                          deleteMutation.mutate(building.id);
-                        }
-                      }}>
+                      onClick={() => setBuildingToDeleteId(building.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
@@ -198,6 +212,17 @@ export default function BuildingsPage() {
               }
             : undefined
         }
+      />
+
+      <ConfirmDialog
+        isOpen={!!buildingToDeleteId}
+        title={tCommon('delete')}
+        description={t('deleteConfirm')}
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        isPending={deleteMutation.isPending}
+        onCancel={() => setBuildingToDeleteId(null)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

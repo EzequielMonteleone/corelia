@@ -17,6 +17,7 @@ import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {Badge} from '@/components/ui/Badge';
 import {LoadingState} from '@/components/ui/LoadingState';
+import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {PageHeader} from '@/components/dashboard/PageHeader';
 import {
   useCreateBuildingUser,
@@ -30,11 +31,13 @@ import {UserModal} from '@/components/dashboard/users/UserModal';
 import {UserData} from '@/types/user';
 import {UserCreateFormValues, UserEditFormValues} from '@/schemas/user';
 import {useAuthStore} from '@/store/authStore';
+import {toast} from 'sonner';
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [userToDeleteId, setUserToDeleteId] = useState<string | null>(null);
   const {data: users, isLoading} = useUsers();
   const updateMutation = useUpdateUser();
   const createGlobalMutation = useCreateGlobalUser();
@@ -78,9 +81,10 @@ export default function UsersPage() {
     mutation.mutate(data, {
       onSuccess: () => {
         setIsModalOpen(false);
+        toast.success(t('createSuccess'));
       },
       onError: () => {
-        alert(t('createError'));
+        toast.error(t('createError'));
       },
     });
   };
@@ -105,12 +109,26 @@ export default function UsersPage() {
         onSuccess: () => {
           setEditingUser(null);
           setIsModalOpen(false);
+          toast.success(t('updateSuccess'));
         },
         onError: () => {
-          alert(t('updateError'));
+          toast.error(t('updateError'));
         },
       },
     );
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDeleteId) return;
+    deleteMutation.mutate(userToDeleteId, {
+      onSuccess: () => {
+        setUserToDeleteId(null);
+        toast.success(t('deleteSuccess'));
+      },
+      onError: () => {
+        toast.error(t('deleteError'));
+      },
+    });
   };
 
   return (
@@ -256,10 +274,7 @@ export default function UsersPage() {
                           intent="ghost"
                           size="icon"
                           className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400"
-                          onClick={() => {
-                            if (!confirm(t('deleteConfirm'))) return;
-                            deleteMutation.mutate(user.id);
-                          }}>
+                          onClick={() => setUserToDeleteId(user.id)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       )}
@@ -292,6 +307,17 @@ export default function UsersPage() {
         }
         onCreateSubmit={handleCreate}
         onEditSubmit={handleEdit}
+      />
+
+      <ConfirmDialog
+        isOpen={!!userToDeleteId}
+        title={tCommon('delete')}
+        description={t('deleteConfirm')}
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        isPending={deleteMutation.isPending}
+        onCancel={() => setUserToDeleteId(null)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

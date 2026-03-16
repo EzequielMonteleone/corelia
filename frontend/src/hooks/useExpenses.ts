@@ -11,6 +11,11 @@ import type {
   PaymentStatus,
 } from '@/types/expense';
 
+interface MutationCallbacks {
+  onSuccess?: () => void;
+  onError?: () => void;
+}
+
 export function useExpensePeriods(buildingId: string | null) {
   return useQuery<ExpensePeriod[]>({
     queryKey: ['expense-periods', buildingId],
@@ -98,6 +103,9 @@ export function useUpdateExpensePeriod() {
       queryClient.invalidateQueries({
         queryKey: ['expense-period-detail', variables.periodId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['expense-periods'],
+      });
     },
   });
 }
@@ -127,6 +135,9 @@ export function useCreateExpense() {
       queryClient.invalidateQueries({
         queryKey: ['expense-period-detail', variables.periodId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['expense-periods'],
+      });
     },
   });
 }
@@ -149,6 +160,9 @@ export function useUpdateExpense() {
       queryClient.invalidateQueries({
         queryKey: ['expense-period-detail', variables.periodId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['expense-periods'],
+      });
     },
   });
 }
@@ -169,6 +183,9 @@ export function useDeleteExpense() {
     onSuccess: periodId => {
       queryClient.invalidateQueries({
         queryKey: ['expense-period-detail', periodId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['expense-periods'],
       });
     },
   });
@@ -200,6 +217,9 @@ export function useCreatePayment() {
       queryClient.invalidateQueries({
         queryKey: ['expense-period-detail', variables.periodId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['expense-periods'],
+      });
     },
   });
 }
@@ -219,6 +239,9 @@ export function useUpdatePayment() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['expense-period-detail', variables.periodId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['expense-periods'],
       });
     },
   });
@@ -257,28 +280,39 @@ export function useExpensePeriodPage(periodId: string) {
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState('');
 
-  const handleAddExpense = useCallback(() => {
+  const handleAddExpense = useCallback((callbacks?: MutationCallbacks) => {
     if (!selectedUnitId || !newAmount) return;
     const amount = parseFloat(newAmount);
-    if (isNaN(amount)) return;
+    if (isNaN(amount) || amount <= 0) return;
     createExpense.mutate(
       {periodId, unitId: selectedUnitId, amount},
       {
         onSuccess: () => {
           setSelectedUnitId('');
           setNewAmount('');
+          callbacks?.onSuccess?.();
         },
+        onError: () => callbacks?.onError?.(),
       },
     );
   }, [selectedUnitId, newAmount, periodId, createExpense]);
 
-  const handleTogglePeriodStatus = useCallback(() => {
-    if (!period) return;
-    updatePeriod.mutate({
-      periodId,
-      status: period.status === 'OPEN' ? 'CLOSED' : 'OPEN',
-    });
-  }, [period, periodId, updatePeriod]);
+  const handleTogglePeriodStatus = useCallback(
+    (callbacks?: MutationCallbacks) => {
+      if (!period) return;
+      updatePeriod.mutate(
+        {
+          periodId,
+          status: period.status === 'OPEN' ? 'CLOSED' : 'OPEN',
+        },
+        {
+          onSuccess: () => callbacks?.onSuccess?.(),
+          onError: () => callbacks?.onError?.(),
+        },
+      );
+    },
+    [period, periodId, updatePeriod],
+  );
 
   const handleStartEdit = useCallback((expense: Expense) => {
     setEditingExpenseId(expense.id);
@@ -286,16 +320,18 @@ export function useExpensePeriodPage(periodId: string) {
   }, []);
 
   const handleSaveEdit = useCallback(
-    (expense: Expense) => {
+    (expense: Expense, callbacks?: MutationCallbacks) => {
       const amount = parseFloat(editAmount);
-      if (isNaN(amount)) return;
+      if (isNaN(amount) || amount <= 0) return;
       updateExpense.mutate(
         {expenseId: expense.id, periodId, amount},
         {
           onSuccess: () => {
             setEditingExpenseId(null);
             setEditAmount('');
+            callbacks?.onSuccess?.();
           },
+          onError: () => callbacks?.onError?.(),
         },
       );
     },
@@ -308,8 +344,14 @@ export function useExpensePeriodPage(periodId: string) {
   }, []);
 
   const handleDeleteExpense = useCallback(
-    (expense: Expense) => {
-      deleteExpense.mutate({expenseId: expense.id, periodId});
+    (expense: Expense, callbacks?: MutationCallbacks) => {
+      deleteExpense.mutate(
+        {expenseId: expense.id, periodId},
+        {
+          onSuccess: () => callbacks?.onSuccess?.(),
+          onError: () => callbacks?.onError?.(),
+        },
+      );
     },
     [periodId, deleteExpense],
   );
@@ -335,6 +377,7 @@ export function useExpensePeriodPage(periodId: string) {
     handleSaveEdit,
     handleCancelEdit,
     handleDeleteExpense,
+    deleteExpense,
     updatePeriod,
     createExpense,
     updateExpense,

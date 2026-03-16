@@ -2,11 +2,13 @@
 
 import {CreditCard, Pencil, Trash2} from 'lucide-react';
 import {useTranslations} from 'next-intl';
+import {useLocale} from 'next-intl';
 import {Card} from '@/components/ui/Card';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {ExpenseStatusBadge} from './ExpenseStatusBadge';
 import type {Expense} from '@/types/expense';
+import {formatCurrency} from '@/lib/utils';
 
 interface ExpensesTableProps {
   expenses: Expense[];
@@ -40,6 +42,7 @@ export const ExpensesTable = ({
   isUpdatePending,
 }: ExpensesTableProps) => {
   const t = useTranslations('Expenses');
+  const locale = useLocale();
 
   if (expenses.length === 0) {
     return (
@@ -86,7 +89,7 @@ export const ExpensesTable = ({
                   <p className="text-white font-medium">{expense.unit.name}</p>
                   {expense.unit.floor && (
                     <p className="text-xs text-gray-500">
-                      Piso {expense.unit.floor}
+                      {t('floor')} {expense.unit.floor}
                     </p>
                   )}
                 </td>
@@ -98,13 +101,13 @@ export const ExpensesTable = ({
                         value={editAmount}
                         onChange={e => onEditAmountChange(e.target.value)}
                         className="w-28 text-right"
-                        min={0}
+                        min={0.01}
                         step={0.01}
                       />
                       <Button
                         size="sm"
                         onClick={() => onSaveEdit(expense)}
-                        disabled={isUpdatePending}>
+                        disabled={isUpdatePending || parseFloat(editAmount) <= 0}>
                         OK
                       </Button>
                       <Button size="sm" intent="ghost" onClick={onCancelEdit}>
@@ -113,13 +116,13 @@ export const ExpensesTable = ({
                     </div>
                   ) : (
                     <span className="text-white font-medium">
-                      ${expense.amount.toFixed(2)}
+                      {formatCurrency(expense.amount, locale)}
                     </span>
                   )}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <span className="text-green-400 font-medium">
-                    ${paidForExpense.toFixed(2)}
+                    {formatCurrency(paidForExpense, locale)}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-center">

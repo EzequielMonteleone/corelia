@@ -52,13 +52,15 @@ export const AddExpenseForm = ({
           placeholder={t('amountPlaceholder')}
           value={newAmount}
           onChange={e => onAmountChange(e.target.value)}
-          min={0}
+          min={0.01}
           step={0.01}
           className="w-36"
         />
         <Button
           onClick={onSubmit}
-          disabled={!selectedUnitId || !newAmount || isPending}>
+          disabled={
+            !selectedUnitId || !newAmount || parseFloat(newAmount) <= 0 || isPending
+          }>
           <Plus className="w-4 h-4 mr-2" />
           {t('addExpense')}
         </Button>
