@@ -1,7 +1,15 @@
 'use client';
 
 import {useParams} from 'next/navigation';
-import {User, Mail, Phone, Shield, Building2, Home, ArrowLeft} from 'lucide-react';
+import {
+  User,
+  Mail,
+  Phone,
+  Shield,
+  Building2,
+  Home,
+  ArrowLeft,
+} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {Card} from '@/components/ui/Card';
 import {Badge} from '@/components/ui/Badge';
@@ -20,7 +28,10 @@ export default function UserDetailPage() {
   if (isLoading) {
     return (
       <div className="p-8">
-        <LoadingState message={t('loadingDetail')} iconClassName="text-indigo-500" />
+        <LoadingState
+          message={t('loadingDetail')}
+          iconClassName="text-indigo-500"
+        />
       </div>
     );
   }
@@ -132,13 +143,13 @@ export default function UserDetailPage() {
                   className="flex items-center gap-3 py-2 px-3 rounded-lg bg-white/[0.02]">
                   <Home className="w-4 h-4 text-indigo-400 shrink-0" />
                   <span className="text-white">
-                    {typeof uu.unit === 'object' && uu.unit
+                    {uu.unit
                       ? uu.unit.floor
                         ? `${uu.unit.floor} - ${uu.unit.name}`
                         : uu.unit.name
-                      : uu.unit?.id ?? ''}
+                      : '-'}
                   </span>
-                  <Badge intent="outline" className="ml-auto">
+                  <Badge intent="default" className="ml-auto">
                     {uu.relationType === 'OWNER' ? t('owner') : t('roomer')}
                   </Badge>
                 </li>

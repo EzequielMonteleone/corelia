@@ -5,7 +5,7 @@ import {
   type AuthenticatedRequest,
 } from '../middleware/authMiddleware.js';
 import {findUserById} from '../services/userService.js';
-import {GlobalRole, ExpensePeriodStatus, PaymentStatus} from '@prisma/client';
+import {GlobalRole, ExpensePeriodStatus} from '@prisma/client';
 import {
   getExpensePeriods,
   createExpensePeriod,
@@ -31,6 +31,26 @@ function hasRoleForBuilding(
   return user.buildingUsers.some(
     bu => bu.buildingId === buildingId && allowedRoles.includes(bu.role.name),
   );
+}
+
+function getBuildingRole(
+  user: {buildingUsers: {buildingId: string; role: {name: string}}[]},
+  buildingId: string,
+): string | null {
+  const bu = user.buildingUsers.find(bu => bu.buildingId === buildingId);
+  return bu?.role?.name ?? null;
+}
+
+function getUnitIdsForBuilding(
+  user: {
+    userUnits?: {unitId: string; unit: {buildingId: string}}[];
+  },
+  buildingId: string,
+): string[] {
+  if (!user.userUnits) return [];
+  return user.userUnits
+    .filter(uu => uu.unit.buildingId === buildingId)
+    .map(uu => uu.unitId);
 }
 
 // ─── Building-scoped period routes (/buildings/:buildingId/expense-periods) ───
@@ -124,6 +144,21 @@ periodRouter.get(
         ])
       ) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      }
+
+      const buildingRole = getBuildingRole(user, detail.buildingId);
+      const isAdminOrSuperadmin =
+        user.globalRole === GlobalRole.SUPERADMIN || buildingRole === 'Admin';
+
+      if (!isAdminOrSuperadmin && (buildingRole === 'Owner' || buildingRole === 'Roomer')) {
+        const unitIds = getUnitIdsForBuilding(user, detail.buildingId);
+        const filteredExpenses = detail.expenses.filter(e =>
+          unitIds.includes(e.unitId),
+        );
+        return res.json({
+          ...detail,
+          expenses: filteredExpenses,
+        });
       }
 
       return res.json(detail);
@@ -341,6 +376,16 @@ expenseRouter.post(
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
+      const buildingRole = getBuildingRole(user, existing.buildingId);
+      const isAdminOrSuperadmin =
+        user.globalRole === GlobalRole.SUPERADMIN || buildingRole === 'Admin';
+      if (!isAdminOrSuperadmin && (buildingRole === 'Owner' || buildingRole === 'Roomer')) {
+        const unitIds = getUnitIdsForBuilding(user, existing.buildingId);
+        if (!unitIds.includes(existing.unitId)) {
+          return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+        }
+      }
+
       const {amount, paymentMethod, externalPaymentId} = req.body as {
         amount?: number;
         paymentMethod?: string;
@@ -392,12 +437,16 @@ paymentRouter.put(
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
-      const {status} = req.body as {status?: PaymentStatus};
-      if (!status || !Object.values(PaymentStatus).includes(status)) {
+      const status = req.body?.status as string | undefined;
+      const allowedStatuses = ['COMPLETED', 'REJECTED'] as const;
+      if (
+        !status ||
+        !allowedStatuses.includes(status as (typeof allowedStatuses)[number])
+      ) {
         return res.status(400).json({error: 'INVALID_STATUS'});
       }
 
-      const updated = await updatePayment(paymentId, status);
+      const updated = await updatePayment(paymentId, status as 'COMPLETED' | 'REJECTED');
       return res.json(updated);
     } catch (err) {
       return next(err);

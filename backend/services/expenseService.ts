@@ -110,8 +110,8 @@ export async function createPayment(data: {
       amount: data.amount,
       paymentMethod: data.paymentMethod ?? null,
       externalPaymentId: data.externalPaymentId ?? null,
-      status: PaymentStatus.COMPLETED,
-      paidAt: new Date(),
+      status: PaymentStatus.PENDING,
+      paidAt: null,
     },
   });
 
@@ -120,10 +120,20 @@ export async function createPayment(data: {
   return payment;
 }
 
-export async function updatePayment(id: string, status: PaymentStatus) {
+const PAYMENT_COMPLETED = 'COMPLETED' as const;
+const PAYMENT_REJECTED = 'REJECTED' as const;
+const PAYMENT_PENDING = 'PENDING' as const;
+
+export async function updatePayment(
+  id: string,
+  status: typeof PAYMENT_COMPLETED | typeof PAYMENT_REJECTED,
+) {
   const payment = await prisma.payment.update({
     where: {id},
-    data: {status},
+    data: {
+      status,
+      paidAt: status === PAYMENT_COMPLETED ? new Date() : null,
+    },
   });
 
   await recalculateExpenseStatus(payment.expenseId);
@@ -135,23 +145,26 @@ async function recalculateExpenseStatus(expenseId: string) {
   const expense = await prisma.expense.findUnique({
     where: {id: expenseId},
     include: {
-      payments: {
-        where: {status: PaymentStatus.COMPLETED},
-      },
+      payments: true,
     },
   });
 
   if (!expense) return;
 
-  const totalPaid = expense.payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalApproved = expense.payments
+    .filter(p => p.status === PAYMENT_COMPLETED)
+    .reduce((sum, p) => sum + p.amount, 0);
+  const hasPendingPayment = expense.payments.some(
+    p => p.status === PAYMENT_PENDING,
+  );
 
   let newStatus: ExpenseStatus;
-  if (totalPaid <= 0) {
-    newStatus = ExpenseStatus.PENDING;
-  } else if (totalPaid >= expense.amount) {
+  if (totalApproved >= expense.amount) {
     newStatus = ExpenseStatus.PAID;
+  } else if (hasPendingPayment) {
+    newStatus = ExpenseStatus.PENDING;
   } else {
-    newStatus = ExpenseStatus.PARTIAL;
+    newStatus = ExpenseStatus.UNPAID;
   }
 
   await prisma.expense.update({

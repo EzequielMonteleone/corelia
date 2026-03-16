@@ -1,6 +1,6 @@
 export type ExpensePeriodStatus = 'OPEN' | 'CLOSED';
-export type ExpenseStatus = 'PENDING' | 'PAID' | 'PARTIAL';
-export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
+export type ExpenseStatus = 'UNPAID' | 'PENDING' | 'PAID';
+export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'REJECTED' | 'FAILED';
 
 export interface Payment {
   id: string;

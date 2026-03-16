@@ -1,9 +1,14 @@
+import {useCallback, useMemo, useState} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import apiClient from '@/lib/apiClient';
+import {useBuildingUnits} from '@/hooks/useBuildings';
+import {useAuthStore} from '@/store/authStore';
 import type {
   ExpensePeriod,
   ExpensePeriodDetail,
   ExpensePeriodStatus,
+  Expense,
+  PaymentStatus,
 } from '@/types/expense';
 
 export function useExpensePeriods(buildingId: string | null) {
@@ -11,7 +16,9 @@ export function useExpensePeriods(buildingId: string | null) {
     queryKey: ['expense-periods', buildingId],
     queryFn: async () => {
       if (!buildingId) return [];
-      const res = await apiClient.get(`/buildings/${buildingId}/expense-periods`);
+      const res = await apiClient.get(
+        `/buildings/${buildingId}/expense-periods`,
+      );
       return res.data;
     },
     enabled: !!buildingId,
@@ -21,12 +28,23 @@ export function useExpensePeriods(buildingId: string | null) {
 export function useCreateExpensePeriod() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({buildingId, period}: {buildingId: string; period: string}) => {
-      const res = await apiClient.post(`/buildings/${buildingId}/expense-periods`, {period});
+    mutationFn: async ({
+      buildingId,
+      period,
+    }: {
+      buildingId: string;
+      period: string;
+    }) => {
+      const res = await apiClient.post(
+        `/buildings/${buildingId}/expense-periods`,
+        {period},
+      );
       return res.data as ExpensePeriod;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({queryKey: ['expense-periods', variables.buildingId]});
+      queryClient.invalidateQueries({
+        queryKey: ['expense-periods', variables.buildingId],
+      });
     },
   });
 }
@@ -34,12 +52,20 @@ export function useCreateExpensePeriod() {
 export function useDeleteExpensePeriod() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({periodId, buildingId}: {periodId: string; buildingId: string}) => {
+    mutationFn: async ({
+      periodId,
+      buildingId,
+    }: {
+      periodId: string;
+      buildingId: string;
+    }) => {
       await apiClient.delete(`/expense-periods/${periodId}`);
       return buildingId;
     },
     onSuccess: buildingId => {
-      queryClient.invalidateQueries({queryKey: ['expense-periods', buildingId]});
+      queryClient.invalidateQueries({
+        queryKey: ['expense-periods', buildingId],
+      });
     },
   });
 }
@@ -58,12 +84,20 @@ export function useExpensePeriodDetail(periodId: string | null) {
 export function useUpdateExpensePeriod() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({periodId, status}: {periodId: string; status: ExpensePeriodStatus}) => {
+    mutationFn: async ({
+      periodId,
+      status,
+    }: {
+      periodId: string;
+      status: ExpensePeriodStatus;
+    }) => {
       const res = await apiClient.put(`/expense-periods/${periodId}`, {status});
       return res.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({queryKey: ['expense-period-detail', variables.periodId]});
+      queryClient.invalidateQueries({
+        queryKey: ['expense-period-detail', variables.periodId],
+      });
     },
   });
 }
@@ -80,14 +114,19 @@ export function useCreateExpense() {
       unitId: string;
       amount: number;
     }) => {
-      const res = await apiClient.post(`/expense-periods/${periodId}/expenses`, {
-        unitId,
-        amount,
-      });
+      const res = await apiClient.post(
+        `/expense-periods/${periodId}/expenses`,
+        {
+          unitId,
+          amount,
+        },
+      );
       return res.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({queryKey: ['expense-period-detail', variables.periodId]});
+      queryClient.invalidateQueries({
+        queryKey: ['expense-period-detail', variables.periodId],
+      });
     },
   });
 }
@@ -95,12 +134,21 @@ export function useCreateExpense() {
 export function useUpdateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({expenseId, amount}: {expenseId: string; periodId: string; amount: number}) => {
+    mutationFn: async ({
+      expenseId,
+      amount,
+    }: {
+      expenseId: string;
+      periodId: string;
+      amount: number;
+    }) => {
       const res = await apiClient.put(`/expenses/${expenseId}`, {amount});
       return res.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({queryKey: ['expense-period-detail', variables.periodId]});
+      queryClient.invalidateQueries({
+        queryKey: ['expense-period-detail', variables.periodId],
+      });
     },
   });
 }
@@ -108,12 +156,20 @@ export function useUpdateExpense() {
 export function useDeleteExpense() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({expenseId, periodId}: {expenseId: string; periodId: string}) => {
+    mutationFn: async ({
+      expenseId,
+      periodId,
+    }: {
+      expenseId: string;
+      periodId: string;
+    }) => {
       await apiClient.delete(`/expenses/${expenseId}`);
       return periodId;
     },
     onSuccess: periodId => {
-      queryClient.invalidateQueries({queryKey: ['expense-period-detail', periodId]});
+      queryClient.invalidateQueries({
+        queryKey: ['expense-period-detail', periodId],
+      });
     },
   });
 }
@@ -141,7 +197,146 @@ export function useCreatePayment() {
       return res.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({queryKey: ['expense-period-detail', variables.periodId]});
+      queryClient.invalidateQueries({
+        queryKey: ['expense-period-detail', variables.periodId],
+      });
     },
   });
+}
+
+export function useUpdatePayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (variables: {
+      paymentId: string;
+      periodId: string;
+      status: PaymentStatus;
+    }) => {
+      const {paymentId, status} = variables;
+      const res = await apiClient.put(`/payments/${paymentId}`, {status});
+      return res.data as {id: string; periodId: string};
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['expense-period-detail', variables.periodId],
+      });
+    },
+  });
+}
+
+export function useExpensePeriodPage(periodId: string) {
+  const {data: period, isLoading, isError} = useExpensePeriodDetail(periodId);
+  const {data: units = []} = useBuildingUnits(period?.building.id ?? null);
+  const user = useAuthStore(s => s.user);
+
+  const canManagePeriods = useMemo(
+    () =>
+      user?.globalRole === 'SUPERADMIN' ||
+      (!!period?.building?.id &&
+        user?.buildingUsers?.some(
+          bu =>
+            bu.buildingId === period.building.id && bu.role?.name === 'Admin',
+        )),
+    [user?.globalRole, user?.buildingUsers, period],
+  );
+
+  const availableUnits = useMemo(() => {
+    if (!period) return [];
+    const withExpense = new Set(period.expenses.map(e => e.unitId));
+    return units.filter(u => !withExpense.has(u.id));
+  }, [period, units]);
+
+  const updatePeriod = useUpdateExpensePeriod();
+  const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
+  const deleteExpense = useDeleteExpense();
+
+  const [selectedUnitId, setSelectedUnitId] = useState('');
+  const [newAmount, setNewAmount] = useState('');
+  const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+
+  const handleAddExpense = useCallback(() => {
+    if (!selectedUnitId || !newAmount) return;
+    const amount = parseFloat(newAmount);
+    if (isNaN(amount)) return;
+    createExpense.mutate(
+      {periodId, unitId: selectedUnitId, amount},
+      {
+        onSuccess: () => {
+          setSelectedUnitId('');
+          setNewAmount('');
+        },
+      },
+    );
+  }, [selectedUnitId, newAmount, periodId, createExpense]);
+
+  const handleTogglePeriodStatus = useCallback(() => {
+    if (!period) return;
+    updatePeriod.mutate({
+      periodId,
+      status: period.status === 'OPEN' ? 'CLOSED' : 'OPEN',
+    });
+  }, [period, periodId, updatePeriod]);
+
+  const handleStartEdit = useCallback((expense: Expense) => {
+    setEditingExpenseId(expense.id);
+    setEditAmount(String(expense.amount));
+  }, []);
+
+  const handleSaveEdit = useCallback(
+    (expense: Expense) => {
+      const amount = parseFloat(editAmount);
+      if (isNaN(amount)) return;
+      updateExpense.mutate(
+        {expenseId: expense.id, periodId, amount},
+        {
+          onSuccess: () => {
+            setEditingExpenseId(null);
+            setEditAmount('');
+          },
+        },
+      );
+    },
+    [editAmount, periodId, updateExpense],
+  );
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingExpenseId(null);
+    setEditAmount('');
+  }, []);
+
+  const handleDeleteExpense = useCallback(
+    (expense: Expense) => {
+      deleteExpense.mutate({expenseId: expense.id, periodId});
+    },
+    [periodId, deleteExpense],
+  );
+
+  return {
+    period,
+    isLoading,
+    isError,
+    canManagePeriods: !!canManagePeriods,
+    availableUnits,
+    selectedUnitId,
+    setSelectedUnitId,
+    newAmount,
+    setNewAmount,
+    paymentExpense,
+    setPaymentExpense,
+    editingExpenseId,
+    editAmount,
+    setEditAmount,
+    handleAddExpense,
+    handleTogglePeriodStatus,
+    handleStartEdit,
+    handleSaveEdit,
+    handleCancelEdit,
+    handleDeleteExpense,
+    updatePeriod,
+    createExpense,
+    updateExpense,
+  };
 }

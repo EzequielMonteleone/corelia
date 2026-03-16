@@ -14,6 +14,7 @@ import {
 } from '@/schemas/user';
 import {useAuthStore} from '@/store/authStore';
 import {useBuildings, useBuildingUnits} from '@/hooks/useBuildings';
+import {useUsers} from '@/hooks/useUsers';
 import {UserData} from '@/types/user';
 import {useTranslations} from 'next-intl';
 
@@ -49,12 +50,16 @@ export function UserModal({
   const t = useTranslations('Users');
   const actor = useAuthStore(state => state.user);
   const {data: buildings = []} = useBuildings();
-  const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
-  const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
-  const [selectedRoleName, setSelectedRoleName] = useState<'Admin' | 'Owner' | 'Roomer' | ''>(
-    '',
+  const {data: users = []} = useUsers();
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(
+    null,
   );
-  const [isGlobalSuperAdminCreate, setIsGlobalSuperAdminCreate] = useState(false);
+  const [selectedUnitIds, setSelectedUnitIds] = useState<string[] | null>(null);
+  const [selectedRoleName, setSelectedRoleName] = useState<
+    'Admin' | 'Owner' | 'Roomer' | '' | null
+  >(null);
+  const [isGlobalSuperAdminCreate, setIsGlobalSuperAdminCreate] =
+    useState(false);
   const isEdit = !!editingUser;
 
   const createForm = useForm<UserCreateFormValues>({
@@ -86,15 +91,70 @@ export function UserModal({
     );
   }, [actor, buildings]);
 
-  const editBuildingId = isEdit && editingUser?.buildingUsers?.[0]
-    ? editingUser.buildingUsers[0].buildingId
-    : '';
-  const effectiveBuildingId =
-    selectedBuildingId ||
-    (isEdit ? editBuildingId : '') ||
-    actorBuildingScope[0]?.id ||
-    '';
+  const editBuildingId = useMemo(
+    () =>
+      (isEdit && editingUser?.buildingUsers?.[0]
+        ? editingUser.buildingUsers[0].buildingId
+        : '') || '',
+    [isEdit, editingUser],
+  );
+
+  const effectiveBuildingId = useMemo(
+    () =>
+      (selectedBuildingId ?? (isEdit ? editBuildingId : '')) ||
+      actorBuildingScope[0]?.id ||
+      '',
+    [selectedBuildingId, isEdit, editBuildingId, actorBuildingScope],
+  );
+
   const {data: units = []} = useBuildingUnits(effectiveBuildingId || null);
+
+  const editRoleName = useMemo(
+    () =>
+      (editingUser?.buildingUsers?.[0]?.role?.name as
+        | 'Admin'
+        | 'Owner'
+        | 'Roomer'
+        | '') || '',
+    [editingUser],
+  );
+
+  const effectiveRoleName = isEdit
+    ? (selectedRoleName ?? editRoleName)
+    : (selectedRoleName ?? '');
+
+  const editUnitIdsForBuilding = useMemo(
+    () =>
+      editingUser?.userUnits
+        ?.filter(uu => uu.unit?.buildingId === effectiveBuildingId)
+        .map(uu => uu.unit!.id) ?? [],
+    [editingUser, effectiveBuildingId],
+  );
+
+  const effectiveSelectedUnitIds = useMemo(
+    () =>
+      isEdit
+        ? (selectedUnitIds ?? editUnitIdsForBuilding)
+        : (selectedUnitIds ?? []),
+    [isEdit, selectedUnitIds, editUnitIdsForBuilding],
+  );
+
+  const occupiedUnitIds = useMemo(
+    () =>
+      new Set(
+        users.flatMap(user =>
+          (user.userUnits ?? [])
+            .map(({unit}) => unit?.id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ),
+    [users],
+  );
+
+  const availableUnits = useMemo(() => {
+    if (isEdit) return units;
+    return units.filter(unit => !occupiedUnitIds.has(unit.id));
+  }, [units, occupiedUnitIds, isEdit]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -106,20 +166,6 @@ export function UserModal({
         phone: editingUser.phone ?? '',
         password: '',
       });
-      const firstBu = editingUser.buildingUsers?.[0];
-      if (firstBu) {
-        setSelectedBuildingId(firstBu.buildingId);
-        setSelectedRoleName((firstBu.role?.name as 'Admin' | 'Owner' | 'Roomer') || '');
-        const unitIdsForBuilding =
-          editingUser.userUnits
-            ?.filter(uu => uu.unit?.buildingId === firstBu.buildingId)
-            .map(uu => uu.unit!.id) ?? [];
-        setSelectedUnitIds(unitIdsForBuilding);
-      } else {
-        setSelectedBuildingId(actorBuildingScope[0]?.id ?? '');
-        setSelectedRoleName('');
-        setSelectedUnitIds([]);
-      }
       return;
     }
 
@@ -128,10 +174,16 @@ export function UserModal({
 
   useEffect(() => {
     if (isEdit) return;
-    createForm.setValue('unitIds', selectedUnitIds);
+    createForm.setValue('unitIds', selectedUnitIds ?? []);
     createForm.setValue('buildingId', effectiveBuildingId || undefined);
-    createForm.setValue('roleName', selectedRoleName || undefined);
-  }, [isEdit, createForm, selectedUnitIds, effectiveBuildingId, selectedRoleName]);
+    createForm.setValue('roleName', (selectedRoleName ?? '') || undefined);
+  }, [
+    isEdit,
+    createForm,
+    selectedUnitIds,
+    effectiveBuildingId,
+    selectedRoleName,
+  ]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -159,7 +211,7 @@ export function UserModal({
       if (!roles.includes(currentUserRole)) roles = [currentUserRole, ...roles];
     }
     return roles;
-  }, [actor, effectiveBuildingId, isEdit, editingUser?.buildingUsers]);
+  }, [actor, effectiveBuildingId, isEdit, editingUser]);
 
   const modalTitle = isEdit ? t('modalEditTitle') : t('modalTitle');
 
@@ -169,13 +221,18 @@ export function UserModal({
         ...data,
         roleName: isGlobalSuperAdminCreate ? undefined : data.roleName,
         globalRole: isGlobalSuperAdminCreate ? 'SUPERADMIN' : undefined,
-        unitIds: isGlobalSuperAdminCreate ? [] : selectedUnitIds,
+        unitIds: isGlobalSuperAdminCreate ? [] : (selectedUnitIds ?? []),
         buildingId: isGlobalSuperAdminCreate
           ? undefined
           : data.buildingId || effectiveBuildingId || undefined,
       });
     },
-    [onCreateSubmit, isGlobalSuperAdminCreate, selectedUnitIds, effectiveBuildingId],
+    [
+      onCreateSubmit,
+      isGlobalSuperAdminCreate,
+      selectedUnitIds,
+      effectiveBuildingId,
+    ],
   );
 
   const handleEdit = useCallback(
@@ -184,8 +241,8 @@ export function UserModal({
         ...data,
         ...(editingUser?.globalRole !== 'SUPERADMIN' && {
           buildingId: effectiveBuildingId || undefined,
-          roleName: selectedRoleName || undefined,
-          unitIds: selectedUnitIds,
+          roleName: effectiveRoleName || undefined,
+          unitIds: effectiveSelectedUnitIds,
         }),
       };
       onEditSubmit(payload);
@@ -194,26 +251,28 @@ export function UserModal({
       onEditSubmit,
       editingUser?.globalRole,
       effectiveBuildingId,
-      selectedRoleName,
-      selectedUnitIds,
+      effectiveRoleName,
+      effectiveSelectedUnitIds,
     ],
   );
 
   const handleClose = useCallback(() => {
-    setSelectedBuildingId('');
-    setSelectedUnitIds([]);
-    setSelectedRoleName('');
+    setSelectedBuildingId(null);
+    setSelectedUnitIds(null);
+    setSelectedRoleName(null);
     setIsGlobalSuperAdminCreate(false);
     onClose();
   }, [onClose]);
 
-  const showUnitsMulti = selectedRoleName === 'Owner';
-  const showUnitsSingle = selectedRoleName === 'Roomer';
+  const showUnitsMulti = effectiveRoleName === 'Owner';
+  const showUnitsSingle = effectiveRoleName === 'Roomer';
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={modalTitle}>
       {isEdit ? (
-        <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-4">
+        <form
+          onSubmit={editForm.handleSubmit(handleEdit)}
+          className="space-y-4">
           <Input
             {...editForm.register('email')}
             error={editForm.formState.errors.email?.message}
@@ -243,92 +302,114 @@ export function UserModal({
             placeholder={t('newPasswordOptional')}
           />
 
-          {editingUser?.globalRole !== 'SUPERADMIN' && actorBuildingScope.length > 0 && (
-            <>
-              <select
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
-                value={effectiveBuildingId}
-                onChange={e => {
-                  setSelectedBuildingId(e.target.value);
-                  setSelectedUnitIds([]);
-                }}>
-                {actorBuildingScope.map(building => (
-                  <option
-                    key={building.id}
-                    value={building.id}
-                    className="bg-[#121212] text-white">
-                    {building.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
-                value={selectedRoleName}
-                onChange={e => {
-                  setSelectedRoleName(e.target.value as 'Admin' | 'Owner' | 'Roomer' | '');
-                  setSelectedUnitIds([]);
-                }}>
-                <option value="" className="bg-[#121212]">
-                  {t('selectRole')}
-                </option>
-                {availableRoles.map(roleName => (
-                  <option
-                    key={roleName}
-                    value={roleName}
-                    className="bg-[#121212] text-white">
-                    {roleName}
-                  </option>
-                ))}
-              </select>
-
-              {showUnitsMulti && (
-                <div className="space-y-2 rounded-xl border border-white/10 p-3">
-                  <p className="text-sm text-gray-300">{t('selectOwnerUnits')}</p>
-                  {units.map(unit => (
-                    <label key={unit.id} className="flex items-center gap-2 text-sm text-gray-200">
-                      <input
-                        type="checkbox"
-                        checked={selectedUnitIds.includes(unit.id)}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            setSelectedUnitIds(prev => [...prev, unit.id]);
-                          } else {
-                            setSelectedUnitIds(prev => prev.filter(id => id !== unit.id));
-                          }
-                        }}
-                      />
-                      {unit.floor ? `${unit.floor} - ${unit.name}` : unit.name}
-                    </label>
+          {editingUser?.globalRole !== 'SUPERADMIN' &&
+            actorBuildingScope.length > 0 && (
+              <>
+                <select
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
+                  value={effectiveBuildingId}
+                  onChange={e => {
+                    setSelectedBuildingId(e.target.value);
+                    setSelectedUnitIds([]);
+                  }}>
+                  {actorBuildingScope.map(building => (
+                    <option
+                      key={building.id}
+                      value={building.id}
+                      className="bg-[#121212] text-white">
+                      {building.name}
+                    </option>
                   ))}
-                </div>
-              )}
+                </select>
 
-              {showUnitsSingle && (
-                <div className="space-y-2 rounded-xl border border-white/10 p-3">
-                  <p className="text-sm text-gray-300">{t('selectRoomerUnit')}</p>
-                  {units.map(unit => (
-                    <label key={unit.id} className="flex items-center gap-2 text-sm text-gray-200">
-                      <input
-                        type="radio"
-                        name="roomer-unit-edit"
-                        checked={selectedUnitIds[0] === unit.id}
-                        onChange={() => setSelectedUnitIds([unit.id])}
-                      />
-                      {unit.floor ? `${unit.floor} - ${unit.name}` : unit.name}
-                    </label>
+                <select
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
+                  value={effectiveRoleName}
+                  onChange={e => {
+                    setSelectedRoleName(
+                      e.target.value as 'Admin' | 'Owner' | 'Roomer' | '',
+                    );
+                    setSelectedUnitIds([]);
+                  }}>
+                  <option value="" className="bg-[#121212]">
+                    {t('selectRole')}
+                  </option>
+                  {availableRoles.map(roleName => (
+                    <option
+                      key={roleName}
+                      value={roleName}
+                      className="bg-[#121212] text-white">
+                      {roleName}
+                    </option>
                   ))}
-                </div>
-              )}
-            </>
-          )}
+                </select>
+
+                {showUnitsMulti && (
+                  <div className="space-y-2 rounded-xl border border-white/10 p-3">
+                    <p className="text-sm text-gray-300">
+                      {t('selectOwnerUnits')}
+                    </p>
+                    {units.map(unit => (
+                      <label
+                        key={unit.id}
+                        className="flex items-center gap-2 text-sm text-gray-200">
+                        <input
+                          type="checkbox"
+                          checked={effectiveSelectedUnitIds.includes(unit.id)}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setSelectedUnitIds(prev => [
+                                ...(prev ?? []),
+                                unit.id,
+                              ]);
+                            } else {
+                              setSelectedUnitIds(prev =>
+                                (prev ?? []).filter(id => id !== unit.id),
+                              );
+                            }
+                          }}
+                        />
+                        {unit.floor
+                          ? `${unit.floor} - ${unit.name}`
+                          : unit.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {showUnitsSingle && (
+                  <div className="space-y-2 rounded-xl border border-white/10 p-3">
+                    <p className="text-sm text-gray-300">
+                      {t('selectRoomerUnit')}
+                    </p>
+                    {units.map(unit => (
+                      <label
+                        key={unit.id}
+                        className="flex items-center gap-2 text-sm text-gray-200">
+                        <input
+                          type="radio"
+                          name="roomer-unit-edit"
+                          checked={effectiveSelectedUnitIds[0] === unit.id}
+                          onChange={() => setSelectedUnitIds([unit.id])}
+                        />
+                        {unit.floor
+                          ? `${unit.floor} - ${unit.name}`
+                          : unit.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
 
           <Button type="submit" fullWidth isLoading={isPending}>
             {t('saveChanges')}
           </Button>
         </form>
       ) : (
-        <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
+        <form
+          onSubmit={createForm.handleSubmit(handleCreate)}
+          className="space-y-4">
           <Input
             {...createForm.register('email')}
             error={createForm.formState.errors.email?.message}
@@ -398,9 +479,11 @@ export function UserModal({
 
               <select
                 className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
-                value={selectedRoleName}
+                value={effectiveRoleName}
                 onChange={e => {
-                  setSelectedRoleName(e.target.value as 'Admin' | 'Owner' | 'Roomer' | '');
+                  setSelectedRoleName(
+                    e.target.value as 'Admin' | 'Owner' | 'Roomer' | '',
+                  );
                   setSelectedUnitIds([]);
                 }}>
                 <option value="" className="bg-[#121212]">
@@ -421,16 +504,20 @@ export function UserModal({
           {showUnitsMulti && (
             <div className="space-y-2 rounded-xl border border-white/10 p-3">
               <p className="text-sm text-gray-300">{t('selectOwnerUnits')}</p>
-              {units.map(unit => (
-                <label key={unit.id} className="flex items-center gap-2 text-sm text-gray-200">
+              {availableUnits.map(unit => (
+                <label
+                  key={unit.id}
+                  className="flex items-center gap-2 text-sm text-gray-200">
                   <input
                     type="checkbox"
-                    checked={selectedUnitIds.includes(unit.id)}
+                    checked={effectiveSelectedUnitIds.includes(unit.id)}
                     onChange={e => {
                       if (e.target.checked) {
-                        setSelectedUnitIds(prev => [...prev, unit.id]);
+                        setSelectedUnitIds(prev => [...(prev ?? []), unit.id]);
                       } else {
-                        setSelectedUnitIds(prev => prev.filter(id => id !== unit.id));
+                        setSelectedUnitIds(prev =>
+                          (prev ?? []).filter(id => id !== unit.id),
+                        );
                       }
                     }}
                   />
@@ -443,12 +530,14 @@ export function UserModal({
           {showUnitsSingle && (
             <div className="space-y-2 rounded-xl border border-white/10 p-3">
               <p className="text-sm text-gray-300">{t('selectRoomerUnit')}</p>
-              {units.map(unit => (
-                <label key={unit.id} className="flex items-center gap-2 text-sm text-gray-200">
+              {availableUnits.map(unit => (
+                <label
+                  key={unit.id}
+                  className="flex items-center gap-2 text-sm text-gray-200">
                   <input
                     type="radio"
                     name="roomer-unit"
-                    checked={selectedUnitIds[0] === unit.id}
+                    checked={effectiveSelectedUnitIds[0] === unit.id}
                     onChange={() => setSelectedUnitIds([unit.id])}
                   />
                   {unit.floor ? `${unit.floor} - ${unit.name}` : unit.name}
