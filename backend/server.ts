@@ -9,6 +9,7 @@ import userRoutes from './routes/userRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import unitRoutes from './routes/unitRoutes.js';
 import amenityRoutes from './routes/amenityRoutes.js';
+import {periodRouter, expenseRouter, paymentRouter} from './routes/expenseRoutes.js';
 
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'] as const;
 for (const key of requiredEnvVars) {
@@ -29,6 +30,9 @@ app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
 app.use('/units', unitRoutes);
 app.use('/amenities', amenityRoutes);
+app.use('/expense-periods', periodRouter);
+app.use('/expenses', expenseRouter);
+app.use('/payments', paymentRouter);
 app.use(meRoutes);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

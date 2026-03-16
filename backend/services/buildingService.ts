@@ -2,7 +2,7 @@ import {prisma} from '../prismaClient.js';
 
 export async function getAllBuildings() {
   return await prisma.building.findMany({
-    where: {active: true},
+    where: {active: true, deleted: false},
     orderBy: {createdAt: 'desc'},
   });
 }
@@ -13,14 +13,15 @@ export async function getBuildingsByIds(buildingIds: string[]) {
     where: {
       id: {in: buildingIds},
       active: true,
+      deleted: false,
     },
     orderBy: {createdAt: 'desc'},
   });
 }
 
 export async function getBuildingById(id: string) {
-  return await prisma.building.findUnique({
-    where: {id},
+  return await prisma.building.findFirst({
+    where: {id, deleted: false},
     include: {
       units: {
         orderBy: [{floor: 'asc'}, {name: 'asc'}],
@@ -71,7 +72,8 @@ export async function updateBuilding(
 }
 
 export async function deleteBuilding(id: string) {
-  return await prisma.building.delete({
+  return await prisma.building.update({
     where: {id},
+    data: {deleted: true},
   });
 }

@@ -7,6 +7,7 @@ import {
   Users,
   ShieldCheck,
   LogOut,
+  Receipt,
 } from 'lucide-react';
 import {useAuthStore} from '@/store/authStore';
 import {cn} from '@/lib/utils';
@@ -30,6 +31,12 @@ function useMenuItems() {
       roles: ['admin', 'owner'],
     },
     {icon: Users, label: tCommon('users'), href: '/dashboard/users', roles: ['admin', 'owner']},
+    {
+      icon: Receipt,
+      label: tSidebar('expenses'),
+      href: '/dashboard/expenses',
+      roles: ['admin', 'owner', 'roomer'],
+    },
     {
       icon: ShieldCheck,
       label: tSidebar('rolesAndPermissions'),

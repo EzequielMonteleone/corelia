@@ -44,6 +44,20 @@ export default function UsersPage() {
   const t = useTranslations('Users');
   const tCommon = useTranslations('Common');
 
+  const formatBuildingRole = (roleName: string) => {
+    if (roleName === 'Owner') return t('owner');
+    if (roleName === 'Roomer') return t('roomer');
+    if (roleName === 'Admin') return t('admin');
+    return roleName;
+  };
+
+  const roleBadgeIntent = (roleName: string) => {
+    if (roleName === 'Owner') return 'success' as const;
+    if (roleName === 'Admin') return 'primary' as const;
+    if (roleName === 'Roomer') return 'warning' as const;
+    return 'default' as const;
+  };
+
   const filteredUsers = useMemo(
     () =>
       users?.filter(
@@ -57,9 +71,10 @@ export default function UsersPage() {
   );
 
   const handleCreate = (data: UserCreateFormValues) => {
-    const mutation = data.globalRole === 'SUPERADMIN'
-      ? createGlobalMutation
-      : createBuildingMutation;
+    const mutation =
+      data.globalRole === 'SUPERADMIN'
+        ? createGlobalMutation
+        : createBuildingMutation;
     mutation.mutate(data, {
       onSuccess: () => {
         setIsModalOpen(false);
@@ -140,6 +155,9 @@ export default function UsersPage() {
                   {t('globalRole')}
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                  {t('buildingRole')}
+                </th>
+                <th className="px-6 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
                   {t('status')}
                 </th>
                 <th className="px-6 py-4 text-sm font-semibold text-gray-400 uppercase tracking-wider text-right">
@@ -176,6 +194,27 @@ export default function UsersPage() {
                       <span className="text-sm font-medium">
                         {user.globalRole}
                       </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {Array.from(
+                        new Set(
+                          (user.buildingUsers ?? [])
+                            .map(bu => bu.role?.name)
+                            .filter(Boolean) as string[],
+                        ),
+                      ).map(roleName => (
+                        <Badge
+                          key={roleName}
+                          intent={roleBadgeIntent(roleName)}>
+                          {formatBuildingRole(roleName)}
+                        </Badge>
+                      ))}
+                      {(!user.buildingUsers ||
+                        user.buildingUsers.length === 0) && (
+                        <span className="text-sm text-gray-500">—</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">

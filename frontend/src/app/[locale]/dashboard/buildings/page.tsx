@@ -18,8 +18,12 @@ import {
 import {BuildingFormValues} from '@/schemas/building';
 import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
+import {useAuthStore} from '@/store/authStore';
 
 export default function BuildingsPage() {
+  const user = useAuthStore(state => state.user);
+  const isSuperAdmin = user?.globalRole === 'SUPERADMIN';
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<{
     id: string;
@@ -123,17 +127,19 @@ export default function BuildingsPage() {
                     aria-label={t('modalEditTitle')}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button
-                    intent="ghost"
-                    size="icon"
-                    className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400"
-                    onClick={() => {
-                      if (confirm(t('deleteConfirm'))) {
-                        deleteMutation.mutate(building.id);
-                      }
-                    }}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {isSuperAdmin && (
+                    <Button
+                      intent="ghost"
+                      size="icon"
+                      className="w-8 h-8 rounded-full hover:bg-red-500/10 hover:text-red-400 text-gray-400"
+                      onClick={() => {
+                        if (confirm(t('deleteConfirm'))) {
+                          deleteMutation.mutate(building.id);
+                        }
+                      }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
 

@@ -14,15 +14,15 @@ const userInclude = {
 };
 
 export async function findUserByEmail(email: string) {
-  return prisma.user.findUnique({
-    where: {email},
+  return prisma.user.findFirst({
+    where: {email, deleted: false},
     include: userInclude,
   });
 }
 
 export async function findUserById(id: string) {
-  return prisma.user.findUnique({
-    where: {id},
+  return prisma.user.findFirst({
+    where: {id, deleted: false},
     include: userInclude,
   });
 }
@@ -101,6 +101,7 @@ export async function createGlobalUser(data: {
 }
 export async function getAllUsers() {
   return prisma.user.findMany({
+    where: {deleted: false},
     include: userInclude,
   });
 }
@@ -108,6 +109,7 @@ export async function getAllUsers() {
 export async function getUsersByBuildings(buildingIds: string[]) {
   return prisma.user.findMany({
     where: {
+      deleted: false,
       buildingUsers: {
         some: {
           buildingId: {
@@ -124,6 +126,7 @@ export async function getUsersByBuildings(buildingIds: string[]) {
 export async function getRoomersByBuildings(buildingIds: string[]) {
   return prisma.user.findMany({
     where: {
+      deleted: false,
       buildingUsers: {
         some: {
           buildingId: {in: buildingIds},
@@ -180,7 +183,7 @@ export async function updateUserBuildingAssignment(
         ? UnitRelationType.ROOMER
         : undefined;
 
-  return prisma.$transaction(async tx => {
+  await prisma.$transaction(async tx => {
     const existing = await tx.buildingUser.findFirst({
       where: {userId, buildingId},
     });
@@ -228,10 +231,8 @@ export async function updateUserBuildingAssignment(
 }
 
 export async function deleteUser(id: string) {
-  // We might want to do a soft delete or just remove associated building relations
-  // For now, let's do a complete delete (Prisma will handle relations if set to cascade,
-  // but buildingUser usually doesn't cascade delete the User)
-  return prisma.user.delete({
+  return prisma.user.update({
     where: {id},
+    data: {deleted: true},
   });
 }

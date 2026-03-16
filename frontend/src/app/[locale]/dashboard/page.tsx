@@ -1,9 +1,10 @@
 'use client';
 
 import {useAuthStore} from '@/store/authStore';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import {Button} from '@/components/ui/Button';
+import {Card} from '@/components/ui/Card';
 import {useTranslations} from 'next-intl';
+import {Link} from '@/i18n/navigation';
 
 export default function DashboardPage() {
   const {user, logout} = useAuthStore();
@@ -49,14 +50,14 @@ export default function DashboardPage() {
               {t('usersCardDesc')}
             </p>
           </Card>
-          <Card className="p-6 hover:border-purple-500/50 cursor-pointer">
-            <h3 className="text-xl font-semibold mb-2 group-hover:text-purple-400">
-              {t('paymentsCard')}
-            </h3>
-            <p className="text-gray-400 text-sm">
-              {t('paymentsCardDesc')}
-            </p>
-          </Card>
+          <Link href="/dashboard/expenses">
+            <Card className="p-6 hover:border-purple-500/50 cursor-pointer">
+              <h3 className="text-xl font-semibold mb-2 group-hover:text-purple-400">
+                {t('paymentsCard')}
+              </h3>
+              <p className="text-gray-400 text-sm">{t('paymentsCardDesc')}</p>
+            </Card>
+          </Link>
         </div>
       </div>
     </main>
