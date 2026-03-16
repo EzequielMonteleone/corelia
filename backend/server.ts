@@ -36,7 +36,7 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({error: 'INTERNAL_SERVER_ERROR'});
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
