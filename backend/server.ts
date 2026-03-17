@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import type {Request, Response, NextFunction} from 'express';
 import authRoutes from './routes/authRoutes.js';
 import meRoutes from './routes/meRoutes.js';
@@ -21,7 +22,14 @@ for (const key of requiredEnvVars) {
 
 const app = express();
 
-app.use(cors());
+app.use(helmet());
+app.use(
+  cors({
+    origin:
+      process.env.CORS_ORIGIN ?? process.env.FRONTEND_URL ?? true,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 app.use('/auth', authRoutes);
