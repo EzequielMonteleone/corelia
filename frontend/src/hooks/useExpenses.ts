@@ -9,6 +9,8 @@ import type {
   ExpensePeriodStatus,
   Expense,
   PaymentStatus,
+  CollectionSummary,
+  AuditLog,
 } from '@/types/expense';
 
 interface MutationCallbacks {
@@ -25,6 +27,18 @@ export function useExpensePeriods(buildingId: string | null) {
         `/buildings/${buildingId}/expense-periods`,
       );
       return res.data;
+    },
+    enabled: !!buildingId,
+  });
+}
+
+export function useCollectionSummary(buildingId: string | null) {
+  return useQuery<CollectionSummary | null>({
+    queryKey: ['collection-summary', buildingId],
+    queryFn: async () => {
+      if (!buildingId) return null;
+      const res = await apiClient.get(`/buildings/${buildingId}/expense-periods/summary`);
+      return res.data as CollectionSummary;
     },
     enabled: !!buildingId,
   });
@@ -81,6 +95,18 @@ export function useExpensePeriodDetail(periodId: string | null) {
     queryFn: async () => {
       const res = await apiClient.get(`/expense-periods/${periodId}`);
       return res.data;
+    },
+    enabled: !!periodId,
+  });
+}
+
+export function useExpensePeriodAuditLogs(periodId: string | null) {
+  return useQuery<AuditLog[]>({
+    queryKey: ['expense-period-audit-logs', periodId],
+    queryFn: async () => {
+      if (!periodId) return [];
+      const res = await apiClient.get(`/expense-periods/${periodId}/audit-logs`);
+      return res.data as AuditLog[];
     },
     enabled: !!periodId,
   });
@@ -245,6 +271,30 @@ export function useUpdatePayment() {
       });
     },
   });
+}
+
+export async function downloadExpensePeriodExport(
+  periodId: string,
+  format: 'csv' | 'pdf',
+) {
+  const response = await apiClient.get(
+    `/expense-periods/${periodId}/export?format=${format}`,
+    {
+      responseType: 'blob',
+    },
+  );
+
+  const blob = new Blob([response.data], {
+    type: format === 'pdf' ? 'application/pdf' : 'text/csv;charset=utf-8',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `expense-period-${periodId}.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 export function useExpensePeriodPage(periodId: string) {

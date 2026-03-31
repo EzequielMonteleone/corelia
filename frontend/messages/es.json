@@ -41,7 +41,11 @@
     "usersCard": "Usuarios",
     "usersCardDesc": "Administra inquilinos, propietarios y administradores.",
     "paymentsCard": "Pagos",
-    "paymentsCardDesc": "Control de expensas y estados de cuenta."
+    "paymentsCardDesc": "Control de expensas y estados de cuenta.",
+    "kpiDebt": "Deuda total",
+    "kpiCollected": "Cobrado",
+    "kpiCollectionRate": "Porcentaje de cobranza",
+    "kpiUnitsWithDebt": "Unidades con deuda"
   },
   "Login": {
     "welcome": "Bienvenido a Corelia",
@@ -245,7 +249,12 @@
     "paymentApproveSuccess": "Pago aprobado correctamente.",
     "paymentApproveError": "No se pudo aprobar el pago.",
     "paymentRejectSuccess": "Pago rechazado correctamente.",
-    "paymentRejectError": "No se pudo rechazar el pago."
+    "paymentRejectError": "No se pudo rechazar el pago.",
+    "exportCsv": "Exportar CSV",
+    "exportPdf": "Exportar PDF",
+    "exportError": "No se pudo exportar el reporte.",
+    "auditTitle": "Actividad reciente",
+    "auditEmpty": "No hay actividad reciente para este período."
   },
   "Sidebar": {
     "rolesAndPermissions": "Roles y Permisos",

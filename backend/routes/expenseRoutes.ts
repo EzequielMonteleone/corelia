@@ -17,7 +17,11 @@ import {
   deleteExpense,
   createPayment,
   updatePayment,
+  getBuildingCollectionSummary,
+  buildExpensePeriodCsv,
+  buildExpensePeriodPdf,
 } from '../services/expenseService.js';
+import {createAuditLog, getAuditLogsByPeriod} from '../services/auditService.js';
 
 function hasRoleForBuilding(
   user: {
@@ -82,6 +86,32 @@ buildingPeriodRouter.get(
   },
 );
 
+// GET /buildings/:buildingId/expense-periods/summary
+buildingPeriodRouter.get(
+  '/summary',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({error: 'UNAUTHENTICATED'});
+      }
+
+      const buildingId = req.params.buildingId as string;
+      const user = await findUserById(req.user.id);
+      if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
+
+      if (!hasRoleForBuilding(user, buildingId, ['Admin', 'Owner', 'Roomer'])) {
+        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      }
+
+      const summary = await getBuildingCollectionSummary(buildingId);
+      return res.json(summary);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 // POST /buildings/:buildingId/expense-periods
 buildingPeriodRouter.post(
   '/',
@@ -108,6 +138,15 @@ buildingPeriodRouter.post(
         buildingId,
         period.trim(),
       );
+      await createAuditLog({
+        action: 'EXPENSE_PERIOD_CREATED',
+        entityType: 'EXPENSE_PERIOD',
+        entityId: expensePeriod.id,
+        periodId: expensePeriod.id,
+        buildingId,
+        actorUserId: req.user.id,
+        metadata: {period: expensePeriod.period},
+      });
       return res.status(201).json(expensePeriod);
     } catch (err) {
       return next(err);
@@ -195,6 +234,15 @@ periodRouter.put(
       }
 
       const updated = await updateExpensePeriod(periodId, status);
+      await createAuditLog({
+        action: 'EXPENSE_PERIOD_UPDATED',
+        entityType: 'EXPENSE_PERIOD',
+        entityId: updated.id,
+        periodId: updated.id,
+        buildingId: detail.buildingId,
+        actorUserId: req.user.id,
+        metadata: {status},
+      });
       return res.json(updated);
     } catch (err) {
       return next(err);
@@ -224,7 +272,106 @@ periodRouter.delete(
       }
 
       await deleteExpensePeriod(periodId);
+      await createAuditLog({
+        action: 'EXPENSE_PERIOD_DELETED',
+        entityType: 'EXPENSE_PERIOD',
+        entityId: periodId,
+        periodId,
+        buildingId: detail.buildingId,
+        actorUserId: req.user.id,
+        metadata: {period: detail.period},
+      });
       return res.status(204).send();
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// GET /expense-periods/:periodId/export
+periodRouter.get(
+  '/:periodId/export',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({error: 'UNAUTHENTICATED'});
+      }
+
+      const user = await findUserById(req.user.id);
+      if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
+
+      const periodId = req.params.periodId as string;
+      const detail = await getExpensePeriodDetail(periodId);
+      if (!detail) {
+        return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
+      }
+
+      if (
+        !hasRoleForBuilding(user, detail.buildingId, ['Admin', 'Owner', 'Roomer'])
+      ) {
+        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      }
+
+      const format = String(req.query.format ?? 'csv').toLowerCase();
+      if (format !== 'csv' && format !== 'pdf') {
+        return res.status(400).json({error: 'INVALID_EXPORT_FORMAT'});
+      }
+
+      const safePeriod = detail.period.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      if (format === 'csv') {
+        const csv = await buildExpensePeriodCsv(periodId);
+        if (!csv) return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="expense-period-${safePeriod}.csv"`,
+        );
+        return res.send(csv);
+      }
+
+      const pdf = await buildExpensePeriodPdf(periodId);
+      if (!pdf) return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="expense-period-${safePeriod}.pdf"`,
+      );
+      return res.send(pdf);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// GET /expense-periods/:periodId/audit-logs
+periodRouter.get(
+  '/:periodId/audit-logs',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({error: 'UNAUTHENTICATED'});
+      }
+
+      const user = await findUserById(req.user.id);
+      if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
+
+      const periodId = req.params.periodId as string;
+      const detail = await getExpensePeriodDetail(periodId);
+      if (!detail) {
+        return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
+      }
+
+      if (
+        !hasRoleForBuilding(user, detail.buildingId, ['Admin', 'Owner', 'Roomer'])
+      ) {
+        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      }
+
+      const logs = await getAuditLogsByPeriod(periodId, 30);
+      return res.json(logs);
     } catch (err) {
       return next(err);
     }
@@ -270,6 +417,15 @@ periodRouter.post(
         periodId,
         amount,
       });
+      await createAuditLog({
+        action: 'EXPENSE_CREATED',
+        entityType: 'EXPENSE',
+        entityId: expense.id,
+        periodId,
+        buildingId: detail.buildingId,
+        actorUserId: req.user.id,
+        metadata: {periodId, unitId, amount},
+      });
       return res.status(201).json(expense);
     } catch (err) {
       return next(err);
@@ -309,6 +465,15 @@ expenseRouter.put(
       const updated = await updateExpense(expenseId, {
         ...(typeof amount === 'number' ? {amount} : {}),
       });
+      await createAuditLog({
+        action: 'EXPENSE_UPDATED',
+        entityType: 'EXPENSE',
+        entityId: updated.id,
+        periodId: existing.periodId,
+        buildingId: existing.buildingId,
+        actorUserId: req.user.id,
+        metadata: {amount: updated.amount},
+      });
       return res.json(updated);
     } catch (err) {
       return next(err);
@@ -340,6 +505,15 @@ expenseRouter.delete(
       }
 
       await deleteExpense(expenseId);
+      await createAuditLog({
+        action: 'EXPENSE_DELETED',
+        entityType: 'EXPENSE',
+        entityId: expenseId,
+        periodId: existing.periodId,
+        buildingId: existing.buildingId,
+        actorUserId: req.user.id,
+        metadata: {unitId: existing.unitId},
+      });
       return res.status(204).send();
     } catch (err) {
       return next(err);
@@ -403,6 +577,20 @@ expenseRouter.post(
         ...(paymentMethod !== undefined && {paymentMethod}),
         ...(externalPaymentId !== undefined && {externalPaymentId}),
       });
+      await createAuditLog({
+        action: 'PAYMENT_CREATED',
+        entityType: 'PAYMENT',
+        entityId: payment.id,
+        periodId: existing.periodId,
+        buildingId: existing.buildingId,
+        actorUserId: req.user.id,
+        metadata: {
+          expenseId,
+          amount,
+          paymentMethod: paymentMethod ?? null,
+          externalPaymentId: externalPaymentId ?? null,
+        },
+      });
       return res.status(201).json(payment);
     } catch (err) {
       return next(err);
@@ -429,7 +617,14 @@ paymentRouter.put(
       const paymentId = req.params.id as string;
 
       const existing = await import('../prismaClient.js').then(m =>
-        m.prisma.payment.findUnique({where: {id: paymentId}}),
+        m.prisma.payment.findUnique({
+          where: {id: paymentId},
+          include: {
+            expense: {
+              select: {periodId: true},
+            },
+          },
+        }),
       );
       if (!existing) return res.status(404).json({error: 'PAYMENT_NOT_FOUND'});
 
@@ -447,6 +642,15 @@ paymentRouter.put(
       }
 
       const updated = await updatePayment(paymentId, status as 'COMPLETED' | 'REJECTED');
+      await createAuditLog({
+        action: 'PAYMENT_UPDATED',
+        entityType: 'PAYMENT',
+        entityId: updated.id,
+        periodId: existing.expense.periodId,
+        buildingId: existing.buildingId,
+        actorUserId: req.user.id,
+        metadata: {status: updated.status},
+      });
       return res.json(updated);
     } catch (err) {
       return next(err);

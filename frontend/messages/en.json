@@ -41,7 +41,11 @@
     "usersCard": "Users",
     "usersCardDesc": "Manage tenants, owners and administrators.",
     "paymentsCard": "Payments",
-    "paymentsCardDesc": "Expense control and account statements."
+    "paymentsCardDesc": "Expense control and account statements.",
+    "kpiDebt": "Total debt",
+    "kpiCollected": "Collected",
+    "kpiCollectionRate": "Collection rate",
+    "kpiUnitsWithDebt": "Units with debt"
   },
   "Login": {
     "welcome": "Welcome to Corelia",
@@ -244,7 +248,12 @@
     "paymentApproveSuccess": "Payment approved successfully.",
     "paymentApproveError": "Could not approve payment.",
     "paymentRejectSuccess": "Payment rejected successfully.",
-    "paymentRejectError": "Could not reject payment."
+    "paymentRejectError": "Could not reject payment.",
+    "exportCsv": "Export CSV",
+    "exportPdf": "Export PDF",
+    "exportError": "Could not export report.",
+    "auditTitle": "Recent activity",
+    "auditEmpty": "No recent activity for this period."
   },
   "Sidebar": {
     "rolesAndPermissions": "Roles and Permissions",

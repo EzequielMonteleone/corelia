@@ -211,3 +211,15 @@ model Payment {
   building Building @relation(fields: [buildingId], references: [id])
   expense  Expense  @relation(fields: [expenseId], references: [id])
 }
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  entityType  String
+  entityId    String
+  periodId    String?
+  buildingId  String
+  actorUserId String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+}

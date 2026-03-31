@@ -2,10 +2,11 @@
 
 import {useParams} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {ArrowLeft} from 'lucide-react';
+import {ArrowLeft, Download} from 'lucide-react';
 import {Link} from '@/i18n/navigation';
 import {PageHeader} from '@/components/dashboard/PageHeader';
 import {Card} from '@/components/ui/Card';
+import {Button} from '@/components/ui/Button';
 import {LoadingState} from '@/components/ui/LoadingState';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {
@@ -14,16 +15,23 @@ import {
   ExpensesTable,
   PaymentModal,
 } from '@/components/dashboard/expenses';
-import {useExpensePeriodPage} from '@/hooks/useExpenses';
+import {
+  downloadExpensePeriodExport,
+  useExpensePeriodAuditLogs,
+  useExpensePeriodPage,
+} from '@/hooks/useExpenses';
 import type {Expense} from '@/types/expense';
 import {useCallback, useMemo, useState} from 'react';
 import {toast} from 'sonner';
+import {formatDate} from '@/lib/utils';
+import {useLocale} from 'next-intl';
 
 const ExpensePeriodDetailPage = () => {
   const params = useParams();
   const periodId = (params?.periodId as string) ?? '';
   const t = useTranslations('Expenses');
   const tCommon = useTranslations('Common');
+  const locale = useLocale();
 
   const {
     period,
@@ -52,6 +60,9 @@ const ExpensePeriodDetailPage = () => {
     updateExpense,
   } = useExpensePeriodPage(periodId);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const {data: auditLogs = []} = useExpensePeriodAuditLogs(periodId);
 
   const handleDeleteWithConfirm = useCallback(
     (expense: Expense) => {
@@ -104,6 +115,25 @@ const ExpensePeriodDetailPage = () => {
     [canManagePeriods, t],
   );
 
+  const handleExport = useCallback(
+    async (format: 'csv' | 'pdf') => {
+      try {
+        if (format === 'csv') {
+          setIsExportingCsv(true);
+        } else {
+          setIsExportingPdf(true);
+        }
+        await downloadExpensePeriodExport(periodId, format);
+      } catch {
+        toast.error(t('exportError'));
+      } finally {
+        setIsExportingCsv(false);
+        setIsExportingPdf(false);
+      }
+    },
+    [periodId, t],
+  );
+
   if (isLoading) {
     return (
       <div className="p-8">
@@ -149,6 +179,23 @@ const ExpensePeriodDetailPage = () => {
         isTogglePending={updatePeriod.isPending}
       />
 
+      <Card className="p-4 mb-6 flex flex-wrap items-center gap-3">
+        <Button
+          intent="ghost"
+          onClick={() => handleExport('csv')}
+          disabled={isExportingCsv || isExportingPdf}>
+          <Download className="w-4 h-4 mr-2" />
+          {t('exportCsv')}
+        </Button>
+        <Button
+          intent="ghost"
+          onClick={() => handleExport('pdf')}
+          disabled={isExportingPdf || isExportingCsv}>
+          <Download className="w-4 h-4 mr-2" />
+          {t('exportPdf')}
+        </Button>
+      </Card>
+
       {canManagePeriods && isOpen && (
         <AddExpenseForm
           availableUnits={availableUnits}
@@ -185,6 +232,25 @@ const ExpensePeriodDetailPage = () => {
         confirmButtonLabel={paymentConfirmLabel}
         canManagePeriods={canManagePeriods}
       />
+
+      <Card className="p-4 mt-6">
+        <h3 className="text-sm font-semibold text-white mb-3">{t('auditTitle')}</h3>
+        {auditLogs.length === 0 ? (
+          <p className="text-sm text-gray-400">{t('auditEmpty')}</p>
+        ) : (
+          <div className="space-y-2">
+            {auditLogs.map(log => (
+              <div
+                key={log.id}
+                className="text-xs text-gray-300 border border-white/10 rounded-lg px-3 py-2">
+                <p className="font-medium text-white">{log.action}</p>
+                <p>{formatDate(log.createdAt, locale)}</p>
+                <p className="text-gray-400">Actor: {log.actorUserId}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <ConfirmDialog
         isOpen={!!expenseToDelete}

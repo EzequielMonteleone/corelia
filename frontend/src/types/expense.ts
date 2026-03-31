@@ -45,3 +45,25 @@ export interface ExpensePeriodDetail extends Omit<ExpensePeriod, '_count'> {
   building: {id: string; name: string};
   expenses: Expense[];
 }
+
+export interface CollectionSummary {
+  buildingId: string;
+  totalInvoiced: number;
+  totalPaid: number;
+  debtTotal: number;
+  collectionRate: number;
+  unitsWithDebtCount: number;
+  expensesCount: number;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  periodId: string | null;
+  buildingId: string;
+  actorUserId: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
