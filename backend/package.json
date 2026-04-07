@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "create-test-user": "tsx scripts/createTestUser.ts"
+    "create-test-user": "tsx scripts/createTestUser.ts",
+    "db:seed": "prisma db seed"
   },
   "keywords": [],
   "author": "",

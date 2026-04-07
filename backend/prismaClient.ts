@@ -1,10 +1,9 @@
 import {PrismaClient} from '@prisma/client';
 import {Pool} from 'pg';
 import {PrismaPg} from '@prisma/adapter-pg';
+import {resolveDatabaseUrl} from './lib/databaseUrl.js';
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  'postgresql://corelia:corelia123@localhost:5432/corelia_dev';
+const connectionString = resolveDatabaseUrl();
 
 const pool = new Pool({connectionString});
 const adapter = new PrismaPg(pool);
