@@ -38,6 +38,7 @@ export async function createAuditLog(input: CreateAuditLogInput) {
   await prisma.$executeRawUnsafe(
     `
       INSERT INTO "AuditLog" (
+        "id",
         "action",
         "entityType",
         "entityId",
@@ -47,7 +48,7 @@ export async function createAuditLog(input: CreateAuditLogInput) {
         "metadata",
         "createdAt"
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, NOW())
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7::jsonb, NOW())
     `,
     input.action,
     input.entityType,
