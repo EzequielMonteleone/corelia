@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   LogOut,
   Receipt,
+  CalendarDays,
 } from 'lucide-react';
 import {useAuthStore} from '@/store/authStore';
 import {cn} from '@/lib/utils';
@@ -35,6 +36,12 @@ function useMenuItems() {
       icon: Receipt,
       label: tSidebar('expenses'),
       href: '/dashboard/expenses',
+      roles: ['admin', 'owner', 'roomer'],
+    },
+    {
+      icon: CalendarDays,
+      label: tSidebar('amenities'),
+      href: '/dashboard/amenities',
       roles: ['admin', 'owner', 'roomer'],
     },
     {

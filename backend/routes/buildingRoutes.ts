@@ -35,7 +35,10 @@ function getAssignedBuildingIds(
   const ownerIds = buildingUsers
     .filter(bu => bu.role.name === 'Owner')
     .map(bu => bu.buildingId);
-  return {adminIds, ownerIds};
+  const roomerIds = buildingUsers
+    .filter(bu => bu.role.name === 'Roomer')
+    .map(bu => bu.buildingId);
+  return {adminIds, ownerIds, roomerIds};
 }
 
 function hasRoleForBuilding(
@@ -73,7 +76,9 @@ router.get(
         return res.json(buildings);
       }
 
-      const {adminIds, ownerIds} = getAssignedBuildingIds(user.buildingUsers);
+      const {adminIds, ownerIds, roomerIds} = getAssignedBuildingIds(
+        user.buildingUsers,
+      );
 
       if (adminIds.length > 0) {
         const buildings = await getBuildingsByIds(adminIds);
@@ -82,6 +87,11 @@ router.get(
 
       if (ownerIds.length > 0) {
         const buildings = await getBuildingsByIds(ownerIds);
+        return res.json(buildings);
+      }
+
+      if (roomerIds.length > 0) {
+        const buildings = await getBuildingsByIds(roomerIds);
         return res.json(buildings);
       }
 
@@ -218,7 +228,11 @@ router.get(
       if (!user) {
         return res.status(404).json({error: 'USER_NOT_FOUND'});
       }
-      const isMember = hasRoleForBuilding(user, buildingId, ['Admin', 'Owner']);
+      const isMember = hasRoleForBuilding(user, buildingId, [
+        'Admin',
+        'Owner',
+        'Roomer',
+      ]);
       if (!isMember) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
@@ -236,11 +250,12 @@ router.get(
         return res.json(units);
       }
 
-      // Owner can only see units they own (to assign roomers).
-      const ownedUnitIds = user.userUnits
-        .filter(userUnit => userUnit.relationType === 'OWNER')
+      const relation =
+        buildingRole === 'Roomer' ? 'ROOMER' : 'OWNER';
+      const linkedUnitIds = user.userUnits
+        .filter(userUnit => userUnit.relationType === relation)
         .map(userUnit => userUnit.unitId);
-      return res.json(units.filter(unit => ownedUnitIds.includes(unit.id)));
+      return res.json(units.filter(unit => linkedUnitIds.includes(unit.id)));
     } catch (err) {
       return next(err);
     }
@@ -302,16 +317,24 @@ router.get(
       if (!user) {
         return res.status(404).json({error: 'USER_NOT_FOUND'});
       }
-      const isMember = hasRoleForBuilding(user, buildingId, ['Admin', 'Owner']);
+      const isMember = hasRoleForBuilding(user, buildingId, [
+        'Admin',
+        'Owner',
+        'Roomer',
+      ]);
       if (!isMember) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
+      const canManage = hasRoleForBuilding(user, buildingId, ['Admin']);
       const [catalog, amenities] = await Promise.all([
-        getAmenityCatalog(),
+        canManage ? getAmenityCatalog() : Promise.resolve([]),
         getBuildingAmenities(buildingId),
       ]);
-      return res.json({catalog, amenities});
+      return res.json({
+        catalog,
+        amenities: canManage ? amenities : amenities.filter(item => item.isEnabled),
+      });
     } catch (err) {
       return next(err);
     }

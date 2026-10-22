@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 export const userCreateSchema = z
   .object({
-    email: z.string().email('Email inválido'),
+    email: z.email('Email inválido'),
     firstName: z.string().min(2, 'Mínimo 2 caracteres'),
     lastName: z.string().min(2, 'Mínimo 2 caracteres'),
     phone: z.string().optional(),
@@ -17,7 +17,7 @@ export const userCreateSchema = z
       if (value.roleName || value.buildingId) {
         ctx.addIssue({
           path: ['globalRole'],
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Un superadmin global no debe tener edificio ni roleName.',
         });
       }
@@ -27,21 +27,21 @@ export const userCreateSchema = z
     if (!value.roleName) {
       ctx.addIssue({
         path: ['roleName'],
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'El rol es obligatorio.',
       });
     }
     if (!value.buildingId) {
       ctx.addIssue({
         path: ['buildingId'],
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'El edificio es obligatorio.',
       });
     }
   });
 
 export const userEditSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.email('Email inválido'),
   firstName: z.string().min(2, 'Mínimo 2 caracteres'),
   lastName: z.string().min(2, 'Mínimo 2 caracteres'),
   phone: z.string().optional(),

@@ -18,6 +18,7 @@ import {LoadingState} from '@/components/ui/LoadingState';
 import {PageHeader} from '@/components/dashboard/PageHeader';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {Select} from '@/components/ui/Select';
 import {
   useBuilding,
   useBuildingAmenities,
@@ -30,6 +31,7 @@ import {
   useUpdateUnit,
 } from '@/hooks/useBuildings';
 import {useTranslations} from 'next-intl';
+import {AmenityBookingForm} from '@/components/dashboard/buildings/AmenityBookingForm';
 
 export default function BuildingDetailPage() {
   const params = useParams();
@@ -239,17 +241,16 @@ export default function BuildingDetailPage() {
           </div>
 
           <div className="space-y-3 mb-4">
-            <select
-              className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
+            <Select
               value={catalogAmenityId}
               onChange={e => setCatalogAmenityId(e.target.value)}>
               <option value="">{t('selectCatalogAmenity')}</option>
               {availableCatalogAmenities.map(item => (
-                <option key={item.id} value={item.id} className="bg-[#121212]">
+                <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
               ))}
-            </select>
+            </Select>
             <Button
               className="w-full"
               intent="outline"
@@ -298,12 +299,20 @@ export default function BuildingDetailPage() {
             {(buildingAmenities ?? []).map(item => (
               <div
                 key={item.id}
-                className="p-3 rounded-lg border border-white/10 bg-white/[0.02] flex items-center justify-between gap-3">
-                <div>
+                className="p-3 rounded-lg border border-white/10 bg-white/[0.02] flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
                   <p className="text-white font-medium">{item.amenity.name}</p>
                   <p className="text-xs text-gray-400">
                     {item.amenity.isSystem ? t('amenityTypeCatalog') : t('amenityTypeCustom')}
+                    {' · '}
+                    {item.slotMinutes ?? 60} min · {item.openTime ?? '08:00'}–{item.closeTime ?? '22:00'}
                   </p>
+                  <details className="mt-2">
+                    <summary className="text-xs text-blue-400 cursor-pointer">
+                      {t('bookingRules')}
+                    </summary>
+                    <AmenityBookingForm item={item} buildingId={id ?? building.id} />
+                  </details>
                 </div>
                 <div className="flex items-center gap-2">
                   <button

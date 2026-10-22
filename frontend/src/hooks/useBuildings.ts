@@ -176,6 +176,11 @@ export function useUpdateBuildingAmenity() {
       buildingId: string;
       isEnabled?: boolean;
       customName?: string;
+      slotMinutes?: number;
+      maxConcurrent?: number;
+      openTime?: string;
+      closeTime?: string;
+      rules?: string | null;
     }) => {
       const res = await apiClient.put(`/amenities/${id}`, data);
       return {buildingId, data: res.data};

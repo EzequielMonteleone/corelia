@@ -33,12 +33,28 @@ const permissionsData = [
   {key: 'PAYMENT_CREATE', name: 'Registrar pagos'},
   {key: 'PAYMENT_UPDATE', name: 'Actualizar pagos'},
   {key: 'PAYMENT_READ', name: 'Ver pagos'},
+  {key: 'AMENITY_READ', name: 'Ver amenities'},
+  {key: 'AMENITY_RESERVE', name: 'Reservar amenities'},
+  {key: 'AMENITY_MANAGE', name: 'Configurar amenities'},
 ];
 
 const rolePermissionMap: Record<string, string[]> = {
   Admin: permissionsData.map(p => p.key),
-  Owner: ['UNIT_READ', 'EXPENSE_READ', 'PAYMENT_CREATE', 'PAYMENT_READ'],
-  Roomer: ['EXPENSE_READ', 'PAYMENT_CREATE', 'PAYMENT_READ'],
+  Owner: [
+    'UNIT_READ',
+    'EXPENSE_READ',
+    'PAYMENT_CREATE',
+    'PAYMENT_READ',
+    'AMENITY_READ',
+    'AMENITY_RESERVE',
+  ],
+  Roomer: [
+    'EXPENSE_READ',
+    'PAYMENT_CREATE',
+    'PAYMENT_READ',
+    'AMENITY_READ',
+    'AMENITY_RESERVE',
+  ],
 };
 
 /** Recrea Role, Permission y RolePermission desde cero. */

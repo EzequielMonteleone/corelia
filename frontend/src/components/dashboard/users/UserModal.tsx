@@ -5,6 +5,7 @@ import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {Modal} from '@/components/ui/Modal';
 import {Input} from '@/components/ui/Input';
+import {Select} from '@/components/ui/Select';
 import {Button} from '@/components/ui/Button';
 import {
   userCreateSchema,
@@ -305,25 +306,20 @@ export function UserModal({
           {editingUser?.globalRole !== 'SUPERADMIN' &&
             actorBuildingScope.length > 0 && (
               <>
-                <select
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
+                <Select
                   value={effectiveBuildingId}
                   onChange={e => {
                     setSelectedBuildingId(e.target.value);
                     setSelectedUnitIds([]);
                   }}>
                   {actorBuildingScope.map(building => (
-                    <option
-                      key={building.id}
-                      value={building.id}
-                      className="bg-[#121212] text-white">
+                    <option key={building.id} value={building.id}>
                       {building.name}
                     </option>
                   ))}
-                </select>
+                </Select>
 
-                <select
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
+                <Select
                   value={effectiveRoleName}
                   onChange={e => {
                     setSelectedRoleName(
@@ -331,18 +327,13 @@ export function UserModal({
                     );
                     setSelectedUnitIds([]);
                   }}>
-                  <option value="" className="bg-[#121212]">
-                    {t('selectRole')}
-                  </option>
+                  <option value="">{t('selectRole')}</option>
                   {availableRoles.map(roleName => (
-                    <option
-                      key={roleName}
-                      value={roleName}
-                      className="bg-[#121212] text-white">
+                    <option key={roleName} value={roleName}>
                       {roleName}
                     </option>
                   ))}
-                </select>
+                </Select>
 
                 {showUnitsMulti && (
                   <div className="space-y-2 rounded-xl border border-white/10 p-3">
@@ -460,25 +451,20 @@ export function UserModal({
 
           {!isGlobalSuperAdminCreate && (
             <>
-              <select
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
+              <Select
                 value={effectiveBuildingId}
                 onChange={e => {
                   setSelectedBuildingId(e.target.value);
                   setSelectedUnitIds([]);
                 }}>
                 {actorBuildingScope.map(building => (
-                  <option
-                    key={building.id}
-                    value={building.id}
-                    className="bg-[#121212] text-white">
+                  <option key={building.id} value={building.id}>
                     {building.name}
                   </option>
                 ))}
-              </select>
+              </Select>
 
-              <select
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
+              <Select
                 value={effectiveRoleName}
                 onChange={e => {
                   setSelectedRoleName(
@@ -486,18 +472,13 @@ export function UserModal({
                   );
                   setSelectedUnitIds([]);
                 }}>
-                <option value="" className="bg-[#121212]">
-                  {t('selectRole')}
-                </option>
+                <option value="">{t('selectRole')}</option>
                 {availableRoles.map(roleName => (
-                  <option
-                    key={roleName}
-                    value={roleName}
-                    className="bg-[#121212] text-white">
+                  <option key={roleName} value={roleName}>
                     {roleName}
                   </option>
                 ))}
-              </select>
+              </Select>
             </>
           )}
 

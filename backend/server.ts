@@ -10,7 +10,14 @@ import userRoutes from './routes/userRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import unitRoutes from './routes/unitRoutes.js';
 import amenityRoutes from './routes/amenityRoutes.js';
-import {periodRouter, expenseRouter, paymentRouter} from './routes/expenseRoutes.js';
+import reservationRoutes, {
+  buildingReservationRouter,
+} from './routes/reservationRoutes.js';
+import {
+  periodRouter,
+  expenseRouter,
+  paymentRouter,
+} from './routes/expenseRoutes.js';
 
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'] as const;
 for (const key of requiredEnvVars) {
@@ -25,8 +32,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin:
-      process.env.CORS_ORIGIN ?? process.env.FRONTEND_URL ?? true,
+    origin: process.env.CORS_ORIGIN ?? process.env.FRONTEND_URL ?? true,
     credentials: true,
   }),
 );
@@ -38,6 +44,8 @@ app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
 app.use('/units', unitRoutes);
 app.use('/amenities', amenityRoutes);
+app.use('/buildings', buildingReservationRouter);
+app.use('/reservations', reservationRoutes);
 app.use('/expense-periods', periodRouter);
 app.use('/expenses', expenseRouter);
 app.use('/payments', paymentRouter);

@@ -64,16 +64,37 @@ router.put(
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
+      const body = req.body ?? {};
       const updated = await updateBuildingAmenity(req.params.id as string, {
-        ...(typeof req.body?.isEnabled === 'boolean'
-          ? {isEnabled: req.body.isEnabled as boolean}
+        ...(typeof body.isEnabled === 'boolean' ? {isEnabled: body.isEnabled} : {}),
+        ...(typeof body.customName === 'string' ? {customName: body.customName} : {}),
+        ...(typeof body.slotMinutes === 'number' ? {slotMinutes: body.slotMinutes} : {}),
+        ...(typeof body.maxConcurrent === 'number'
+          ? {maxConcurrent: body.maxConcurrent}
           : {}),
-        ...((req.body?.customName as string | undefined)
-          ? {customName: req.body.customName as string}
+        ...(typeof body.openTime === 'string' ? {openTime: body.openTime} : {}),
+        ...(typeof body.closeTime === 'string' ? {closeTime: body.closeTime} : {}),
+        ...(typeof body.rules === 'string' || body.rules === null
+          ? {rules: body.rules as string | null}
           : {}),
       });
       return res.json(updated);
     } catch (err) {
+      if (err instanceof Error) {
+        const known = [
+          'INVALID_SLOT_MINUTES',
+          'INVALID_MAX_CONCURRENT',
+          'INVALID_OPEN_TIME',
+          'INVALID_CLOSE_TIME',
+          'INVALID_HOURS',
+          'RULES_TOO_LONG',
+          'BUILDING_AMENITY_NOT_FOUND',
+        ];
+        if (known.includes(err.message)) {
+          const status = err.message === 'BUILDING_AMENITY_NOT_FOUND' ? 404 : 400;
+          return res.status(status).json({error: err.message});
+        }
+      }
       return next(err);
     }
   },

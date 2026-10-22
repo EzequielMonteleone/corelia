@@ -4,6 +4,7 @@ import {useMemo, useState} from 'react';
 import {useAuthStore} from '@/store/authStore';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
+import {Select} from '@/components/ui/Select';
 import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
 import {useBuildings} from '@/hooks/useBuildings';
@@ -51,19 +52,17 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             {(isSuperAdmin || buildings.length > 1) && (
-              <select
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm"
-                value={selectedBuildingId}
+              <Select
+                className="w-56 shrink-0"
+                value={activeBuildingId ?? ''}
                 onChange={e => setSelectedBuildingId(e.target.value)}>
-                <option value="" className="bg-[#121212]">
-                  {tExpenses('selectBuilding')}
-                </option>
+                <option value="">{tExpenses('selectBuilding')}</option>
                 {buildings.map(building => (
-                  <option key={building.id} value={building.id} className="bg-[#121212]">
+                  <option key={building.id} value={building.id}>
                     {building.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
             <Button intent="destructive" onClick={logout}>
               {tCommon('logout')}

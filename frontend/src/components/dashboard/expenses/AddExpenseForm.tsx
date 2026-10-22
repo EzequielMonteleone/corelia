@@ -5,6 +5,7 @@ import {useTranslations} from 'next-intl';
 import {Card} from '@/components/ui/Card';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {Select} from '@/components/ui/Select';
 import type {Unit} from '@/types/unit';
 
 interface AddExpenseFormProps {
@@ -33,20 +34,18 @@ export const AddExpenseForm = ({
   return (
     <Card className="p-4 max-w-4xl mb-4">
       <div className="flex gap-3">
-        <select
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm"
+        <Select
+          className="flex-1"
           value={selectedUnitId}
           onChange={e => onUnitChange(e.target.value)}>
-          <option value="" className="bg-[#121212]">
-            {t('selectUnit')}
-          </option>
+          <option value="">{t('selectUnit')}</option>
           {availableUnits.map(u => (
-            <option key={u.id} value={u.id} className="bg-[#121212]">
+            <option key={u.id} value={u.id}>
               {u.name}
               {u.floor ? ` (${u.floor})` : ''}
             </option>
           ))}
-        </select>
+        </Select>
         <Input
           type="number"
           placeholder={t('amountPlaceholder')}

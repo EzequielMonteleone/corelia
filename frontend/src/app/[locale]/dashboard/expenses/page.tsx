@@ -10,6 +10,7 @@ import {Card} from '@/components/ui/Card';
 import {Badge} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {Select} from '@/components/ui/Select';
 import {LoadingState} from '@/components/ui/LoadingState';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {useBuildings} from '@/hooks/useBuildings';
@@ -101,19 +102,17 @@ export default function ExpensesPage() {
     <div className="p-8">
       <PageHeader title={t('title')} description={t('description')}>
         {(isSuperAdmin || buildings.length > 1) && (
-          <select
-            className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm"
-            value={selectedBuildingId}
+          <Select
+            className="w-56 shrink-0"
+            value={activeBuildingId}
             onChange={e => setSelectedBuildingId(e.target.value)}>
-            <option value="" className="bg-[#121212]">
-              {t('selectBuilding')}
-            </option>
+            <option value="">{t('selectBuilding')}</option>
             {buildings.map(b => (
-              <option key={b.id} value={b.id} className="bg-[#121212]">
+              <option key={b.id} value={b.id}>
                 {b.name}
               </option>
             ))}
-          </select>
+          </Select>
         )}
       </PageHeader>
 
