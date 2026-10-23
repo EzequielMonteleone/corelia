@@ -127,6 +127,9 @@ router.delete(
       await deleteBuildingAmenity(req.params.id as string);
       return res.status(204).send();
     } catch (err) {
+      if (err instanceof Error && err.message === 'AMENITY_HAS_RESERVATIONS') {
+        return res.status(409).json({error: 'AMENITY_HAS_RESERVATIONS'});
+      }
       return next(err);
     }
   },

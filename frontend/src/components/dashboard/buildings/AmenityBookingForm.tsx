@@ -22,16 +22,6 @@ export function AmenityBookingForm({
   const [openTime, setOpenTime] = useState(item.openTime ?? '08:00');
   const [closeTime, setCloseTime] = useState(item.closeTime ?? '22:00');
   const [rules, setRules] = useState(item.rules ?? '');
-  const [source, setSource] = useState(item);
-
-  if (source !== item) {
-    setSource(item);
-    setSlotMinutes(String(item.slotMinutes ?? 60));
-    setMaxConcurrent(String(item.maxConcurrent ?? 1));
-    setOpenTime(item.openTime ?? '08:00');
-    setCloseTime(item.closeTime ?? '22:00');
-    setRules(item.rules ?? '');
-  }
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -82,7 +72,7 @@ export function AmenityBookingForm({
           <Input
             type="time"
             value={openTime}
-                onChange={event => setOpenTime(event.target.value.slice(0, 5))}
+            onChange={event => setOpenTime(event.target.value.slice(0, 5))}
             className="mt-1"
           />
         </label>
@@ -91,7 +81,7 @@ export function AmenityBookingForm({
           <Input
             type="time"
             value={closeTime}
-                onChange={event => setCloseTime(event.target.value.slice(0, 5))}
+            onChange={event => setCloseTime(event.target.value.slice(0, 5))}
             className="mt-1"
           />
         </label>

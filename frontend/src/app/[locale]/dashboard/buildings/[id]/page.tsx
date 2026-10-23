@@ -11,6 +11,8 @@ import {
   Sparkles,
   Pencil,
 } from 'lucide-react';
+import {toast} from 'sonner';
+import {isAxiosError} from 'axios';
 import {Link} from '@/i18n/navigation';
 import {Card} from '@/components/ui/Card';
 import {Badge} from '@/components/ui/Badge';
@@ -19,6 +21,7 @@ import {PageHeader} from '@/components/dashboard/PageHeader';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {Select} from '@/components/ui/Select';
+import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {
   useBuilding,
   useBuildingAmenities,
@@ -51,11 +54,33 @@ export default function BuildingDetailPage() {
   const [unitCoefficient, setUnitCoefficient] = useState('');
   const [catalogAmenityId, setCatalogAmenityId] = useState('');
   const [customAmenityName, setCustomAmenityName] = useState('');
+  const [amenityToDeleteId, setAmenityToDeleteId] = useState<string | null>(null);
 
   const t = useTranslations('Buildings');
   const tCommon = useTranslations('Common');
   const buildingAmenities = amenitiesData?.amenities;
   const catalog = amenitiesData?.catalog;
+
+  const handleConfirmDeleteAmenity = () => {
+    if (!id || !amenityToDeleteId) return;
+    deleteAmenity.mutate(
+      {id: amenityToDeleteId, buildingId: id},
+      {
+        onSuccess: () => {
+          toast.success(t('deleteAmenitySuccess'));
+          setAmenityToDeleteId(null);
+        },
+        onError: error => {
+          const code = isAxiosError(error) ? error.response?.data?.error : null;
+          if (code === 'AMENITY_HAS_RESERVATIONS') {
+            toast.error(t('deleteAmenityHasReservations'));
+          } else {
+            toast.error(t('deleteAmenityError'));
+          }
+        },
+      },
+    );
+  };
 
   const availableCatalogAmenities = useMemo(() => {
     const selectedIds = new Set((buildingAmenities ?? []).map(item => item.amenityId));
@@ -311,7 +336,18 @@ export default function BuildingDetailPage() {
                     <summary className="text-xs text-blue-400 cursor-pointer">
                       {t('bookingRules')}
                     </summary>
-                    <AmenityBookingForm item={item} buildingId={id ?? building.id} />
+                    <AmenityBookingForm
+                      key={[
+                        item.id,
+                        item.slotMinutes,
+                        item.maxConcurrent,
+                        item.openTime,
+                        item.closeTime,
+                        item.rules ?? '',
+                      ].join(':')}
+                      item={item}
+                      buildingId={id ?? building.id}
+                    />
                   </details>
                 </div>
                 <div className="flex items-center gap-2">
@@ -350,10 +386,7 @@ export default function BuildingDetailPage() {
                     intent="ghost"
                     size="icon"
                     className="hover:bg-red-500/10 hover:text-red-400"
-                    onClick={() => {
-                      if (!id) return;
-                      deleteAmenity.mutate({id: item.id, buildingId: id});
-                    }}>
+                    onClick={() => setAmenityToDeleteId(item.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -365,6 +398,17 @@ export default function BuildingDetailPage() {
           </div>
         </Card>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!amenityToDeleteId}
+        title={tCommon('delete')}
+        description={t('deleteAmenityConfirm')}
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        isPending={deleteAmenity.isPending}
+        onCancel={() => setAmenityToDeleteId(null)}
+        onConfirm={handleConfirmDeleteAmenity}
+      />
     </div>
   );
 }

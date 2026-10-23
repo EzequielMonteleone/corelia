@@ -1,6 +1,6 @@
 'use client';
 
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
 import {CalendarDays, ChevronLeft, ChevronRight} from 'lucide-react';
 import {toast} from 'sonner';
@@ -11,6 +11,7 @@ import {Button} from '@/components/ui/Button';
 import {Badge} from '@/components/ui/Badge';
 import {LoadingState} from '@/components/ui/LoadingState';
 import {Select} from '@/components/ui/Select';
+import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {useAuthStore} from '@/store/authStore';
 import {useBuildingAmenities, useBuildingUnits, useBuildings} from '@/hooks/useBuildings';
 import {
@@ -39,6 +40,7 @@ function errorCode(error: unknown) {
 
 export default function AmenitiesPage() {
   const t = useTranslations('Amenities');
+  const tCommon = useTranslations('Common');
   const locale = useLocale();
   const user = useAuthStore(state => state.user);
   const isSuperAdmin = user?.globalRole === 'SUPERADMIN';
@@ -48,7 +50,14 @@ export default function AmenitiesPage() {
   const [selectedAmenityId, setSelectedAmenityId] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState('');
   const [day, setDay] = useState(todayKey);
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  const [notes, setNotes] = useState('');
+  const [cancelReservationId, setCancelReservationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const activeBuildingId = useMemo(
     () => selectedBuildingId || (buildings.length === 1 ? buildings[0].id : ''),
@@ -105,9 +114,13 @@ export default function AmenitiesPage() {
         buildingAmenityId: amenity.id,
         unitId,
         startsAt: zonedDateTime(day, hm).toISOString(),
+        ...(notes.trim() ? {notes: notes.trim()} : {}),
       },
       {
-        onSuccess: () => toast.success(t('reserveSuccess')),
+        onSuccess: () => {
+          toast.success(t('reserveSuccess'));
+          setNotes('');
+        },
         onError: error => {
           const code = errorCode(error);
           if (code === 'SLOT_UNAVAILABLE') toast.error(t('slotUnavailable'));
@@ -116,10 +129,24 @@ export default function AmenitiesPage() {
           else if (code === 'SLOT_TOO_FAR') toast.error(t('slotTooFar'));
           else if (code === 'AMENITY_DISABLED') toast.error(t('amenityDisabled'));
           else if (code === 'UNIT_NOT_LINKED') toast.error(t('unitNotLinked'));
+          else if (code === 'UNIT_ALREADY_BOOKED') toast.error(t('unitAlreadyBooked'));
           else toast.error(t('reserveError'));
         },
       },
     );
+  };
+
+  const requestCancel = (id: string) => setCancelReservationId(id);
+
+  const confirmCancel = () => {
+    if (!cancelReservationId) return;
+    cancelReservation.mutate(cancelReservationId, {
+      onSuccess: () => {
+        toast.success(t('cancelSuccess'));
+        setCancelReservationId(null);
+      },
+      onError: () => toast.error(t('cancelError')),
+    });
   };
 
   const dayLabel = new Intl.DateTimeFormat(locale, {
@@ -130,6 +157,7 @@ export default function AmenitiesPage() {
   }).format(zonedDateTime(day, '12:00'));
 
   const isLoading = loadingBuildings || (!!activeBuildingId && loadingAmenities);
+  const isToday = day === todayKey();
 
   return (
     <div className="p-8">
@@ -194,13 +222,26 @@ export default function AmenitiesPage() {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Button intent="ghost" size="icon" onClick={() => setDay(value => shiftDateKey(value, -1))}>
+              <Button
+                intent="ghost"
+                size="icon"
+                onClick={() => setDay(value => shiftDateKey(value, -1))}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <p className="text-white font-medium capitalize min-w-48 text-center">{dayLabel}</p>
-              <Button intent="ghost" size="icon" onClick={() => setDay(value => shiftDateKey(value, 1))}>
+              <p className="text-white font-medium capitalize min-w-48 text-center">
+                {dayLabel}
+              </p>
+              <Button
+                intent="ghost"
+                size="icon"
+                onClick={() => setDay(value => shiftDateKey(value, 1))}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
+              {!isToday && (
+                <Button intent="ghost" size="sm" onClick={() => setDay(todayKey())}>
+                  {t('goToToday')}
+                </Button>
+              )}
             </div>
             {units.length > 1 && (
               <Select
@@ -217,6 +258,18 @@ export default function AmenitiesPage() {
             )}
           </div>
 
+          <label className="block text-xs text-gray-400">
+            {t('notes')}
+            <textarea
+              value={notes}
+              onChange={event => setNotes(event.target.value)}
+              placeholder={t('notesPlaceholder')}
+              maxLength={500}
+              rows={2}
+              className="mt-1 w-full min-h-16 bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500/50"
+            />
+          </label>
+
           {loadingReservations ? (
             <LoadingState message={t('loadingSlots')} />
           ) : (
@@ -226,25 +279,42 @@ export default function AmenitiesPage() {
                   const clock = zonedClock(new Date(reservation.startsAt));
                   return clock.day === day && formatHm(clock.minutes) === hm;
                 });
+                const mineReservation = matches.find(reservation => reservation.mine);
                 const slotStart = zonedDateTime(day, hm);
                 const past = slotStart.getTime() < now - 60_000;
                 const full = matches.length >= (amenity?.maxConcurrent ?? 1);
-                const mine = matches.some(reservation => reservation.mine);
+                const mine = !!mineReservation;
                 return (
                   <button
                     key={hm}
                     type="button"
-                    disabled={past || full || createReservation.isPending}
-                    onClick={() => reserve(hm)}
+                    disabled={
+                      (!mine && (past || full)) ||
+                      createReservation.isPending ||
+                      cancelReservation.isPending
+                    }
+                    onClick={() => {
+                      if (mineReservation) {
+                        requestCancel(mineReservation.id);
+                        return;
+                      }
+                      reserve(hm);
+                    }}
                     className={cn(
                       'rounded-xl border px-3 py-3 text-left transition-colors',
                       mine
-                        ? 'border-blue-500/50 bg-blue-500/10'
+                        ? 'border-blue-500/50 bg-blue-500/10 hover:border-red-500/40'
                         : full
                           ? 'border-white/5 bg-white/[0.02] text-gray-500 cursor-not-allowed'
-                          : 'border-white/10 hover:border-blue-500/40 hover:bg-white/5',
+                          : past
+                            ? 'border-white/5 bg-white/[0.02] text-gray-500 cursor-not-allowed'
+                            : 'border-white/10 hover:border-blue-500/40 hover:bg-white/5',
                     )}>
-                    <p className={cn('font-medium', full && !mine ? 'text-gray-500' : 'text-white')}>
+                    <p
+                      className={cn(
+                        'font-medium',
+                        full && !mine ? 'text-gray-500' : 'text-white',
+                      )}>
                       {hm}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
@@ -280,11 +350,17 @@ export default function AmenitiesPage() {
                       className="flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2">
                       <div>
                         <p className="text-white text-sm">
-                          {formatHm(start.minutes)} – {formatHm(end.minutes)} · {reservation.unit.name}
+                          {formatHm(start.minutes)} – {formatHm(end.minutes)} ·{' '}
+                          {reservation.unit.name}
                         </p>
                         {reservation.user && (
                           <p className="text-xs text-gray-500">
                             {reservation.user.firstName} {reservation.user.lastName}
+                          </p>
+                        )}
+                        {reservation.notes && (
+                          <p className="text-xs text-gray-400 mt-1 whitespace-pre-wrap">
+                            {reservation.notes}
                           </p>
                         )}
                       </div>
@@ -295,12 +371,7 @@ export default function AmenitiesPage() {
                             intent="ghost"
                             size="sm"
                             disabled={cancelReservation.isPending}
-                            onClick={() =>
-                              cancelReservation.mutate(reservation.id, {
-                                onSuccess: () => toast.success(t('cancelSuccess')),
-                                onError: () => toast.error(t('cancelError')),
-                              })
-                            }>
+                            onClick={() => requestCancel(reservation.id)}>
                             {t('cancel')}
                           </Button>
                         </div>
@@ -313,6 +384,17 @@ export default function AmenitiesPage() {
           </Card>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!cancelReservationId}
+        title={t('cancelConfirmTitle')}
+        description={t('cancelConfirmDescription')}
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        isPending={cancelReservation.isPending}
+        onCancel={() => setCancelReservationId(null)}
+        onConfirm={confirmCancel}
+      />
     </div>
   );
 }

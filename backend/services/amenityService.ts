@@ -1,3 +1,4 @@
+import {AmenityReservationStatus} from '@prisma/client';
 import {prisma} from '../prismaClient.js';
 import {parseHm} from '../lib/zonedTime.js';
 
@@ -182,6 +183,16 @@ export async function updateBuildingAmenity(
 }
 
 export async function deleteBuildingAmenity(id: string) {
+  const confirmed = await prisma.amenityReservation.count({
+    where: {
+      buildingAmenityId: id,
+      status: AmenityReservationStatus.CONFIRMED,
+    },
+  });
+  if (confirmed > 0) {
+    throw new Error('AMENITY_HAS_RESERVATIONS');
+  }
+
   return prisma.buildingAmenity.delete({
     where: {id},
   });

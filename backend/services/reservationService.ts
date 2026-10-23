@@ -1,7 +1,11 @@
 import {AmenityReservationStatus, GlobalRole, Prisma} from '@prisma/client';
 import {prisma} from '../prismaClient.js';
 import {findUserById} from './userService.js';
-import {APP_TIMEZONE, parseHm, zonedClock} from '../lib/zonedTime.js';
+import {APP_TIMEZONE} from '../lib/zonedTime.js';
+import {
+  unitAlreadyBookedInSlot,
+  validateReservationSlot,
+} from '../lib/reservationRules.js';
 
 const MAX_NOTES = 500;
 const MAX_DAYS_AHEAD = 60;
@@ -112,26 +116,8 @@ function assertSlot(amenity: {
   openTime: string;
   closeTime: string;
 }, startsAt: Date, endsAt: Date) {
-  if (!amenity.isEnabled) throw new ReservationError('AMENITY_DISABLED');
-
-  const open = parseHm(amenity.openTime);
-  const close = parseHm(amenity.closeTime);
-  if (open === null || close === null || open >= close) {
-    throw new ReservationError('INVALID_HOURS');
-  }
-
-  const startClock = zonedClock(startsAt);
-  const endClock = zonedClock(endsAt);
-  if (startClock.day !== endClock.day) throw new ReservationError('SLOT_OUTSIDE_HOURS');
-  if (startClock.minutes < open || endClock.minutes > close) {
-    throw new ReservationError('SLOT_OUTSIDE_HOURS');
-  }
-  if ((startClock.minutes - open) % amenity.slotMinutes !== 0) {
-    throw new ReservationError('SLOT_OUTSIDE_HOURS');
-  }
-  if (endClock.minutes - startClock.minutes !== amenity.slotMinutes) {
-    throw new ReservationError('SLOT_OUTSIDE_HOURS');
-  }
+  const code = validateReservationSlot(amenity, startsAt, endsAt);
+  if (code) throw new ReservationError(code);
 }
 
 export async function createReservation(params: {
@@ -182,6 +168,19 @@ export async function createReservation(params: {
   try {
     const created = await prisma.$transaction(
       async tx => {
+        const unitOverlap = await tx.amenityReservation.count({
+          where: {
+            buildingAmenityId: amenity.id,
+            unitId: unit.id,
+            status: AmenityReservationStatus.CONFIRMED,
+            startsAt: {lt: endsAt},
+            endsAt: {gt: params.startsAt},
+          },
+        });
+        if (unitAlreadyBookedInSlot(unitOverlap)) {
+          throw new ReservationError('UNIT_ALREADY_BOOKED', 409);
+        }
+
         const overlapping = await tx.amenityReservation.count({
           where: {
             buildingAmenityId: amenity.id,

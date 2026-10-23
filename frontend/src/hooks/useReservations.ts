@@ -32,11 +32,13 @@ export function useCreateReservation() {
       buildingAmenityId: string;
       unitId: string;
       startsAt: string;
+      notes?: string;
     }) => {
       const res = await apiClient.post(`/buildings/${input.buildingId}/reservations`, {
         buildingAmenityId: input.buildingAmenityId,
         unitId: input.unitId,
         startsAt: input.startsAt,
+        ...(input.notes?.trim() ? {notes: input.notes.trim()} : {}),
       });
       return res.data as AmenityReservation;
     },

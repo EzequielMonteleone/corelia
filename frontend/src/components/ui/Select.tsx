@@ -10,7 +10,7 @@ export const Select = forwardRef<
     <div className={cn('relative w-full', className)}>
       <select
         ref={ref}
-        className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-white/10 bg-white/5 py-2 pl-3 pr-9 text-sm text-white focus:border-blue-500/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-white/10 bg-[#121212] py-2 pl-3 pr-9 text-sm text-white focus:border-blue-500/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]"
         {...props}>
         {children}
       </select>

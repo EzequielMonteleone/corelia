@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "tsx --test lib/**/*.test.ts",
     "dev": "tsx watch server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
