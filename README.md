@@ -49,6 +49,8 @@ Edita `backend/.env` y configura:
 | `JWT_SECRET`   | Secreto para firmar tokens (mín. 256 bits) | Una frase larga y aleatoria |
 | `PORT`         | Puerto del servidor (opcional)       | `4000` (evitar conflicto con frontend en 3001) |
 | `JWT_EXPIRES_IN` | Caducidad del token (opcional)     | `7d`    |
+| `XAI_API_KEY`  | Clave de la API de xAI para el chat y los embeddings | La de grok.com/dashboard/api-keys |
+| `CHAT_MODEL`   | Modelo de chat (opcional)          | `grok-4-1-fast-non-reasoning` |
 
 Instala dependencias, genera el cliente de Prisma y aplica migraciones:
 
@@ -58,17 +60,26 @@ pnpm exec prisma generate
 pnpm exec prisma migrate deploy
 ```
 
-Opcional: poblar datos iniciales (roles, permisos, etc.):
+Opcional: poblar roles, permisos y un edificio de demo (unidades, usuarios, amenities, expensas y pagos). Si **Torre Palermo** ya existe, el seed no vuelve a insertar esos datos.
 
 ```bash
 pnpm exec prisma db seed
 ```
 
-Usuario de prueba:
+Credenciales de demo:
 
-```bash
-pnpm run create-test-user
-```
+| Email | Contraseña | Rol |
+| --- | --- | --- |
+| `superadmin@corelia.local` | `Admin123!` | Superadmin |
+| `admin@torre-palermo.local` | `Demo123!` | Admin del edificio |
+| `lucia.fernandez@torre-palermo.local` | `Demo123!` | Propietaria (1A) |
+| `martin.gomez@torre-palermo.local` | `Demo123!` | Propietario (2A) |
+| `sofia.rios@torre-palermo.local` | `Demo123!` | Propietaria (3B) |
+| `diego.acosta@torre-palermo.local` | `Demo123!` | Propietario (4B) |
+| `camila.nunez@torre-palermo.local` | `Demo123!` | Inquilina (1A) |
+| `julian.perez@torre-palermo.local` | `Demo123!` | Inquilino (2B) |
+
+`pnpm run create-test-user` sigue creando solo el superadmin, sin el edificio de demo.
 
 Arranca el servidor:
 
@@ -107,7 +118,7 @@ La app se abre en **http://localhost:3001**.
 - `pnpm run dev` — Servidor en modo desarrollo (tsx watch).
 - `pnpm run create-test-user` — Crea un usuario de prueba.
 - `pnpm exec prisma migrate dev` — Crea/aplica migraciones en desarrollo.
-- `pnpm exec prisma db seed` — Ejecuta el seed.
+- `pnpm exec prisma db seed` — Roles, permisos y dataset de demo (Torre Palermo).
 
 ### Frontend (`frontend/`)
 

@@ -110,10 +110,12 @@ export default function BuildingsPage() {
       <PageHeader
         title={t('title')}
         description={t('description')}>
-        <Button onClick={handleOpenCreate} className="gap-2">
-          <Plus className="w-5 h-5" />
-          {t('registerBuilding')}
-        </Button>
+        {isSuperAdmin && (
+          <Button onClick={handleOpenCreate} className="gap-2">
+            <Plus className="w-5 h-5" />
+            {t('registerBuilding')}
+          </Button>
+        )}
       </PageHeader>
 
       <div className="mb-6 max-w-md">

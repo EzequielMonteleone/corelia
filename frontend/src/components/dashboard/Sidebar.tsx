@@ -9,6 +9,7 @@ import {
   LogOut,
   Receipt,
   CalendarDays,
+  MessageSquare,
 } from 'lucide-react';
 import {useAuthStore} from '@/store/authStore';
 import {cn} from '@/lib/utils';
@@ -24,6 +25,11 @@ function useMenuItems() {
       label: tCommon('dashboard'),
       href: '/dashboard',
       roles: ['admin'],
+    },
+    {
+      icon: MessageSquare,
+      label: tSidebar('chat'),
+      href: '/dashboard/chat',
     },
     {
       icon: Building2,

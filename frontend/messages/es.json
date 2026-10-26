@@ -307,7 +307,8 @@
   "Sidebar": {
     "rolesAndPermissions": "Roles y Permisos",
     "expenses": "Expensas",
-    "amenities": "Amenities"
+    "amenities": "Amenities",
+    "chat": "Chat"
   },
   "Footer": {
     "copyright": "© 2026 Corelia Platform. Construido para la excelencia."
@@ -319,5 +320,18 @@
   "Metadata": {
     "title": "Corelia",
     "description": "Plataforma de Gestión Corelia"
+  },
+  "Chat": {
+    "title": "Asistente",
+    "description": "Reservas, expensas y reglas del edificio, según tus permisos.",
+    "placeholder": "Reservá el SUM o preguntá por tus expensas",
+    "send": "Enviar",
+    "thinking": "Pensando...",
+    "empty": "Preguntá por tu unidad, un amenity o un edificio que administres.",
+    "confirm": "Confirmar reserva",
+    "confirming": "Confirmando...",
+    "draft": "{amenity} · unidad {unit} · {when}",
+    "error": "El asistente no pudo responder.",
+    "notConfigured": "El asistente todavía no está configurado."
   }
 }

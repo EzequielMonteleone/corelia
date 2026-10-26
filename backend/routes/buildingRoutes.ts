@@ -136,23 +136,13 @@ router.get(
   },
 );
 
-// POST / — Super admin o Admin de al menos un edificio pueden crear
+// POST / — Solo superadmin puede registrar un edificio
 router.post(
   '/',
   authMiddleware,
+  superAdminOnly,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.user?.id) {
-        return res.status(401).json({error: 'UNAUTHENTICATED'});
-      }
-      const user = await findUserById(req.user.id);
-      if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
-      const canCreate =
-        user.globalRole === GlobalRole.SUPERADMIN ||
-        user.buildingUsers.some(bu => bu.role.name === 'Admin');
-      if (!canCreate) {
-        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
-      }
       const {name, address, city, country, taxId, logo, planType} = req.body;
       if (!name || !address || !city || !country) {
         return res.status(400).json({error: 'MISSING_REQUIRED_FIELDS'});

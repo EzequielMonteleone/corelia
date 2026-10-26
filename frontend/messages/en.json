@@ -306,7 +306,8 @@
   "Sidebar": {
     "rolesAndPermissions": "Roles and Permissions",
     "expenses": "Expenses",
-    "amenities": "Amenities"
+    "amenities": "Amenities",
+    "chat": "Chat"
   },
   "Footer": {
     "copyright": "© 2026 Corelia Platform. Built for Excellence."
@@ -318,5 +319,18 @@
   "Metadata": {
     "title": "Corelia",
     "description": "Corelia Management Platform"
+  },
+  "Chat": {
+    "title": "Assistant",
+    "description": "Reservations, expenses, and building rules, within your permissions.",
+    "placeholder": "Book the SUM or ask about your expenses",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "empty": "Ask about your unit, an amenity, or a building you manage.",
+    "confirm": "Confirm reservation",
+    "confirming": "Confirming...",
+    "draft": "{amenity} · unit {unit} · {when}",
+    "error": "The assistant could not answer.",
+    "notConfigured": "The assistant is not configured yet."
   }
 }

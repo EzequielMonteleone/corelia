@@ -18,6 +18,8 @@ import {
   expenseRouter,
   paymentRouter,
 } from './routes/expenseRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
+import documentRoutes from './routes/documentRoutes.js';
 
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'] as const;
 for (const key of requiredEnvVars) {
@@ -49,6 +51,8 @@ app.use('/reservations', reservationRoutes);
 app.use('/expense-periods', periodRouter);
 app.use('/expenses', expenseRouter);
 app.use('/payments', paymentRouter);
+app.use('/chat', chatRoutes);
+app.use('/buildings/:buildingId/documents', documentRoutes);
 app.use(meRoutes);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

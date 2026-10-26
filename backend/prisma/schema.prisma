@@ -45,6 +45,8 @@ model Building {
   buildingUsers  BuildingUser[]
   expenses       Expense[]
   payments       Payment[]
+  documents      BuildingDocument[]
+  knowledgeChunks KnowledgeChunk[]
 }
 
 enum GlobalRole {
@@ -68,6 +70,8 @@ model User {
   buildingUsers       BuildingUser[]
   userUnits           UserUnit[]
   amenityReservations AmenityReservation[]
+  chatThreads         ChatThread[]
+  reservationDrafts   ReservationDraft[]
 }
 
 model Role {
@@ -244,6 +248,109 @@ model Payment {
 
   building Building @relation(fields: [buildingId], references: [id])
   expense  Expense  @relation(fields: [expenseId], references: [id])
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
+  TOOL
+}
+
+model ChatThread {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User                @relation(fields: [userId], references: [id])
+  messages ChatMessage[]
+  drafts   ReservationDraft[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String          @id @default(uuid())
+  threadId  String
+  role      ChatMessageRole
+  content   String
+  toolName  String?
+  createdAt DateTime        @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+enum ReservationDraftStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+}
+
+model ReservationDraft {
+  id                String                 @id @default(uuid())
+  threadId          String
+  userId            String
+  buildingId        String
+  buildingAmenityId String
+  unitId            String
+  startsAt          DateTime
+  notes             String?
+  amenityName       String
+  unitName          String
+  buildingName      String
+  status            ReservationDraftStatus @default(PENDING)
+  reservationId     String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id])
+
+  @@index([threadId, status])
+  @@index([userId])
+}
+
+enum KnowledgeSourceType {
+  AMENITY_RULE
+  BYLAW
+  NOTICE
+}
+
+model BuildingDocument {
+  id         String              @id @default(uuid())
+  buildingId String
+  title      String
+  body       String
+  kind       KnowledgeSourceType
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@index([buildingId])
+}
+
+model KnowledgeChunk {
+  id          String              @id @default(uuid())
+  buildingId  String
+  sourceType  KnowledgeSourceType
+  sourceId    String
+  title       String
+  heading     String?
+  ordinal     Int
+  content     String
+  contentHash String
+  embedding   Unsupported("vector(1536)")?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceType, sourceId, ordinal])
+  @@index([buildingId])
 }
 
 model AuditLog {

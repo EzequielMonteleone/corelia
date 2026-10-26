@@ -1,6 +1,7 @@
 import {AmenityReservationStatus} from '@prisma/client';
 import {prisma} from '../prismaClient.js';
 import {parseHm} from '../lib/zonedTime.js';
+import {indexAmenityRule} from './knowledgeService.js';
 
 const DEFAULT_AMENITIES = [
   {key: 'POOL', name: 'Pileta'},
@@ -176,10 +177,18 @@ export async function updateBuildingAmenity(
     });
   }
 
-  return prisma.buildingAmenity.findUnique({
+  const updatedRow = await prisma.buildingAmenity.findUnique({
     where: {id},
     include: {amenity: true},
   });
+
+  if (typeof data.rules !== 'undefined') {
+    void indexAmenityRule(id).catch(err => {
+      console.error('knowledge index failed', err);
+    });
+  }
+
+  return updatedRow;
 }
 
 export async function deleteBuildingAmenity(id: string) {
@@ -192,6 +201,10 @@ export async function deleteBuildingAmenity(id: string) {
   if (confirmed > 0) {
     throw new Error('AMENITY_HAS_RESERVATIONS');
   }
+
+  await prisma.knowledgeChunk.deleteMany({
+    where: {sourceType: 'AMENITY_RULE', sourceId: id},
+  });
 
   return prisma.buildingAmenity.delete({
     where: {id},
