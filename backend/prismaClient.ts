@@ -1,4 +1,4 @@
-import {PrismaClient} from './node_modules/.prisma/client/index.js';
+import {PrismaClient} from '@prisma/client';
 import {PrismaPg} from '@prisma/adapter-pg';
 import {resolveDatabaseUrl} from './lib/databaseUrl.js';
 
