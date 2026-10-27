@@ -10,6 +10,7 @@ import {
   Receipt,
   CalendarDays,
   MessageSquare,
+  Home,
 } from 'lucide-react';
 import {useAuthStore} from '@/store/authStore';
 import {cn} from '@/lib/utils';
@@ -48,6 +49,12 @@ function useMenuItems() {
       icon: CalendarDays,
       label: tSidebar('amenities'),
       href: '/dashboard/amenities',
+      roles: ['admin', 'owner', 'roomer'],
+    },
+    {
+      icon: Home,
+      label: tSidebar('household'),
+      href: '/dashboard/household',
       roles: ['admin', 'owner', 'roomer'],
     },
     {

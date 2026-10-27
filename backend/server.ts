@@ -20,6 +20,12 @@ import {
 } from './routes/expenseRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
+import {
+  memberRouter,
+  petRouter,
+  unitHouseholdRouter,
+  vehicleRouter,
+} from './routes/householdRoutes.js';
 
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'] as const;
 for (const key of requiredEnvVars) {
@@ -45,6 +51,10 @@ app.use('/buildings', buildingRoutes);
 app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
 app.use('/units', unitRoutes);
+app.use('/units', unitHouseholdRouter);
+app.use('/members', memberRouter);
+app.use('/vehicles', vehicleRouter);
+app.use('/pets', petRouter);
 app.use('/amenities', amenityRoutes);
 app.use('/buildings', buildingReservationRouter);
 app.use('/reservations', reservationRoutes);

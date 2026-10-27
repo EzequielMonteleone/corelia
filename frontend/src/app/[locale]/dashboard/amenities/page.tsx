@@ -4,7 +4,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
 import {CalendarDays, ChevronLeft, ChevronRight} from 'lucide-react';
 import {toast} from 'sonner';
-import {isAxiosError} from 'axios';
+import {errorCode} from '@/lib/apiError';
 import {PageHeader} from '@/components/dashboard/PageHeader';
 import {Card} from '@/components/ui/Card';
 import {Button} from '@/components/ui/Button';
@@ -29,14 +29,6 @@ import {
   zonedDateTime,
 } from '@/lib/zonedTime';
 import {cn} from '@/lib/utils';
-
-function errorCode(error: unknown) {
-  if (isAxiosError(error)) {
-    const code = error.response?.data?.error;
-    if (typeof code === 'string') return code;
-  }
-  return 'UNKNOWN';
-}
 
 export default function AmenitiesPage() {
   const t = useTranslations('Amenities');

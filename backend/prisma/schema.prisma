@@ -47,6 +47,7 @@ model Building {
   payments       Payment[]
   documents      BuildingDocument[]
   knowledgeChunks KnowledgeChunk[]
+  vehicles       Vehicle[]
 }
 
 enum GlobalRole {
@@ -96,8 +97,72 @@ model Unit {
   expenses            Expense[]
   userUnits           UserUnit[]
   amenityReservations AmenityReservation[]
+  householdMembers    HouseholdMember[]
+  vehicles            Vehicle[]
+  pets                Pet[]
 
   @@unique([buildingId, name])
+}
+
+enum HouseholdRelation {
+  SPOUSE
+  CHILD
+  PARENT
+  OTHER
+}
+
+model HouseholdMember {
+  id             String            @id @default(uuid())
+  unitId         String
+  firstName      String
+  lastName       String
+  relation       HouseholdRelation
+  documentNumber String?
+  phone          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([unitId])
+}
+
+model Vehicle {
+  id         String   @id @default(uuid())
+  unitId     String
+  buildingId String
+  plate      String
+  make       String?
+  model      String?
+  color      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  unit     Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id])
+
+  @@unique([buildingId, plate])
+  @@index([unitId])
+}
+
+enum PetSpecies {
+  DOG
+  CAT
+  OTHER
+}
+
+model Pet {
+  id        String     @id @default(uuid())
+  unitId    String
+  name      String
+  species   PetSpecies
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([unitId])
 }
 
 model Amenity {
