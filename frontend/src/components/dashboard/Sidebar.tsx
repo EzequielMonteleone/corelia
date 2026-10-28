@@ -16,6 +16,7 @@ import {useAuthStore} from '@/store/authStore';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/Button';
 import {useTranslations} from 'next-intl';
+import {BrandLogo} from '@/components/brand/BrandLogo';
 
 function useMenuItems() {
   const tCommon = useTranslations('Common');
@@ -75,10 +76,8 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-[#0a0a0a] border-r border-white/10 flex flex-col h-screen sticky top-0">
-      <div className="p-6">
-        <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500">
-          {tCommon('title')}
-        </h2>
+      <div className="px-6 pt-7 pb-2">
+        <BrandLogo />
       </div>
 
       <nav className="flex-1 px-4 space-y-2 mt-4">

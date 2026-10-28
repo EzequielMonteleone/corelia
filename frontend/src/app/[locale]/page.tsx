@@ -4,6 +4,7 @@ import {Link} from '@/i18n/navigation';
 import {useAuthStore} from '@/store/authStore';
 import {ArrowRight, Building2, ShieldCheck, Zap} from 'lucide-react';
 import {useTranslations} from 'next-intl';
+import {BrandLogo} from '@/components/brand/BrandLogo';
 
 export default function Home() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
@@ -22,14 +23,7 @@ export default function Home() {
 
       {/* Navigation */}
       <nav className="relative z-50 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto backdrop-blur-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Building2 className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">
-            {tCommon('title')}
-          </span>
-        </div>
+        <BrandLogo />
         <Link
           href={isAuthenticated ? '/dashboard' : '/login'}
           className="px-5 py-2 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all duration-200">

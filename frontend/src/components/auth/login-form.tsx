@@ -8,6 +8,7 @@ import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {useCallback} from 'react';
 import {useTranslations} from 'next-intl';
+import {BrandLogo} from '@/components/brand/BrandLogo';
 
 export default function LoginForm() {
   const loginMutation = useLoginMutation();
@@ -37,6 +38,7 @@ export default function LoginForm() {
   return (
     <div className="w-full max-w-md space-y-8 p-8 bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 animate-in fade-in zoom-in-95 duration-500">
       <div>
+        <BrandLogo className="mx-auto text-[3rem]" />
         <h2 className="mt-6 text-center text-3xl font-extrabold text-white tracking-tight">
           {t('welcome')}
         </h2>

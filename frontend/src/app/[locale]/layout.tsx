@@ -28,6 +28,10 @@ export async function generateMetadata({
   return {
     title: t('title'),
     description: t('description'),
+    icons: {
+      icon: '/brand/corelia-mark.png',
+      apple: '/brand/corelia-mark.png',
+    },
   };
 }
 
