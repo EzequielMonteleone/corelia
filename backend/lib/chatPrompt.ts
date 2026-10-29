@@ -1,6 +1,68 @@
-import type {ChatActor} from './chatAccess.js';
+import {
+  toolsForActor,
+  type ChatActor,
+  type ChatToolName,
+} from './chatAccess.js';
 import {OFF_TOPIC_REPLY} from './chatScope.js';
 import {APP_TIMEZONE} from './zonedTime.js';
+
+const CAPABILITY_LINES: {tool: ChatToolName; label: string}[] = [
+  {tool: 'getMyContext', label: 'Ver tus edificios y unidades'},
+  {tool: 'listAmenities', label: 'Ver los amenities de un edificio'},
+  {tool: 'listMyReservations', label: 'Ver tus reservas próximas'},
+  {
+    tool: 'checkAmenityAvailability',
+    label: 'Consultar horarios libres de un amenity',
+  },
+  {tool: 'draftAmenityReservation', label: 'Preparar una reserva de amenity'},
+  {tool: 'getMyExpenses', label: 'Ver tus expensas'},
+  {
+    tool: 'searchBuildingDocs',
+    label: 'Buscar en el reglamento, las reglas de amenities y los avisos',
+  },
+  {
+    tool: 'listExpenseStanding',
+    label: 'Ver qué unidades están al día y cuáles deben',
+  },
+];
+
+export function capabilityLines(actor: ChatActor): string[] {
+  const allowed = new Set(toolsForActor(actor));
+  return CAPABILITY_LINES.filter(line => allowed.has(line.tool)).map(
+    line => line.label,
+  );
+}
+
+const CANNOT_HELP_INTRO = 'No puedo hacer eso.';
+const OFF_TOPIC_INTRO = `${OFF_TOPIC_REPLY} Puedo:`;
+const CHOICE_INTROS = new Set([CANNOT_HELP_INTRO, OFF_TOPIC_INTRO]);
+
+function capabilityMenu(intro: string, actor: ChatActor): string {
+  const bullets = capabilityLines(actor)
+    .map(line => `- ${line}`)
+    .join('\n');
+  return `${intro}\n\n${bullets}`;
+}
+
+export function offTopicMenu(actor: ChatActor): string {
+  return capabilityMenu(OFF_TOPIC_INTRO, actor);
+}
+
+export function cannotHelpMenu(actor: ChatActor): string {
+  return capabilityMenu(CANNOT_HELP_INTRO, actor);
+}
+
+export function choiceLines(content: string): string[] {
+  const bullets: string[] = [];
+  const prose: string[] = [];
+  for (const line of content.split('\n')) {
+    if (line.startsWith('- ')) bullets.push(line.slice(2));
+    else if (line.trim()) prose.push(line);
+  }
+  if (bullets.length === 0 || bullets.some(line => !line.trim())) return [];
+  if (!CHOICE_INTROS.has(prose.join('\n'))) return [];
+  return bullets;
+}
 
 function formatToday(now: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
@@ -15,13 +77,19 @@ export function buildSystemPrompt(actor: ChatActor, now = new Date()): string {
   const buildings =
     actor.buildings.length > 0
       ? actor.buildings
-          .map(building => `${building.name} (${building.role}, id: ${building.id})`)
+          .map(
+            building =>
+              `${building.name} (${building.role}, id: ${building.id})`,
+          )
           .join('; ')
       : 'ninguno asignado';
   const units =
     actor.units.length > 0
       ? actor.units
-          .map(unit => `${unit.name} (id: ${unit.id}, edificio: ${unit.buildingId})`)
+          .map(
+            unit =>
+              `${unit.name} (id: ${unit.id}, edificio: ${unit.buildingId})`,
+          )
           .join('; ')
       : 'ninguna';
 
@@ -44,6 +112,8 @@ export function buildSystemPrompt(actor: ChatActor, now = new Date()): string {
     `Edificios: ${buildings}.`,
     `Unidades: ${units}.`,
     'Si hay más de un edificio o más de una unidad posible, preguntá cuál, salvo al listar las reservas de esta persona. No adivines.',
+    'Si la intención se entiende y solo falta un dato (edificio, amenity, fecha u hora), preguntá solo ese dato. No uses el listado de opciones.',
+    `Si no hay una tool que haga el pedido, o no entendés qué hay que hacer, no llames tools y respondé exactamente: "${cannotHelpMenu(actor)}"`,
     'Solo podés afirmar datos que devolvió una tool en este turno.',
     'Si una tool responde INSUFFICIENT_PERMISSIONS, decí que no tenés acceso. No completes con datos de otras unidades ni de otros edificios.',
     'Una reserva no está hecha hasta que la persona confirma el borrador en la interfaz. draftAmenityReservation solo prepara el borrador. confirmAmenityReservation no reserva: indica que hay que apretar Confirmar.',

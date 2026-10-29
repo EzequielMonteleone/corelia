@@ -1,0 +1,28 @@
+---
+description: Datos, tipos y textos del frontend Next.js
+globs: frontend/src/**/*.{ts,tsx},frontend/messages/*.json
+alwaysApply: false
+---
+
+# Frontend
+
+El estado del servidor vive en TanStack Query, en `frontend/src/hooks/use<Feature>.ts`. Pantallas y componentes usan esos hooks. No importan `apiClient`.
+
+```ts
+// ❌ en una page
+const [rows, setRows] = useState([]);
+useEffect(() => { apiClient.get('/buildings').then(r => setRows(r.data)); }, []);
+
+// ✅
+const {data: buildings = [], isLoading} = useBuildings();
+```
+
+Una query lee. Una mutation escribe e invalida el mismo prefijo (`['household', unitId]`, `['buildings']`). `isPending` y `error` salen de la mutation, no de un `useState` extra.
+
+El input, el modal abierto y la fila elegida se quedan en el componente.
+
+Los tipos de la API van en `frontend/src/types/<feature>.ts`. El hook los importa. No los declares dentro del hook.
+
+Los textos pasan por `useTranslations`. La clave se agrega en `frontend/messages/es.json` y en `en.json`. Los fallos de la API se leen con `errorCode()` de `@/lib/apiError` y se traducen en la pantalla.
+
+Los schemas Zod de formularios van en `frontend/src/schemas/`. Las pantallas del dashboard son client components bajo `app/[locale]/dashboard/`.

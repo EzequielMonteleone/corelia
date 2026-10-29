@@ -21,9 +21,13 @@ import {
   type ChatActor,
   type ChatToolName,
 } from '../lib/chatAccess.js';
-import {buildSystemPrompt} from '../lib/chatPrompt.js';
 import {
-  OFF_TOPIC_REPLY,
+  buildSystemPrompt,
+  cannotHelpMenu,
+  choiceLines,
+  offTopicMenu,
+} from '../lib/chatPrompt.js';
+import {
   SCOPE_INSTRUCTIONS,
   parseScopeDecision,
   scopeTranscript,
@@ -229,9 +233,7 @@ function toolOutput(result: unknown): unknown {
   return result;
 }
 
-function modelMessages(
-  history: {role: ChatMessageRole; content: string}[],
-) {
+function modelMessages(history: {role: ChatMessageRole; content: string}[]) {
   return history.map(row => ({
     role:
       row.role === ChatMessageRole.USER
@@ -327,16 +329,18 @@ export async function runChatTurn(params: {
 
   const inScope = await messageIsInScope(scopeTurns(history));
   if (!inScope) {
+    const reply = offTopicMenu(actor);
     await prisma.chatMessage.create({
       data: {
         threadId,
         role: ChatMessageRole.ASSISTANT,
-        content: OFF_TOPIC_REPLY,
+        content: reply,
       },
     });
     return {
       threadId,
-      reply: OFF_TOPIC_REPLY,
+      reply,
+      choices: choiceLines(reply),
       pendingDrafts: await pendingDrafts(threadId, actor.userId),
     };
   }
@@ -369,7 +373,7 @@ export async function runChatTurn(params: {
     result.text.trim() ||
     (drafts.length > 0
       ? 'Preparé la reserva. Confirmala en el botón para dejarla hecha.'
-      : 'No tengo una respuesta para eso.');
+      : cannotHelpMenu(actor));
 
   await prisma.chatMessage.create({
     data: {
@@ -379,7 +383,7 @@ export async function runChatTurn(params: {
     },
   });
 
-  return {threadId, reply, pendingDrafts: drafts};
+  return {threadId, reply, choices: choiceLines(reply), pendingDrafts: drafts};
 }
 
 export async function getChatThread(userId: string, threadId: string) {
@@ -400,7 +404,13 @@ export async function getChatThread(userId: string, threadId: string) {
 
   return {
     thread,
-    messages,
+    messages: messages.map(message => ({
+      ...message,
+      choices:
+        message.role === ChatMessageRole.ASSISTANT
+          ? choiceLines(message.content)
+          : [],
+    })),
     pendingDrafts: await pendingDrafts(threadId, userId),
   };
 }

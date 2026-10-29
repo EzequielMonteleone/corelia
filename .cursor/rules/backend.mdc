@@ -1,0 +1,36 @@
+---
+description: Capas del API Express, errores y reglas puras
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Backend
+
+La ruta autentica, lee params y delega. No consulta Prisma ni decide permisos.
+
+```ts
+// ❌
+const unit = await prisma.unit.findUnique({where: {id: req.params.unitId}});
+
+// ✅
+const household = await getHousehold(userId, req.params.unitId as string);
+return res.json(household);
+```
+
+El servicio tira un error de dominio. El `message` es un código estable.
+
+```ts
+export class HouseholdError extends Error {
+  status: number;
+  constructor(code: string, status = 400) {
+    super(code);
+    this.status = status;
+  }
+}
+```
+
+La ruta responde `res.status(err.status).json({error: err.message})` si el error es de ese dominio. El resto va a `next(err)`.
+
+Reglas sin base van en `backend/lib/` y las importa el servicio. El test queda al lado (`reservationRules.test.ts`) con `node:test`. `lib/` no importa Prisma.
+
+Paquete NodeNext: imports relativos con sufijo `.js`, e `import type` para los tipos. Toda ruta protegida usa `authMiddleware`. El router nuevo se monta en `backend/server.ts`.
