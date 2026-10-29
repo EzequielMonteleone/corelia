@@ -1,8 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import apiClient from '@/lib/apiClient';
-import {useBuildingUnits} from '@/hooks/useBuildings';
-import {useAuthStore} from '@/store/authStore';
+import {useBuildingUnits, useBuildings} from '@/hooks/useBuildings';
 import type {
   ExpensePeriod,
   ExpensePeriodDetail,
@@ -300,18 +299,11 @@ export async function downloadExpensePeriodExport(
 export function useExpensePeriodPage(periodId: string) {
   const {data: period, isLoading, isError} = useExpensePeriodDetail(periodId);
   const {data: units = []} = useBuildingUnits(period?.building.id ?? null);
-  const user = useAuthStore(s => s.user);
+  const {data: buildings = []} = useBuildings();
 
-  const canManagePeriods = useMemo(
-    () =>
-      user?.globalRole === 'SUPERADMIN' ||
-      (!!period?.building?.id &&
-        user?.buildingUsers?.some(
-          bu =>
-            bu.buildingId === period.building.id && bu.role?.name === 'Admin',
-        )),
-    [user?.globalRole, user?.buildingUsers, period],
-  );
+  const canManagePeriods = !!buildings.find(
+    building => building.id === period?.building.id,
+  )?.canManage;
 
   const availableUnits = useMemo(() => {
     if (!period) return [];

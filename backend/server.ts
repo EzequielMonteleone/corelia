@@ -38,9 +38,13 @@ for (const key of requiredEnvVars) {
 const app = express();
 
 app.use(helmet());
+const configuredOrigin = process.env.CORS_ORIGIN ?? process.env.FRONTEND_URL;
+const corsOrigin =
+  configuredOrigin ??
+  (process.env.NODE_ENV === 'production' ? false : 'http://localhost:3001');
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN ?? process.env.FRONTEND_URL ?? true,
+    origin: corsOrigin,
     credentials: true,
   }),
 );

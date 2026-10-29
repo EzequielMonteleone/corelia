@@ -139,15 +139,17 @@ export default function BuildingsPage() {
                   <Building2 className="w-6 h-6 text-blue-400" />
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button
-                    intent="ghost"
-                    size="icon"
-                    className="w-8 h-8 rounded-full"
-                    onClick={() => handleOpenEdit(building)}
-                    aria-label={t('modalEditTitle')}>
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  {isSuperAdmin && (
+                  {building.canManage && (
+                    <Button
+                      intent="ghost"
+                      size="icon"
+                      className="w-8 h-8 rounded-full"
+                      onClick={() => handleOpenEdit(building)}
+                      aria-label={t('modalEditTitle')}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {building.canDelete && (
                     <Button
                       intent="ghost"
                       size="icon"

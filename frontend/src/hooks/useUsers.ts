@@ -1,6 +1,6 @@
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import apiClient from '@/lib/apiClient';
-import {UserData} from '@/types/user';
+import {UserAuditLog, UserData} from '@/types/user';
 import {UserCreateFormValues} from '@/schemas/user';
 
 export function useUsers() {
@@ -25,6 +25,18 @@ export function useUser(id: string | null) {
   });
 }
 
+export function useUserAuditLogs(id: string | null) {
+  return useQuery<UserAuditLog[]>({
+    queryKey: ['users', id, 'audit-logs'],
+    queryFn: async () => {
+      if (!id) return [];
+      const res = await apiClient.get(`/users/${id}/audit-logs`);
+      return res.data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -34,6 +46,7 @@ export function useUpdateUser() {
     }: Partial<UserData> & {
       id: string;
       passwordPlain?: string;
+      currentPassword?: string;
       buildingId?: string;
       roleName?: string;
       unitIds?: string[];

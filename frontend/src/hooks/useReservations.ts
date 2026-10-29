@@ -2,15 +2,21 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import apiClient from '@/lib/apiClient';
 import {AmenityReservation} from '@/types/amenity';
 
+export interface AmenitySlot {
+  time: string;
+  past: boolean;
+  full: boolean;
+}
+
 export function useReservations(
   buildingId: string | null,
   range: {from: string; to: string} | null,
   amenityId: string | null,
 ) {
-  return useQuery<AmenityReservation[]>({
+  return useQuery<{reservations: AmenityReservation[]; slots: AmenitySlot[]}>({
     queryKey: ['reservations', buildingId, amenityId, range?.from, range?.to],
     queryFn: async () => {
-      if (!buildingId || !range) return [];
+      if (!buildingId || !range) return {reservations: [], slots: []};
       const res = await apiClient.get(`/buildings/${buildingId}/reservations`, {
         params: {
           from: range.from,

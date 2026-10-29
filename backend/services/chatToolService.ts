@@ -16,12 +16,17 @@ import {
   type ExpenseView,
   type StandingUnit,
 } from '../lib/chatAccess.js';
-import {formatHm, parseHm, zonedClock, zonedDateTime} from '../lib/zonedTime.js';
-import {validateReservationSlot} from '../lib/reservationRules.js';
+import {
+  formatHm,
+  parseHm,
+  zonedClock,
+  zonedDateTime,
+} from '../lib/zonedTime.js';
+import {moneyCents, paidAmount, toMoneyNumber} from '../lib/money.js';
+import {reservationWindow, validateReservationSlot} from '../lib/reservationRules.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const MAX_NOTES = 500;
 
 type AmenityRow = Awaited<ReturnType<typeof getBuildingAmenities>>[number];
 
@@ -29,7 +34,10 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-export function matchAmenities(rows: AmenityRow[], query: string): AmenityRow[] {
+export function matchAmenities(
+  rows: AmenityRow[],
+  query: string,
+): AmenityRow[] {
   const q = normalize(query);
   if (!q) return [];
   return rows.filter(row => {
@@ -42,18 +50,16 @@ export function matchAmenities(rows: AmenityRow[], query: string): AmenityRow[] 
   });
 }
 
-function money(value: number) {
-  return Math.round(value * 100) / 100;
+function money(value: unknown) {
+  return toMoneyNumber(value);
 }
 
 function remainingOf(expense: {
-  amount: number;
-  payments: {amount: number; status: PaymentStatus}[];
+  amount: unknown;
+  payments: {amount: unknown; status: PaymentStatus}[];
 }) {
-  const paid = expense.payments
-    .filter(payment => payment.status === PaymentStatus.COMPLETED)
-    .reduce((sum, payment) => sum + payment.amount, 0);
-  return money(Math.max(expense.amount - paid, 0));
+  const remaining = toMoneyNumber(expense.amount) - paidAmount(expense.payments);
+  return money(Math.max(remaining, 0));
 }
 
 async function requireBuilding(buildingId: string) {
@@ -78,7 +84,9 @@ export async function getMyContext(actor: ChatActor) {
     orderBy: {name: 'asc'},
     take: 50,
   });
-  const roleById = new Map(actor.buildings.map(building => [building.id, building.role]));
+  const roleById = new Map(
+    actor.buildings.map(building => [building.id, building.role]),
+  );
   return {
     globalRole: actor.globalRole,
     buildings: buildings.map(building => ({
@@ -90,7 +98,10 @@ export async function getMyContext(actor: ChatActor) {
   };
 }
 
-export async function listAmenitiesForActor(actor: ChatActor, buildingId: string) {
+export async function listAmenitiesForActor(
+  actor: ChatActor,
+  buildingId: string,
+) {
   if (!canAccessBuilding(actor, buildingId, 'member')) {
     return {error: 'INSUFFICIENT_PERMISSIONS' as const};
   }
@@ -297,8 +308,6 @@ export async function draftAmenityReservationForActor(
   }
 
   const notes = input.notes?.trim() || null;
-  if (notes && notes.length > MAX_NOTES) return {error: 'NOTES_TOO_LONG' as const};
-
   const building = await requireBuilding(input.buildingId);
   if (!building) return {error: 'BUILDING_NOT_FOUND' as const};
 
@@ -321,8 +330,10 @@ export async function draftAmenityReservationForActor(
   if (!('unit' in unitResult)) return {error: 'UNIT_NOT_FOUND' as const};
 
   const startsAt = zonedDateTime(input.date, input.time);
-  if (Number.isNaN(startsAt.getTime())) return {error: 'INVALID_START' as const};
-  if (startsAt.getTime() < Date.now() - 60_000) return {error: 'SLOT_IN_PAST' as const};
+  if (Number.isNaN(startsAt.getTime()))
+    return {error: 'INVALID_START' as const};
+  const windowCode = reservationWindow({startsAt, notes});
+  if (windowCode) return {error: windowCode};
 
   const endsAt = new Date(startsAt.getTime() + amenity.slotMinutes * 60_000);
   const slotCode = validateReservationSlot(amenity, startsAt, endsAt);
@@ -356,7 +367,10 @@ export async function draftAmenityReservationForActor(
   };
 }
 
-export async function describeDraftConfirmation(actor: ChatActor, draftId: string) {
+export async function describeDraftConfirmation(
+  actor: ChatActor,
+  draftId: string,
+) {
   const draft = await prisma.reservationDraft.findFirst({
     where: {
       id: draftId,
@@ -375,7 +389,10 @@ export async function describeDraftConfirmation(actor: ChatActor, draftId: strin
   };
 }
 
-export async function getExpensesForActor(actor: ChatActor, buildingId: string) {
+export async function getExpensesForActor(
+  actor: ChatActor,
+  buildingId: string,
+) {
   const building = await requireBuilding(buildingId);
   if (!building) {
     if (!canAccessBuilding(actor, buildingId, 'member')) {
@@ -418,7 +435,10 @@ export async function getExpensesForActor(actor: ChatActor, buildingId: string) 
   };
 }
 
-export async function listExpenseStandingForActor(actor: ChatActor, buildingId: string) {
+export async function listExpenseStandingForActor(
+  actor: ChatActor,
+  buildingId: string,
+) {
   if (!canAccessBuilding(actor, buildingId, 'admin')) {
     return expenseStandingForActor(actor, buildingId, []);
   }
@@ -443,11 +463,13 @@ export async function listExpenseStandingForActor(actor: ChatActor, buildingId: 
       balance: 0,
     };
     current.balance = money(current.balance + remainingOf(expense));
-    current.status = current.balance > 0.009 ? 'IN_DEBT' : 'CURRENT';
+    current.status = moneyCents(current.balance) > 0 ? 'IN_DEBT' : 'CURRENT';
     byUnit.set(expense.unitId, current);
   }
 
-  const rows = [...byUnit.values()].sort((a, b) => a.unitName.localeCompare(b.unitName));
+  const rows = [...byUnit.values()].sort((a, b) =>
+    a.unitName.localeCompare(b.unitName),
+  );
   const visible = expenseStandingForActor(actor, buildingId, rows);
   if (!visible.ok) return visible;
   return {

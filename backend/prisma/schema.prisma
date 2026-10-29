@@ -77,7 +77,7 @@ model User {
 
 model Role {
   id          String  @id @default(uuid())
-  name        String
+  name        String  @unique
   description String?
 
   buildingUsers   BuildingUser[]
@@ -263,6 +263,8 @@ model BuildingUser {
   building Building @relation(fields: [buildingId], references: [id])
   user     User     @relation(fields: [userId], references: [id])
   role     Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([buildingId, userId])
 }
 
 model Permission {
@@ -288,7 +290,7 @@ model Expense {
   buildingId String
   unitId     String
   periodId   String
-  amount     Float
+  amount     Decimal       @db.Decimal(12, 2)
   status     ExpenseStatus @default(UNPAID)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
@@ -303,7 +305,7 @@ model Payment {
   id                String        @id @default(uuid())
   buildingId        String
   expenseId         String
-  amount            Float
+  amount            Decimal       @db.Decimal(12, 2)
   paymentMethod     String?
   externalPaymentId String?
   status            PaymentStatus @default(PENDING)
@@ -424,7 +426,7 @@ model AuditLog {
   entityType  String
   entityId    String
   periodId    String?
-  buildingId  String
+  buildingId  String?
   actorUserId String
   metadata    Json?
   createdAt   DateTime @default(now())

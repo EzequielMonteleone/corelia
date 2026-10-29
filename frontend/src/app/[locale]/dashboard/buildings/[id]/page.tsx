@@ -35,7 +35,6 @@ import {
 } from '@/hooks/useBuildings';
 import {useTranslations} from 'next-intl';
 import {AmenityBookingForm} from '@/components/dashboard/buildings/AmenityBookingForm';
-
 export default function BuildingDetailPage() {
   const params = useParams();
   const id = params?.id as string | undefined;
@@ -60,6 +59,7 @@ export default function BuildingDetailPage() {
   const tCommon = useTranslations('Common');
   const buildingAmenities = amenitiesData?.amenities;
   const catalog = amenitiesData?.catalog;
+  const canManage = !!building?.canManage;
 
   const handleConfirmDeleteAmenity = () => {
     if (!id || !amenityToDeleteId) return;
@@ -170,52 +170,54 @@ export default function BuildingDetailPage() {
             <Badge>{units.length}</Badge>
           </div>
 
-          <div className="space-y-3 mb-4">
-            <Input
-              placeholder={t('unitNamePlaceholder')}
-              value={unitName}
-              onChange={e => setUnitName(e.target.value)}
-            />
-            <div className="grid grid-cols-2 gap-3">
+          {canManage && (
+            <div className="space-y-3 mb-4">
               <Input
-                placeholder={t('unitFloorPlaceholder')}
-                value={unitFloor}
-                onChange={e => setUnitFloor(e.target.value)}
+                placeholder={t('unitNamePlaceholder')}
+                value={unitName}
+                onChange={e => setUnitName(e.target.value)}
               />
-              <Input
-                placeholder={t('unitCoefficientPlaceholder')}
-                value={unitCoefficient}
-                onChange={e => setUnitCoefficient(e.target.value)}
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={() => {
-                if (!id || !unitName.trim()) return;
-                createUnit.mutate(
-                  {
-                    buildingId: id,
-                    name: unitName.trim(),
-                    floor: unitFloor.trim() || undefined,
-                    coefficient: (() => {
-                      if (unitCoefficient.trim() === '') return undefined;
-                      const parsed = Number(unitCoefficient);
-                      return Number.isFinite(parsed) ? parsed : undefined;
-                    })(),
-                  },
-                  {
-                    onSuccess: () => {
-                      setUnitName('');
-                      setUnitFloor('');
-                      setUnitCoefficient('');
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  placeholder={t('unitFloorPlaceholder')}
+                  value={unitFloor}
+                  onChange={e => setUnitFloor(e.target.value)}
+                />
+                <Input
+                  placeholder={t('unitCoefficientPlaceholder')}
+                  value={unitCoefficient}
+                  onChange={e => setUnitCoefficient(e.target.value)}
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  if (!id || !unitName.trim()) return;
+                  createUnit.mutate(
+                    {
+                      buildingId: id,
+                      name: unitName.trim(),
+                      floor: unitFloor.trim() || undefined,
+                      coefficient: (() => {
+                        if (unitCoefficient.trim() === '') return undefined;
+                        const parsed = Number(unitCoefficient);
+                        return Number.isFinite(parsed) ? parsed : undefined;
+                      })(),
                     },
-                  },
-                );
-              }}>
-              <Plus className="w-4 h-4 mr-2" />
-              {t('addUnit')}
-            </Button>
-          </div>
+                    {
+                      onSuccess: () => {
+                        setUnitName('');
+                        setUnitFloor('');
+                        setUnitCoefficient('');
+                      },
+                    },
+                  );
+                }}>
+                <Plus className="w-4 h-4 mr-2" />
+                {t('addUnit')}
+              </Button>
+            </div>
+          )}
 
           <div className="space-y-2">
             {units.map(unit => (
@@ -229,28 +231,30 @@ export default function BuildingDetailPage() {
                     {unit.coefficient ?? '-'}
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    intent="ghost"
-                    size="icon"
-                    onClick={() => {
-                      const newName = prompt(t('renameUnitPrompt'), unit.name);
-                      if (!newName || !newName.trim()) return;
-                      updateUnit.mutate({id: unit.id, name: newName.trim()});
-                    }}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    intent="ghost"
-                    size="icon"
-                    className="hover:bg-red-500/10 hover:text-red-400"
-                    onClick={() => {
-                      if (!id) return;
-                      deleteUnit.mutate({id: unit.id, buildingId: id});
-                    }}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                {canManage && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      intent="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const newName = prompt(t('renameUnitPrompt'), unit.name);
+                        if (!newName || !newName.trim()) return;
+                        updateUnit.mutate({id: unit.id, name: newName.trim()});
+                      }}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      intent="ghost"
+                      size="icon"
+                      className="hover:bg-red-500/10 hover:text-red-400"
+                      onClick={() => {
+                        if (!id) return;
+                        deleteUnit.mutate({id: unit.id, buildingId: id});
+                      }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
             {units.length === 0 && (
@@ -265,60 +269,62 @@ export default function BuildingDetailPage() {
             <Sparkles className="w-5 h-5 text-indigo-400" />
           </div>
 
-          <div className="space-y-3 mb-4">
-            <Select
-              value={catalogAmenityId}
-              onChange={e => setCatalogAmenityId(e.target.value)}>
-              <option value="">{t('selectCatalogAmenity')}</option>
-              {availableCatalogAmenities.map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
-            <Button
-              className="w-full"
-              intent="outline"
-              onClick={() => {
-                if (!id || !catalogAmenityId) return;
-                createAmenity.mutate(
-                  {buildingId: id, amenityId: catalogAmenityId},
-                  {
-                    onSuccess: () => {
-                      setCatalogAmenityId('');
-                    },
-                  },
-                );
-              }}>
-              <Plus className="w-4 h-4 mr-2" />
-              {t('addCatalogAmenity')}
-            </Button>
-            <div className="flex gap-2">
-              <Input
-                placeholder={t('customAmenityPlaceholder')}
-                value={customAmenityName}
-                onChange={e => setCustomAmenityName(e.target.value)}
-              />
+          {canManage && (
+            <div className="space-y-3 mb-4">
+              <Select
+                value={catalogAmenityId}
+                onChange={e => setCatalogAmenityId(e.target.value)}>
+                <option value="">{t('selectCatalogAmenity')}</option>
+                {availableCatalogAmenities.map(item => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </Select>
               <Button
+                className="w-full"
                 intent="outline"
                 onClick={() => {
-                  if (!id || !customAmenityName.trim()) return;
+                  if (!id || !catalogAmenityId) return;
                   createAmenity.mutate(
-                    {
-                      buildingId: id,
-                      customAmenityName: customAmenityName.trim(),
-                    },
+                    {buildingId: id, amenityId: catalogAmenityId},
                     {
                       onSuccess: () => {
-                        setCustomAmenityName('');
+                        setCatalogAmenityId('');
                       },
                     },
                   );
                 }}>
-                {t('addCustomAmenity')}
+                <Plus className="w-4 h-4 mr-2" />
+                {t('addCatalogAmenity')}
               </Button>
+              <div className="flex gap-2">
+                <Input
+                  placeholder={t('customAmenityPlaceholder')}
+                  value={customAmenityName}
+                  onChange={e => setCustomAmenityName(e.target.value)}
+                />
+                <Button
+                  intent="outline"
+                  onClick={() => {
+                    if (!id || !customAmenityName.trim()) return;
+                    createAmenity.mutate(
+                      {
+                        buildingId: id,
+                        customAmenityName: customAmenityName.trim(),
+                      },
+                      {
+                        onSuccess: () => {
+                          setCustomAmenityName('');
+                        },
+                      },
+                    );
+                  }}>
+                  {t('addCustomAmenity')}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
             {(buildingAmenities ?? []).map(item => (
@@ -332,40 +338,52 @@ export default function BuildingDetailPage() {
                     {' · '}
                     {item.slotMinutes ?? 60} min · {item.openTime ?? '08:00'}–{item.closeTime ?? '22:00'}
                   </p>
-                  <details className="mt-2">
-                    <summary className="text-xs text-blue-400 cursor-pointer">
-                      {t('bookingRules')}
-                    </summary>
-                    <AmenityBookingForm
-                      key={[
-                        item.id,
-                        item.slotMinutes,
-                        item.maxConcurrent,
-                        item.openTime,
-                        item.closeTime,
-                        item.rules ?? '',
-                      ].join(':')}
-                      item={item}
-                      buildingId={id ?? building.id}
-                    />
-                  </details>
+                  {canManage ? (
+                    <details className="mt-2">
+                      <summary className="text-xs text-blue-400 cursor-pointer">
+                        {t('bookingRules')}
+                      </summary>
+                      <AmenityBookingForm
+                        key={[
+                          item.id,
+                          item.slotMinutes,
+                          item.maxConcurrent,
+                          item.openTime,
+                          item.closeTime,
+                          item.rules ?? '',
+                        ].join(':')}
+                        item={item}
+                        buildingId={id ?? building.id}
+                      />
+                    </details>
+                  ) : (
+                    item.rules && (
+                      <p className="text-xs text-gray-400 mt-2">{item.rules}</p>
+                    )
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      if (!id) return;
-                      updateAmenity.mutate({
-                        id: item.id,
-                        buildingId: id,
-                        isEnabled: !item.isEnabled,
-                      });
-                    }}
-                    className="cursor-pointer border-0 p-0 bg-transparent">
+                  {canManage ? (
+                    <button
+                      onClick={() => {
+                        if (!id) return;
+                        updateAmenity.mutate({
+                          id: item.id,
+                          buildingId: id,
+                          isEnabled: !item.isEnabled,
+                        });
+                      }}
+                      className="cursor-pointer border-0 p-0 bg-transparent">
+                      <Badge intent={item.isEnabled ? 'success' : 'danger'}>
+                        {item.isEnabled ? tCommon('active') : tCommon('inactive')}
+                      </Badge>
+                    </button>
+                  ) : (
                     <Badge intent={item.isEnabled ? 'success' : 'danger'}>
                       {item.isEnabled ? tCommon('active') : tCommon('inactive')}
                     </Badge>
-                  </button>
-                  {!item.amenity.isSystem && (
+                  )}
+                  {canManage && !item.amenity.isSystem && (
                     <Button
                       intent="ghost"
                       size="icon"
@@ -382,13 +400,15 @@ export default function BuildingDetailPage() {
                       <Pencil className="w-4 h-4" />
                     </Button>
                   )}
-                  <Button
-                    intent="ghost"
-                    size="icon"
-                    className="hover:bg-red-500/10 hover:text-red-400"
-                    onClick={() => setAmenityToDeleteId(item.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {canManage && (
+                    <Button
+                      intent="ghost"
+                      size="icon"
+                      className="hover:bg-red-500/10 hover:text-red-400"
+                      onClick={() => setAmenityToDeleteId(item.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

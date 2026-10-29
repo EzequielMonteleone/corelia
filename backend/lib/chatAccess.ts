@@ -1,4 +1,7 @@
-export type BuildingRoleName = 'Admin' | 'Owner' | 'Roomer';
+export type {BuildingRoleName} from './buildingAccess.js';
+import type {BuildingRoleName} from './buildingAccess.js';
+export {asBuildingRole, canAccessBuilding} from './buildingAccess.js';
+import {canAccessBuilding} from './buildingAccess.js';
 
 export type ChatToolName =
   | 'getMyContext'
@@ -64,23 +67,6 @@ const MEMBER_TOOLS: ChatToolName[] = [
   'getMyExpenses',
   'searchBuildingDocs',
 ];
-
-export function asBuildingRole(name: string): BuildingRoleName | null {
-  if (name === 'Admin' || name === 'Owner' || name === 'Roomer') return name;
-  return null;
-}
-
-export function canAccessBuilding(
-  actor: ChatActor,
-  buildingId: string,
-  level: 'member' | 'admin',
-): boolean {
-  if (actor.globalRole === 'SUPERADMIN') return true;
-  const membership = actor.buildings.find(building => building.id === buildingId);
-  if (!membership) return false;
-  if (level === 'member') return true;
-  return membership.role === 'Admin';
-}
 
 export function toolsForActor(actor: ChatActor): ChatToolName[] {
   const tools = [...MEMBER_TOOLS];

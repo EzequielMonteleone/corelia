@@ -15,15 +15,40 @@ import {Card} from '@/components/ui/Card';
 import {Badge} from '@/components/ui/Badge';
 import {LoadingState} from '@/components/ui/LoadingState';
 import {PageHeader} from '@/components/dashboard/PageHeader';
-import {useUser} from '@/hooks/useUsers';
-import {useTranslations} from 'next-intl';
+import {useUser, useUserAuditLogs} from '@/hooks/useUsers';
+import {isUserAuditAction, type UserAuditLog} from '@/types/user';
+import {formatDate} from '@/lib/utils';
+import {useLocale, useTranslations} from 'next-intl';
+
+function auditDetail(
+  log: UserAuditLog,
+  activeLabel: string,
+  inactiveLabel: string,
+): string | null {
+  if (
+    log.action === 'USER_ROLE_CHANGED' &&
+    log.metadata?.nextRole &&
+    log.metadata.previousRole !== log.metadata.nextRole
+  ) {
+    return `${log.metadata.previousRole ?? ''} → ${log.metadata.nextRole}`;
+  }
+  if (
+    log.action === 'USER_ACTIVE_CHANGED' &&
+    typeof log.metadata?.isActive === 'boolean'
+  ) {
+    return log.metadata.isActive ? activeLabel : inactiveLabel;
+  }
+  return null;
+}
 
 export default function UserDetailPage() {
   const params = useParams();
   const id = params?.id as string | undefined;
   const {data: user, isLoading, isError} = useUser(id ?? null);
+  const auditLogs = useUserAuditLogs(id ?? null);
   const t = useTranslations('Users');
   const tCommon = useTranslations('Common');
+  const locale = useLocale();
 
   if (isLoading) {
     return (
@@ -155,6 +180,41 @@ export default function UserDetailPage() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+      </Card>
+
+      <Card className="p-4 mt-6 max-w-2xl">
+        <h3 className="text-sm font-semibold text-white mb-3">
+          {t('auditTitle')}
+        </h3>
+        {auditLogs.isLoading ? (
+          <p className="text-sm text-gray-400">{t('auditLoading')}</p>
+        ) : !auditLogs.data?.length ? (
+          <p className="text-sm text-gray-400">{t('auditEmpty')}</p>
+        ) : (
+          <div className="space-y-2">
+            {auditLogs.data.map(log => {
+              const detail = auditDetail(
+                log,
+                tCommon('active'),
+                tCommon('inactive'),
+              );
+              return (
+                <div
+                  key={log.id}
+                  className="text-xs text-gray-300 border border-white/10 rounded-lg px-3 py-2">
+                  <p className="font-medium text-white">
+                    {isUserAuditAction(log.action) ? t(log.action) : log.action}
+                  </p>
+                  {detail ? <p>{detail}</p> : null}
+                  <p>{formatDate(log.createdAt, locale)}</p>
+                  <p className="text-gray-400">
+                    {t('auditActor', {name: log.actorName ?? log.actorUserId})}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>

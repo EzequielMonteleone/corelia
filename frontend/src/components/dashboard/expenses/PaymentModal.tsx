@@ -43,7 +43,7 @@ export const PaymentModal = ({
   const totalPaid = expense.payments
     .filter(p => p.status === 'COMPLETED')
     .reduce((sum, p) => sum + p.amount, 0);
-  const remaining = Math.max(0, expense.amount - totalPaid);
+  const remaining = expense.remaining ?? 0;
 
   const handleSubmit = () => {
     const parsedAmount = parseFloat(amount);

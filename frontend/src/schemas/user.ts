@@ -45,7 +45,12 @@ export const userEditSchema = z.object({
   firstName: z.string().min(2, 'Mínimo 2 caracteres'),
   lastName: z.string().min(2, 'Mínimo 2 caracteres'),
   phone: z.string().optional(),
-  password: z.string().optional(),
+  password: z
+    .string()
+    .refine(value => value.length === 0 || value.length >= 8, {
+      message: 'Mínimo 8 caracteres',
+    }),
+  currentPassword: z.string().optional(),
   isActive: z.boolean().optional(),
   buildingId: z.string().optional(),
   roleName: z.enum(['Admin', 'Owner', 'Roomer']).optional(),

@@ -5,7 +5,7 @@ import {
   type AuthenticatedRequest,
 } from '../middleware/authMiddleware.js';
 import {findUserById} from '../services/userService.js';
-import {GlobalRole, ExpensePeriodStatus} from '@prisma/client';
+import {ExpensePeriodStatus} from '@prisma/client';
 import {
   getExpensePeriods,
   createExpensePeriod,
@@ -22,27 +22,39 @@ import {
   buildExpensePeriodPdf,
 } from '../services/expenseService.js';
 import {createAuditLog, getAuditLogsByPeriod} from '../services/auditService.js';
+import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
+import {parsePositiveMoney} from '../lib/money.js';
+
+function sendMoneyError(err: unknown, res: Response, next: NextFunction) {
+  if (err instanceof Error) {
+    if (
+      err.message === 'INVALID_AMOUNT' ||
+      err.message === 'UNIT_NOT_IN_BUILDING' ||
+      err.message === 'AMOUNT_EXCEEDS_BALANCE' ||
+      err.message === 'PERIOD_CLOSED' ||
+      err.message === 'EXPENSE_ALREADY_PAID'
+    ) {
+      return res.status(400).json({error: err.message});
+    }
+    if (
+      err.message === 'EXPENSE_NOT_FOUND' ||
+      err.message === 'EXPENSE_PERIOD_NOT_FOUND'
+    ) {
+      return res.status(404).json({error: err.message});
+    }
+  }
+  return next(err);
+}
 
 function hasRoleForBuilding(
   user: {
-    globalRole: GlobalRole;
+    globalRole: string;
     buildingUsers: {buildingId: string; role: {name: string}}[];
   },
   buildingId: string,
-  allowedRoles: string[],
+  level: 'admin' | 'member',
 ) {
-  if (user.globalRole === GlobalRole.SUPERADMIN) return true;
-  return user.buildingUsers.some(
-    bu => bu.buildingId === buildingId && allowedRoles.includes(bu.role.name),
-  );
-}
-
-function getBuildingRole(
-  user: {buildingUsers: {buildingId: string; role: {name: string}}[]},
-  buildingId: string,
-): string | null {
-  const bu = user.buildingUsers.find(bu => bu.buildingId === buildingId);
-  return bu?.role?.name ?? null;
+  return canAccessBuilding(toBuildingMember(user), buildingId, level);
 }
 
 function getUnitIdsForBuilding(
@@ -74,7 +86,7 @@ buildingPeriodRouter.get(
       const user = await findUserById(req.user.id);
       if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, buildingId, ['Admin', 'Owner', 'Roomer'])) {
+      if (!hasRoleForBuilding(user, buildingId, 'member')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -100,7 +112,7 @@ buildingPeriodRouter.get(
       const user = await findUserById(req.user.id);
       if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, buildingId, ['Admin', 'Owner', 'Roomer'])) {
+      if (!hasRoleForBuilding(user, buildingId, 'member')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -125,7 +137,7 @@ buildingPeriodRouter.post(
       const user = await findUserById(req.user.id);
       if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, buildingId, ['Admin'])) {
+      if (!hasRoleForBuilding(user, buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -176,20 +188,12 @@ periodRouter.get(
         return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
 
       if (
-        !hasRoleForBuilding(user, detail.buildingId, [
-          'Admin',
-          'Owner',
-          'Roomer',
-        ])
+        !hasRoleForBuilding(user, detail.buildingId, 'member')
       ) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
-      const buildingRole = getBuildingRole(user, detail.buildingId);
-      const isAdminOrSuperadmin =
-        user.globalRole === GlobalRole.SUPERADMIN || buildingRole === 'Admin';
-
-      if (!isAdminOrSuperadmin && (buildingRole === 'Owner' || buildingRole === 'Roomer')) {
+      if (!hasRoleForBuilding(user, detail.buildingId, 'admin')) {
         const unitIds = getUnitIdsForBuilding(user, detail.buildingId);
         const filteredExpenses = detail.expenses.filter(e =>
           unitIds.includes(e.unitId),
@@ -224,7 +228,7 @@ periodRouter.put(
       if (!detail)
         return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, detail.buildingId, ['Admin'])) {
+      if (!hasRoleForBuilding(user, detail.buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -267,7 +271,7 @@ periodRouter.delete(
       if (!detail)
         return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, detail.buildingId, ['Admin'])) {
+      if (!hasRoleForBuilding(user, detail.buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -308,7 +312,7 @@ periodRouter.get(
       }
 
       if (
-        !hasRoleForBuilding(user, detail.buildingId, ['Admin', 'Owner', 'Roomer'])
+        !hasRoleForBuilding(user, detail.buildingId, 'member')
       ) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
@@ -318,10 +322,14 @@ periodRouter.get(
         return res.status(400).json({error: 'INVALID_EXPORT_FORMAT'});
       }
 
+      const unitIds = hasRoleForBuilding(user, detail.buildingId, 'admin')
+        ? null
+        : getUnitIdsForBuilding(user, detail.buildingId);
+
       const safePeriod = detail.period.replace(/[^a-zA-Z0-9_-]/g, '_');
 
       if (format === 'csv') {
-        const csv = await buildExpensePeriodCsv(periodId);
+        const csv = await buildExpensePeriodCsv(periodId, unitIds);
         if (!csv) return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader(
@@ -331,7 +339,7 @@ periodRouter.get(
         return res.send(csv);
       }
 
-      const pdf = await buildExpensePeriodPdf(periodId);
+      const pdf = await buildExpensePeriodPdf(periodId, unitIds);
       if (!pdf) return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
@@ -364,9 +372,7 @@ periodRouter.get(
         return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
       }
 
-      if (
-        !hasRoleForBuilding(user, detail.buildingId, ['Admin', 'Owner', 'Roomer'])
-      ) {
+      if (!hasRoleForBuilding(user, detail.buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -395,7 +401,7 @@ periodRouter.post(
       if (!detail)
         return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, detail.buildingId, ['Admin'])) {
+      if (!hasRoleForBuilding(user, detail.buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -403,19 +409,19 @@ periodRouter.post(
       const amount = req.body?.amount as number | undefined;
 
       if (!unitId) return res.status(400).json({error: 'UNIT_ID_REQUIRED'});
-      if (
-        amount === undefined ||
-        amount === null ||
-        typeof amount !== 'number'
-      ) {
+      if (typeof amount !== 'number') {
         return res.status(400).json({error: 'AMOUNT_REQUIRED'});
+      }
+      const parsedAmount = parsePositiveMoney(amount);
+      if (parsedAmount === 'INVALID_AMOUNT') {
+        return res.status(400).json({error: 'INVALID_AMOUNT'});
       }
 
       const expense = await createExpense({
         buildingId: detail.buildingId,
         unitId,
         periodId,
-        amount,
+        amount: parsedAmount,
       });
       await createAuditLog({
         action: 'EXPENSE_CREATED',
@@ -424,11 +430,11 @@ periodRouter.post(
         periodId,
         buildingId: detail.buildingId,
         actorUserId: req.user.id,
-        metadata: {periodId, unitId, amount},
+        metadata: {periodId, unitId, amount: parsedAmount},
       });
       return res.status(201).json(expense);
     } catch (err) {
-      return next(err);
+      return sendMoneyError(err, res, next);
     }
   },
 );
@@ -457,14 +463,30 @@ expenseRouter.put(
       );
       if (!existing) return res.status(404).json({error: 'EXPENSE_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, existing.buildingId, ['Admin'])) {
+      if (!hasRoleForBuilding(user, existing.buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
-      const {amount} = req.body as {amount?: number};
-      const updated = await updateExpense(expenseId, {
-        ...(typeof amount === 'number' ? {amount} : {}),
-      });
+      const {amount} = req.body as {amount?: unknown};
+      if (amount !== undefined) {
+        const parsedAmount = parsePositiveMoney(amount);
+        if (parsedAmount === 'INVALID_AMOUNT') {
+          return res.status(400).json({error: 'INVALID_AMOUNT'});
+        }
+        const updated = await updateExpense(expenseId, {amount: parsedAmount});
+        await createAuditLog({
+          action: 'EXPENSE_UPDATED',
+          entityType: 'EXPENSE',
+          entityId: updated.id,
+          periodId: existing.periodId,
+          buildingId: existing.buildingId,
+          actorUserId: req.user.id,
+          metadata: {amount: updated.amount},
+        });
+        return res.json(updated);
+      }
+
+      const updated = await updateExpense(expenseId, {});
       await createAuditLog({
         action: 'EXPENSE_UPDATED',
         entityType: 'EXPENSE',
@@ -476,7 +498,7 @@ expenseRouter.put(
       });
       return res.json(updated);
     } catch (err) {
-      return next(err);
+      return sendMoneyError(err, res, next);
     }
   },
 );
@@ -500,7 +522,7 @@ expenseRouter.delete(
       );
       if (!existing) return res.status(404).json({error: 'EXPENSE_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, existing.buildingId, ['Admin'])) {
+      if (!hasRoleForBuilding(user, existing.buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -516,7 +538,7 @@ expenseRouter.delete(
       });
       return res.status(204).send();
     } catch (err) {
-      return next(err);
+      return sendMoneyError(err, res, next);
     }
   },
 );
@@ -541,19 +563,12 @@ expenseRouter.post(
       if (!existing) return res.status(404).json({error: 'EXPENSE_NOT_FOUND'});
 
       if (
-        !hasRoleForBuilding(user, existing.buildingId, [
-          'Admin',
-          'Owner',
-          'Roomer',
-        ])
+        !hasRoleForBuilding(user, existing.buildingId, 'member')
       ) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
-      const buildingRole = getBuildingRole(user, existing.buildingId);
-      const isAdminOrSuperadmin =
-        user.globalRole === GlobalRole.SUPERADMIN || buildingRole === 'Admin';
-      if (!isAdminOrSuperadmin && (buildingRole === 'Owner' || buildingRole === 'Roomer')) {
+      if (!hasRoleForBuilding(user, existing.buildingId, 'admin')) {
         const unitIds = getUnitIdsForBuilding(user, existing.buildingId);
         if (!unitIds.includes(existing.unitId)) {
           return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
@@ -566,14 +581,15 @@ expenseRouter.post(
         externalPaymentId?: string;
       };
 
-      if (typeof amount !== 'number' || amount <= 0) {
+      const parsedAmount = parsePositiveMoney(amount);
+      if (parsedAmount === 'INVALID_AMOUNT') {
         return res.status(400).json({error: 'INVALID_AMOUNT'});
       }
 
       const payment = await createPayment({
         buildingId: existing.buildingId,
         expenseId,
-        amount,
+        amount: parsedAmount,
         ...(paymentMethod !== undefined && {paymentMethod}),
         ...(externalPaymentId !== undefined && {externalPaymentId}),
       });
@@ -586,14 +602,14 @@ expenseRouter.post(
         actorUserId: req.user.id,
         metadata: {
           expenseId,
-          amount,
+          amount: parsedAmount,
           paymentMethod: paymentMethod ?? null,
           externalPaymentId: externalPaymentId ?? null,
         },
       });
       return res.status(201).json(payment);
     } catch (err) {
-      return next(err);
+      return sendMoneyError(err, res, next);
     }
   },
 );
@@ -628,7 +644,7 @@ paymentRouter.put(
       );
       if (!existing) return res.status(404).json({error: 'PAYMENT_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, existing.buildingId, ['Admin'])) {
+      if (!hasRoleForBuilding(user, existing.buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 

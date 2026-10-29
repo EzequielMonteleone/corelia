@@ -9,13 +9,18 @@ alwaysApply: false
 La ruta autentica, lee params y delega. No consulta Prisma ni decide permisos.
 
 ```ts
-// ❌
+// ❌ Prisma o un rol decididos en la ruta
 const unit = await prisma.unit.findUnique({where: {id: req.params.unitId}});
+if (user.globalRole === 'SUPERADMIN' || role.name === 'Admin')
 
-// ✅
+// ✅ el servicio lee; el permiso sale de lib
 const household = await getHousehold(userId, req.params.unitId as string);
-return res.json(household);
+if (!canAccessBuilding(toBuildingMember(user), buildingId, 'admin')) {
+  return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+}
 ```
+
+Un permiso, un monto o una ventana de reserva nuevos llaman a la función de `backend/lib/` que ya existe. La ruta carga el usuario y traduce el código a status.
 
 El servicio tira un error de dominio. El `message` es un código estable.
 

@@ -4,6 +4,17 @@ import {
   ExpenseStatus,
   PaymentStatus,
 } from '@prisma/client';
+import {
+  exceedsBalance,
+  moneyCents,
+  openBalance,
+  paidAmount,
+  parsePositiveMoney,
+  reservedAmount,
+  roundMoney,
+  toMoneyNumber,
+} from '../lib/money.js';
+import {expenseWriteBlock} from '../lib/expenseRules.js';
 
 export async function getExpensePeriods(buildingId: string) {
   return prisma.expensePeriod.findMany({
@@ -25,7 +36,7 @@ export async function createExpensePeriod(buildingId: string, period: string) {
 }
 
 export async function getExpensePeriodDetail(periodId: string) {
-  return prisma.expensePeriod.findUnique({
+  const period = await prisma.expensePeriod.findUnique({
     where: {id: periodId},
     include: {
       building: {select: {id: true, name: true}},
@@ -40,6 +51,11 @@ export async function getExpensePeriodDetail(periodId: string) {
       },
     },
   });
+  if (!period) return null;
+  return {
+    ...period,
+    expenses: period.expenses.map(presentExpense),
+  };
 }
 
 export async function updateExpensePeriod(
@@ -64,35 +80,78 @@ export async function createExpense(data: {
   periodId: string;
   amount: number;
 }) {
-  return prisma.expense.create({
+  const amount = parsePositiveMoney(data.amount);
+  if (amount === 'INVALID_AMOUNT') throw new Error('INVALID_AMOUNT');
+
+  const period = await prisma.expensePeriod.findFirst({
+    where: {id: data.periodId, buildingId: data.buildingId},
+    select: {status: true},
+  });
+  if (!period) throw new Error('EXPENSE_PERIOD_NOT_FOUND');
+  const block = expenseWriteBlock({periodStatus: period.status});
+  if (block) throw new Error(block);
+
+  const unit = await prisma.unit.findFirst({
+    where: {id: data.unitId, buildingId: data.buildingId},
+    select: {id: true},
+  });
+  if (!unit) throw new Error('UNIT_NOT_IN_BUILDING');
+
+  const expense = await prisma.expense.create({
     data: {
       buildingId: data.buildingId,
       unitId: data.unitId,
       periodId: data.periodId,
-      amount: data.amount,
+      amount,
     },
     include: {
       unit: {select: {id: true, name: true, floor: true}},
       payments: true,
     },
   });
+  return presentExpense(expense);
+}
+
+async function assertExpenseWritable(id: string) {
+  const current = await prisma.expense.findUnique({
+    where: {id},
+    include: {period: {select: {status: true}}},
+  });
+  if (!current) throw new Error('EXPENSE_NOT_FOUND');
+  const block = expenseWriteBlock({
+    periodStatus: current.period.status,
+    expenseStatus: current.status,
+  });
+  if (block) throw new Error(block);
+  return current;
 }
 
 export async function updateExpense(
   id: string,
   data: {amount?: number; status?: ExpenseStatus},
 ) {
-  return prisma.expense.update({
+  await assertExpenseWritable(id);
+  const updateData: {amount?: number; status?: ExpenseStatus} = {};
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.amount !== undefined) {
+    const amount = parsePositiveMoney(data.amount);
+    if (amount === 'INVALID_AMOUNT') throw new Error('INVALID_AMOUNT');
+    updateData.amount = amount;
+  }
+
+  const expense = await prisma.expense.update({
     where: {id},
-    data,
+    data: updateData,
     include: {
       unit: {select: {id: true, name: true, floor: true}},
       payments: true,
     },
   });
+  return presentExpense(expense);
 }
 
 export async function deleteExpense(id: string) {
+  await assertExpenseWritable(id);
   return prisma.expense.delete({where: {id}});
 }
 
@@ -103,11 +162,28 @@ export async function createPayment(data: {
   paymentMethod?: string;
   externalPaymentId?: string;
 }) {
+  const amount = parsePositiveMoney(data.amount);
+  if (amount === 'INVALID_AMOUNT') throw new Error('INVALID_AMOUNT');
+
+  const expense = await prisma.expense.findUnique({
+    where: {id: data.expenseId},
+    include: {payments: true},
+  });
+  if (!expense) throw new Error('EXPENSE_NOT_FOUND');
+
+  const reserved = reservedAmount(expense.payments);
+  const remaining = roundMoney(
+    Math.max(toMoneyNumber(expense.amount) - reserved, 0),
+  );
+  if (exceedsBalance(amount, remaining)) {
+    throw new Error('AMOUNT_EXCEEDS_BALANCE');
+  }
+
   const payment = await prisma.payment.create({
     data: {
       buildingId: data.buildingId,
       expenseId: data.expenseId,
-      amount: data.amount,
+      amount,
       paymentMethod: data.paymentMethod ?? null,
       externalPaymentId: data.externalPaymentId ?? null,
       status: PaymentStatus.PENDING,
@@ -117,7 +193,26 @@ export async function createPayment(data: {
 
   await recalculateExpenseStatus(data.expenseId);
 
-  return payment;
+  return presentPayment(payment);
+}
+
+function presentPayment<T extends {amount: unknown}>(payment: T) {
+  return {...payment, amount: toMoneyNumber(payment.amount)};
+}
+
+function presentExpense<
+  T extends {amount: unknown; payments?: {amount: unknown; status: string}[]},
+>(expense: T) {
+  return {
+    ...expense,
+    amount: toMoneyNumber(expense.amount),
+    ...(expense.payments
+      ? {
+          payments: expense.payments.map(payment => presentPayment(payment)),
+          remaining: openBalance(expense.amount, expense.payments),
+        }
+      : {remaining: openBalance(expense.amount, [])}),
+  };
 }
 
 export async function getBuildingCollectionSummary(buildingId: string) {
@@ -137,22 +232,23 @@ export async function getBuildingCollectionSummary(buildingId: string) {
     },
   });
 
-  const totalInvoiced = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const totalInvoiced = roundMoney(
+    expenses.reduce((sum, expense) => sum + toMoneyNumber(expense.amount), 0),
+  );
 
   let totalPaid = 0;
   let debtTotal = 0;
   const unitsWithDebt = new Set<string>();
 
   for (const expense of expenses) {
-    const approvedAmount = expense.payments
-      .filter(payment => payment.status === PAYMENT_COMPLETED)
-      .reduce((sum, payment) => sum + payment.amount, 0);
+    const approvedAmount = paidAmount(expense.payments);
+    totalPaid = roundMoney(totalPaid + approvedAmount);
 
-    totalPaid += approvedAmount;
-
-    const remaining = Math.max(expense.amount - approvedAmount, 0);
+    const remaining = roundMoney(
+      Math.max(toMoneyNumber(expense.amount) - approvedAmount, 0),
+    );
     if (remaining > 0) {
-      debtTotal += remaining;
+      debtTotal = roundMoney(debtTotal + remaining);
       unitsWithDebt.add(expense.unitId);
     }
   }
@@ -180,14 +276,20 @@ type ExportExpenseRow = {
   remaining: number;
 };
 
-export async function getExpensePeriodExportData(periodId: string) {
+export async function getExpensePeriodExportData(
+  periodId: string,
+  unitIds: string[] | null,
+) {
   const period = await getExpensePeriodDetail(periodId);
   if (!period) return null;
 
-  const rows: ExportExpenseRow[] = period.expenses.map(expense => {
-    const paid = expense.payments
-      .filter(payment => payment.status === PAYMENT_COMPLETED)
-      .reduce((sum, payment) => sum + payment.amount, 0);
+  const visible =
+    unitIds === null
+      ? period.expenses
+      : period.expenses.filter(expense => unitIds.includes(expense.unitId));
+
+  const rows: ExportExpenseRow[] = visible.map(expense => {
+    const paid = paidAmount(expense.payments);
 
     return {
       unit: expense.unit.name,
@@ -195,15 +297,15 @@ export async function getExpensePeriodExportData(periodId: string) {
       amount: expense.amount,
       status: expense.status,
       paid,
-      remaining: Math.max(expense.amount - paid, 0),
+      remaining: roundMoney(Math.max(expense.amount - paid, 0)),
     };
   });
 
   const totals = rows.reduce(
     (acc, row) => ({
-      amount: acc.amount + row.amount,
-      paid: acc.paid + row.paid,
-      remaining: acc.remaining + row.remaining,
+      amount: roundMoney(acc.amount + row.amount),
+      paid: roundMoney(acc.paid + row.paid),
+      remaining: roundMoney(acc.remaining + row.remaining),
     }),
     {amount: 0, paid: 0, remaining: 0},
   );
@@ -215,8 +317,11 @@ export async function getExpensePeriodExportData(periodId: string) {
   };
 }
 
-export async function buildExpensePeriodCsv(periodId: string) {
-  const exportData = await getExpensePeriodExportData(periodId);
+export async function buildExpensePeriodCsv(
+  periodId: string,
+  unitIds: string[] | null,
+) {
+  const exportData = await getExpensePeriodExportData(periodId, unitIds);
   if (!exportData) return null;
 
   const {period, rows, totals} = exportData;
@@ -244,7 +349,14 @@ export async function buildExpensePeriodCsv(periodId: string) {
       row.remaining.toFixed(2),
     ]),
     [],
-    ['TOTAL', '', totals.amount.toFixed(2), '', totals.paid.toFixed(2), totals.remaining.toFixed(2)],
+    [
+      'TOTAL',
+      '',
+      totals.amount.toFixed(2),
+      '',
+      totals.paid.toFixed(2),
+      totals.remaining.toFixed(2),
+    ],
   ];
 
   return lines
@@ -252,8 +364,11 @@ export async function buildExpensePeriodCsv(periodId: string) {
     .join('\n');
 }
 
-export async function buildExpensePeriodPdf(periodId: string) {
-  const exportData = await getExpensePeriodExportData(periodId);
+export async function buildExpensePeriodPdf(
+  periodId: string,
+  unitIds: string[] | null,
+) {
+  const exportData = await getExpensePeriodExportData(periodId, unitIds);
   if (!exportData) return null;
 
   const {period, rows, totals} = exportData;
@@ -294,7 +409,7 @@ export async function updatePayment(
 
   await recalculateExpenseStatus(payment.expenseId);
 
-  return payment;
+  return presentPayment(payment);
 }
 
 async function recalculateExpenseStatus(expenseId: string) {
@@ -307,15 +422,13 @@ async function recalculateExpenseStatus(expenseId: string) {
 
   if (!expense) return;
 
-  const totalApproved = expense.payments
-    .filter(p => p.status === PAYMENT_COMPLETED)
-    .reduce((sum, p) => sum + p.amount, 0);
+  const totalApproved = paidAmount(expense.payments);
   const hasPendingPayment = expense.payments.some(
     p => p.status === PAYMENT_PENDING,
   );
 
   let newStatus: ExpenseStatus;
-  if (totalApproved >= expense.amount) {
+  if (moneyCents(totalApproved) >= moneyCents(toMoneyNumber(expense.amount))) {
     newStatus = ExpenseStatus.PAID;
   } else if (hasPendingPayment) {
     newStatus = ExpenseStatus.PENDING;

@@ -4,8 +4,8 @@ import {
   authMiddleware,
   type AuthenticatedRequest,
 } from '../middleware/authMiddleware.js';
-import {GlobalRole} from '@prisma/client';
 import {findUserById} from '../services/userService.js';
+import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
 import {
   createUnit,
   deleteUnit,
@@ -21,15 +21,10 @@ async function canManageBuildingUnits(userId: string, buildingId: string) {
     return {allowed: false, user: null};
   }
 
-  if (user.globalRole === GlobalRole.SUPERADMIN) {
-    return {allowed: true, user};
-  }
-
-  const buildingRole = user.buildingUsers.find(bu => bu.buildingId === buildingId);
-  const roleName = buildingRole?.role.name;
-  const allowed = roleName === 'Admin';
-
-  return {allowed, user};
+  return {
+    allowed: canAccessBuilding(toBuildingMember(user), buildingId, 'admin'),
+    user,
+  };
 }
 
 router.put(

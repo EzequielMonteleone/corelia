@@ -8,7 +8,7 @@ export type {AuthenticatedRequest};
 
 const JWT_SECRET = process.env.JWT_SECRET as jwt.Secret;
 
-export function authMiddleware(
+export async function authMiddleware(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
@@ -21,24 +21,32 @@ export function authMiddleware(
   const token = authHeader.slice('Bearer '.length).trim();
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as {
+    const decoded = jwt.verify(token, JWT_SECRET, {algorithms: ['HS256']}) as {
       sub?: string;
       email?: string;
       [key: string]: unknown;
     };
 
-    if (!decoded.sub || !decoded.email) {
+    if (!decoded.sub || typeof decoded.sub !== 'string') {
+      return res.status(401).json({error: 'INVALID_TOKEN'});
+    }
+
+    const user = await findUserById(decoded.sub);
+    if (!user || !user.isActive) {
       return res.status(401).json({error: 'INVALID_TOKEN'});
     }
 
     req.user = {
-      id: decoded.sub,
-      email: decoded.email,
+      id: user.id,
+      email: user.email,
     };
 
     return next();
   } catch (err) {
-    return res.status(401).json({error: 'INVALID_TOKEN'});
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({error: 'INVALID_TOKEN'});
+    }
+    return next(err);
   }
 }
 

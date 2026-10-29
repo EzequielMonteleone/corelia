@@ -9,7 +9,6 @@ import {
   Search,
   Trash2,
   Edit,
-  Filter,
   Eye,
 } from 'lucide-react';
 import {Link} from '@/i18n/navigation';
@@ -32,6 +31,7 @@ import {UserData} from '@/types/user';
 import {UserCreateFormValues, UserEditFormValues} from '@/schemas/user';
 import {useAuthStore} from '@/store/authStore';
 import {toast} from 'sonner';
+import {errorCode} from '@/lib/apiError';
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -99,11 +99,15 @@ export default function UsersPage() {
         lastName: data.lastName,
         phone: data.phone,
         ...(data.password ? {passwordPlain: data.password} : {}),
-        ...(data.buildingId !== undefined && {
-          buildingId: data.buildingId,
-          roleName: data.roleName,
-          unitIds: data.unitIds ?? [],
-        }),
+        ...(editingUser.id === actor?.id && data.currentPassword
+          ? {currentPassword: data.currentPassword}
+          : {}),
+        ...(editingUser.id !== actor?.id &&
+          data.buildingId !== undefined && {
+            buildingId: data.buildingId,
+            roleName: data.roleName,
+            unitIds: data.unitIds ?? [],
+          }),
       },
       {
         onSuccess: () => {
@@ -111,7 +115,17 @@ export default function UsersPage() {
           setIsModalOpen(false);
           toast.success(t('updateSuccess'));
         },
-        onError: () => {
+        onError: error => {
+          const code = errorCode(error);
+          if (
+            code === 'INVALID_CURRENT_PASSWORD' ||
+            code === 'CURRENT_PASSWORD_REQUIRED' ||
+            code === 'PASSWORD_TOO_SHORT' ||
+            code === 'INSUFFICIENT_PERMISSIONS'
+          ) {
+            toast.error(t(code));
+            return;
+          }
           toast.error(t('updateError'));
         },
       },
@@ -134,10 +148,6 @@ export default function UsersPage() {
   return (
     <div className="p-8">
       <PageHeader title={t('title')} description={t('description')}>
-        <Button intent="outline" className="gap-2">
-          <Filter className="w-5 h-5" />
-          {tCommon('filters')}
-        </Button>
         <Button
           className="gap-2 bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
           onClick={() => {
@@ -259,17 +269,19 @@ export default function UsersPage() {
                         title={tCommon('seeDetails')}>
                         <Eye className="w-4 h-4" />
                       </Link>
-                      <Button
-                        intent="ghost"
-                        size="icon"
-                        className="w-8 h-8 rounded-full"
-                        onClick={() => {
-                          setEditingUser(user);
-                          setIsModalOpen(true);
-                        }}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      {actor?.globalRole === 'SUPERADMIN' && (
+                      {user.canEdit && (
+                        <Button
+                          intent="ghost"
+                          size="icon"
+                          className="w-8 h-8 rounded-full"
+                          onClick={() => {
+                            setEditingUser(user);
+                            setIsModalOpen(true);
+                          }}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {user.canDelete && (
                         <Button
                           intent="ghost"
                           size="icon"

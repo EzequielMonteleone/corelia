@@ -44,15 +44,9 @@ export default function ExpensesPage() {
     [buildings, selectedBuildingId],
   );
 
-  const canManagePeriods = useMemo(
-    () =>
-      isSuperAdmin ||
-      (!!activeBuildingId &&
-        user?.buildingUsers?.some(
-          bu => bu.buildingId === activeBuildingId && bu.role?.name === 'Admin',
-        )),
-    [activeBuildingId, isSuperAdmin, user?.buildingUsers],
-  );
+  const canManagePeriods = !!buildings.find(
+    building => building.id === activeBuildingId,
+  )?.canManage;
 
   const {data: periods = [], isLoading: loadingPeriods} = useExpensePeriods(
     activeBuildingId || null,

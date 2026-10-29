@@ -78,19 +78,11 @@ export function UserModal({
     },
   });
 
-  const actorBuildingScope = useMemo(() => {
-    if (!actor) return [];
-    if (actor.globalRole === 'SUPERADMIN') {
-      return buildings;
-    }
-    return buildings.filter(building =>
-      actor.buildingUsers.some(
-        bu =>
-          bu.buildingId === building.id &&
-          (bu.role?.name === 'Admin' || bu.role?.name === 'Owner'),
-      ),
-    );
-  }, [actor, buildings]);
+  const actorBuildingScope = useMemo(
+    () =>
+      buildings.filter(building => (building.assignableRoles?.length ?? 0) > 0),
+    [buildings],
+  );
 
   const editBuildingId = useMemo(
     () =>
@@ -140,22 +132,25 @@ export function UserModal({
     [isEdit, selectedUnitIds, editUnitIdsForBuilding],
   );
 
-  const occupiedUnitIds = useMemo(
-    () =>
-      new Set(
-        users.flatMap(user =>
-          (user.userUnits ?? [])
-            .map(({unit}) => unit?.id)
-            .filter((id): id is string => Boolean(id)),
-        ),
-      ),
-    [users],
+  const selectedBuilding = buildings.find(
+    building => building.id === effectiveBuildingId,
   );
+  const roleCatalog =
+    selectedBuilding?.roleCatalog ?? buildings[0]?.roleCatalog ?? [];
+  const selectedRole = roleCatalog.find(role => role.name === effectiveRoleName);
 
   const availableUnits = useMemo(() => {
-    if (isEdit) return units;
-    return units.filter(unit => !occupiedUnitIds.has(unit.id));
-  }, [units, occupiedUnitIds, isEdit]);
+    if (isEdit || !selectedRole?.relation) return units;
+    const taken = new Set(
+      users.flatMap(person =>
+        (person.userUnits ?? [])
+          .filter(link => link.relationType === selectedRole.relation)
+          .map(link => link.unit?.id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    return units.filter(unit => !taken.has(unit.id));
+  }, [isEdit, selectedRole?.relation, units, users]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -199,20 +194,18 @@ export function UserModal({
   }, [createForm, isEdit, isGlobalSuperAdminCreate]);
 
   const availableRoles = useMemo(() => {
-    if (!actor) return [];
-    if (actor.globalRole === 'SUPERADMIN') return ['Admin'];
-    const currentBuildingRole = actor.buildingUsers.find(
-      bu => bu.buildingId === effectiveBuildingId,
-    )?.role?.name;
-    let roles: string[] = [];
-    if (currentBuildingRole === 'Admin') roles = ['Owner'];
-    if (currentBuildingRole === 'Owner') roles = ['Roomer'];
-    if (isEdit && editingUser?.buildingUsers?.[0]?.role?.name) {
-      const currentUserRole = editingUser.buildingUsers[0].role!.name;
-      if (!roles.includes(currentUserRole)) roles = [currentUserRole, ...roles];
+    const roles =
+      selectedBuilding?.assignableRoles?.map(role => role.name) ?? [];
+    const current = editingUser?.buildingUsers?.[0]?.role?.name;
+    if (
+      isEdit &&
+      current &&
+      !roles.includes(current as (typeof roles)[number])
+    ) {
+      return [current, ...roles];
     }
     return roles;
-  }, [actor, effectiveBuildingId, isEdit, editingUser]);
+  }, [selectedBuilding, isEdit, editingUser]);
 
   const modalTitle = isEdit ? t('modalEditTitle') : t('modalTitle');
 
@@ -236,24 +229,38 @@ export function UserModal({
     ],
   );
 
+  const editingSelf = Boolean(
+    actor && editingUser && actor.id === editingUser.id,
+  );
+
   const handleEdit = useCallback(
     (data: UserEditFormValues) => {
+      if (editingSelf && data.password && !data.currentPassword?.trim()) {
+        editForm.setError('currentPassword', {
+          message: t('currentPasswordRequired'),
+        });
+        return;
+      }
       const payload: UserEditFormValues = {
         ...data,
-        ...(editingUser?.globalRole !== 'SUPERADMIN' && {
-          buildingId: effectiveBuildingId || undefined,
-          roleName: effectiveRoleName || undefined,
-          unitIds: effectiveSelectedUnitIds,
-        }),
+        ...(!editingSelf &&
+          editingUser?.globalRole !== 'SUPERADMIN' && {
+            buildingId: effectiveBuildingId || undefined,
+            roleName: effectiveRoleName || undefined,
+            unitIds: effectiveSelectedUnitIds,
+          }),
       };
       onEditSubmit(payload);
     },
     [
       onEditSubmit,
+      editingSelf,
       editingUser?.globalRole,
       effectiveBuildingId,
       effectiveRoleName,
       effectiveSelectedUnitIds,
+      editForm,
+      t,
     ],
   );
 
@@ -265,8 +272,8 @@ export function UserModal({
     onClose();
   }, [onClose]);
 
-  const showUnitsMulti = effectiveRoleName === 'Owner';
-  const showUnitsSingle = effectiveRoleName === 'Roomer';
+  const showUnitsMulti = selectedRole?.unitSelection === 'many';
+  const showUnitsSingle = selectedRole?.unitSelection === 'one';
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={modalTitle}>
@@ -302,8 +309,17 @@ export function UserModal({
             error={editForm.formState.errors.password?.message}
             placeholder={t('newPasswordOptional')}
           />
+          {editingSelf && (
+            <Input
+              type="password"
+              {...editForm.register('currentPassword')}
+              error={editForm.formState.errors.currentPassword?.message}
+              placeholder={t('currentPassword')}
+            />
+          )}
 
-          {editingUser?.globalRole !== 'SUPERADMIN' &&
+          {!editingSelf &&
+            editingUser?.globalRole !== 'SUPERADMIN' &&
             actorBuildingScope.length > 0 && (
               <>
                 <Select

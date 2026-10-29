@@ -22,6 +22,8 @@ import {
   getAmenityCatalog,
   getBuildingAmenities,
 } from '../services/amenityService.js';
+import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
+import {assignableRoles, roleCatalog} from '../lib/userAccess.js';
 import {buildingPeriodRouter} from './expenseRoutes.js';
 
 const router = Router();
@@ -41,21 +43,38 @@ function getAssignedBuildingIds(
   return {adminIds, ownerIds, roomerIds};
 }
 
+function presentBuilding<T extends {id: string}>(
+  building: T,
+  user: {
+    globalRole: string;
+    buildingUsers: {buildingId: string; role: {name: string}}[];
+  },
+) {
+  const actor = toBuildingMember(user);
+  const buildingRole =
+    actor.buildings.find(membership => membership.id === building.id)?.role ??
+    null;
+  return {
+    ...building,
+    canManage: canAccessBuilding(actor, building.id, 'admin'),
+    canDelete: user.globalRole === 'SUPERADMIN',
+    roleCatalog: roleCatalog(),
+    assignableRoles: assignableRoles({
+      globalRole: user.globalRole,
+      buildingRole,
+    }),
+  };
+}
+
 function hasRoleForBuilding(
   user: {
-    globalRole: GlobalRole;
+    globalRole: string;
     buildingUsers: {buildingId: string; role: {name: string}}[];
   },
   buildingId: string,
-  allowedRoles: string[],
+  level: 'admin' | 'member',
 ) {
-  if (user.globalRole === GlobalRole.SUPERADMIN) {
-    return true;
-  }
-
-  return user.buildingUsers.some(
-    bu => bu.buildingId === buildingId && allowedRoles.includes(bu.role.name),
-  );
+  return canAccessBuilding(toBuildingMember(user), buildingId, level);
 }
 
 // GET /
@@ -71,9 +90,12 @@ router.get(
       const user = await findUserById(req.user.id);
       if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
 
+      const present = <T extends {id: string}>(buildings: T[]) =>
+        buildings.map(building => presentBuilding(building, user));
+
       if (user.globalRole === GlobalRole.SUPERADMIN) {
         const buildings = await getAllBuildings();
-        return res.json(buildings);
+        return res.json(present(buildings));
       }
 
       const {adminIds, ownerIds, roomerIds} = getAssignedBuildingIds(
@@ -82,17 +104,17 @@ router.get(
 
       if (adminIds.length > 0) {
         const buildings = await getBuildingsByIds(adminIds);
-        return res.json(buildings);
+        return res.json(present(buildings));
       }
 
       if (ownerIds.length > 0) {
         const buildings = await getBuildingsByIds(ownerIds);
-        return res.json(buildings);
+        return res.json(present(buildings));
       }
 
       if (roomerIds.length > 0) {
         const buildings = await getBuildingsByIds(roomerIds);
-        return res.json(buildings);
+        return res.json(present(buildings));
       }
 
       return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
@@ -129,7 +151,7 @@ router.get(
         }
       }
 
-      res.json(building);
+      res.json(presentBuilding(building, user));
     } catch (err) {
       next(err);
     }
@@ -175,9 +197,7 @@ router.put(
       const user = await findUserById(req.user.id);
       if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
       const buildingId = req.params.id as string;
-      const canUpdate =
-        user.globalRole === GlobalRole.SUPERADMIN ||
-        hasRoleForBuilding(user, buildingId, ['Admin']);
+      const canUpdate = hasRoleForBuilding(user, buildingId, 'admin');
       if (!canUpdate) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
@@ -218,11 +238,7 @@ router.get(
       if (!user) {
         return res.status(404).json({error: 'USER_NOT_FOUND'});
       }
-      const isMember = hasRoleForBuilding(user, buildingId, [
-        'Admin',
-        'Owner',
-        'Roomer',
-      ]);
+      const isMember = hasRoleForBuilding(user, buildingId, 'member');
       if (!isMember) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
@@ -266,7 +282,7 @@ router.post(
       if (!user) {
         return res.status(404).json({error: 'USER_NOT_FOUND'});
       }
-      const canManage = hasRoleForBuilding(user, buildingId, ['Admin']);
+      const canManage = hasRoleForBuilding(user, buildingId, 'admin');
       if (!canManage) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
@@ -307,16 +323,12 @@ router.get(
       if (!user) {
         return res.status(404).json({error: 'USER_NOT_FOUND'});
       }
-      const isMember = hasRoleForBuilding(user, buildingId, [
-        'Admin',
-        'Owner',
-        'Roomer',
-      ]);
+      const isMember = hasRoleForBuilding(user, buildingId, 'member');
       if (!isMember) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
-      const canManage = hasRoleForBuilding(user, buildingId, ['Admin']);
+      const canManage = hasRoleForBuilding(user, buildingId, 'admin');
       const [catalog, amenities] = await Promise.all([
         canManage ? getAmenityCatalog() : Promise.resolve([]),
         getBuildingAmenities(buildingId),
@@ -345,7 +357,7 @@ router.post(
       if (!user) {
         return res.status(404).json({error: 'USER_NOT_FOUND'});
       }
-      const canManage = hasRoleForBuilding(user, buildingId, ['Admin']);
+      const canManage = hasRoleForBuilding(user, buildingId, 'admin');
       if (!canManage) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }

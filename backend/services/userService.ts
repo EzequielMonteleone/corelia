@@ -1,6 +1,22 @@
 import {prisma} from '../prismaClient.js';
 import bcrypt from 'bcrypt';
 import {GlobalRole, UnitRelationType} from '@prisma/client';
+import {MIN_PASSWORD_LENGTH, relationForRole} from '../lib/userAccess.js';
+
+function assertPassword(passwordPlain: string) {
+  if (passwordPlain.length < MIN_PASSWORD_LENGTH) {
+    throw new Error('PASSWORD_TOO_SHORT');
+  }
+}
+
+export function toPublicUser<T extends {passwordHash?: string}>(user: T) {
+  const {passwordHash: _passwordHash, ...publicUser} = user;
+  return publicUser;
+}
+
+export async function passwordMatches(passwordHash: string, plain: string) {
+  return bcrypt.compare(plain, passwordHash);
+}
 
 const userInclude = {
   buildingUsers: {
@@ -40,6 +56,7 @@ export async function createUserWithRole(
   unitIds?: string[],
   unitRelationType?: UnitRelationType,
 ) {
+  assertPassword(data.passwordPlain);
   const passwordHash = await bcrypt.hash(data.passwordPlain, 10);
 
   return prisma.$transaction(async tx => {
@@ -86,6 +103,7 @@ export async function createGlobalUser(data: {
   passwordPlain: string;
   globalRole: GlobalRole;
 }) {
+  assertPassword(data.passwordPlain);
   const passwordHash = await bcrypt.hash(data.passwordPlain, 10);
   return prisma.user.create({
     data: {
@@ -144,15 +162,26 @@ export async function updateUser(
     email?: string;
     firstName?: string;
     lastName?: string;
-    phone?: string;
+    phone?: string | null;
     isActive?: boolean;
     passwordPlain?: string;
   },
 ) {
-  const updateData: any = {...data};
-  delete updateData.passwordPlain;
-
+  const updateData: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string | null;
+    isActive?: boolean;
+    passwordHash?: string;
+  } = {};
+  if (data.email !== undefined) updateData.email = data.email;
+  if (data.firstName !== undefined) updateData.firstName = data.firstName;
+  if (data.lastName !== undefined) updateData.lastName = data.lastName;
+  if (data.phone !== undefined) updateData.phone = data.phone;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
   if (data.passwordPlain) {
+    assertPassword(data.passwordPlain);
     updateData.passwordHash = await bcrypt.hash(data.passwordPlain, 10);
   }
 
@@ -176,12 +205,8 @@ export async function updateUserBuildingAssignment(
     throw new Error('INVALID_ROLE_NAME');
   }
 
-  const unitRelationType =
-    roleName === 'Owner'
-      ? UnitRelationType.OWNER
-      : roleName === 'Roomer'
-        ? UnitRelationType.ROOMER
-        : undefined;
+  const relation = relationForRole(roleName);
+  const unitRelationType = relation ? UnitRelationType[relation] : undefined;
 
   await prisma.$transaction(async tx => {
     const existing = await tx.buildingUser.findFirst({

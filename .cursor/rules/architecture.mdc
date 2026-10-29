@@ -21,3 +21,5 @@ Dos apps. El frontend no toca Prisma ni la base.
 | `frontend/messages/es.json` y `en.json` | Textos. Los dos locales |
 
 Un endpoint nuevo recorre las capas: ruta, función de servicio, tipo en `types/`, hook. La pantalla solo usa el hook.
+
+Una capacidad nueva es una función en `backend/lib/` y un campo en el JSON. La pantalla no la recalcula.

@@ -4,8 +4,8 @@ import {
   authMiddleware,
   type AuthenticatedRequest,
 } from '../middleware/authMiddleware.js';
-import {GlobalRole} from '@prisma/client';
 import {findUserById} from '../services/userService.js';
+import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
 import {
   deleteBuildingAmenity,
   getAmenityCatalog,
@@ -20,11 +20,7 @@ async function canManageBuildingAmenities(userId: string, buildingId: string) {
   if (!user || !user.isActive) {
     return false;
   }
-  if (user.globalRole === GlobalRole.SUPERADMIN) {
-    return true;
-  }
-  const buildingRole = user.buildingUsers.find(bu => bu.buildingId === buildingId);
-  return buildingRole?.role.name === 'Admin';
+  return canAccessBuilding(toBuildingMember(user), buildingId, 'admin');
 }
 
 router.get(

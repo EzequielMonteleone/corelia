@@ -1,14 +1,14 @@
-import {AmenityReservationStatus, GlobalRole, Prisma} from '@prisma/client';
+import {AmenityReservationStatus, Prisma} from '@prisma/client';
 import {prisma} from '../prismaClient.js';
 import {findUserById} from './userService.js';
-import {APP_TIMEZONE} from '../lib/zonedTime.js';
+import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
+import {APP_TIMEZONE, zonedClock} from '../lib/zonedTime.js';
 import {
+  amenityDaySlots,
+  reservationWindow,
   unitAlreadyBookedInSlot,
   validateReservationSlot,
 } from '../lib/reservationRules.js';
-
-const MAX_NOTES = 500;
-const MAX_DAYS_AHEAD = 60;
 
 export class ReservationError extends Error {
   status: number;
@@ -54,25 +54,23 @@ function present(row: ReservationRow, viewerId: string, isManager: boolean) {
 }
 
 function isManagerOf(
-  user: {globalRole: GlobalRole; buildingUsers: {buildingId: string; role: {name: string}}[]},
+  user: {
+    globalRole: string;
+    buildingUsers: {buildingId: string; role: {name: string}}[];
+  },
   buildingId: string,
 ) {
-  if (user.globalRole === GlobalRole.SUPERADMIN) return true;
-  return user.buildingUsers.some(
-    bu => bu.buildingId === buildingId && bu.role.name === 'Admin',
-  );
+  return canAccessBuilding(toBuildingMember(user), buildingId, 'admin');
 }
 
 function isMemberOf(
-  user: {globalRole: GlobalRole; buildingUsers: {buildingId: string; role: {name: string}}[]},
+  user: {
+    globalRole: string;
+    buildingUsers: {buildingId: string; role: {name: string}}[];
+  },
   buildingId: string,
 ) {
-  if (user.globalRole === GlobalRole.SUPERADMIN) return true;
-  return user.buildingUsers.some(
-    bu =>
-      bu.buildingId === buildingId &&
-      ['Admin', 'Owner', 'Roomer'].includes(bu.role.name),
-  );
+  return canAccessBuilding(toBuildingMember(user), buildingId, 'member');
 }
 
 export async function listReservations(params: {
@@ -110,6 +108,26 @@ export async function listReservations(params: {
   return rows.map(row => present(row, params.viewerId, manager));
 }
 
+export async function slotsForAmenityDay(params: {
+  buildingId: string;
+  buildingAmenityId: string;
+  from: Date;
+  takenStarts: Date[];
+}) {
+  const amenity = await prisma.buildingAmenity.findFirst({
+    where: {id: params.buildingAmenityId, buildingId: params.buildingId},
+  });
+  if (!amenity) return [];
+  return amenityDaySlots({
+    day: zonedClock(params.from).day,
+    openTime: amenity.openTime,
+    closeTime: amenity.closeTime,
+    slotMinutes: amenity.slotMinutes,
+    maxConcurrent: amenity.maxConcurrent,
+    takenStarts: params.takenStarts,
+  });
+}
+
 function assertSlot(amenity: {
   isEnabled: boolean;
   slotMinutes: number;
@@ -137,16 +155,9 @@ export async function createReservation(params: {
     throw new ReservationError('INVALID_START');
   }
 
-  const now = Date.now();
-  if (params.startsAt.getTime() < now - 60_000) {
-    throw new ReservationError('SLOT_IN_PAST');
-  }
-  if (params.startsAt.getTime() > now + MAX_DAYS_AHEAD * 24 * 60 * 60 * 1000) {
-    throw new ReservationError('SLOT_TOO_FAR');
-  }
-
   const notes = params.notes?.trim() || null;
-  if (notes && notes.length > MAX_NOTES) throw new ReservationError('NOTES_TOO_LONG');
+  const windowCode = reservationWindow({startsAt: params.startsAt, notes});
+  if (windowCode) throw new ReservationError(windowCode);
 
   const amenity = await prisma.buildingAmenity.findFirst({
     where: {id: params.buildingAmenityId, buildingId: params.buildingId},

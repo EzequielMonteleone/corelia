@@ -9,6 +9,7 @@ import {
   cancelReservation,
   createReservation,
   listReservations,
+  slotsForAmenityDay,
 } from '../services/reservationService.js';
 
 function sendReservationError(
@@ -34,14 +35,23 @@ buildingReservationRouter.get(
       const to = new Date(String(req.query.to ?? ''));
       const buildingAmenityId =
         typeof req.query.amenityId === 'string' ? req.query.amenityId : undefined;
+      const buildingId = req.params.buildingId as string;
       const rows = await listReservations({
         viewerId: req.user.id,
-        buildingId: req.params.buildingId as string,
+        buildingId,
         from,
         to,
         ...(buildingAmenityId ? {buildingAmenityId} : {}),
       });
-      return res.json(rows);
+      const slots = buildingAmenityId
+        ? await slotsForAmenityDay({
+            buildingId,
+            buildingAmenityId,
+            from,
+            takenStarts: rows.map(row => new Date(row.startsAt)),
+          })
+        : [];
+      return res.json({reservations: rows, slots});
     } catch (err) {
       return sendReservationError(err, res, next);
     }

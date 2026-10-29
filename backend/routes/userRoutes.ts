@@ -15,94 +15,84 @@ import {
   updateUser,
   updateUserBuildingAssignment,
   deleteUser,
+  passwordMatches,
+  toPublicUser,
 } from '../services/userService.js';
 import {prisma} from '../prismaClient.js';
-import {canCreateRole} from '../utils/rbacHelper.js';
+import {
+  canCreateRole,
+  canDeleteUser,
+  canEditUser,
+  decideUserEdit,
+  relationForRole,
+  userAuditEvents,
+  validateUnitAssignment,
+  asBuildingRole,
+  type AccessPerson,
+} from '../lib/userAccess.js';
+import {createAuditLog, getAuditLogsByUser} from '../services/auditService.js';
 import {GlobalRole, UnitRelationType} from '@prisma/client';
 
 const router = Router();
 
-async function canEditUser(
-  actorId: string,
-  targetUserId: string,
-): Promise<boolean> {
-  const actor = await findUserById(actorId);
-  if (!actor || !actor.isActive) {
-    return false;
-  }
-
-  if (actor.globalRole === GlobalRole.SUPERADMIN) {
-    return true;
-  }
-
-  if (actor.id === targetUserId) {
-    return true;
-  }
-
-  const targetUser = await findUserById(targetUserId);
-  if (!targetUser) {
-    return false;
-  }
-
-  const actorBuildingIds = actor.buildingUsers.map(bu => bu.buildingId);
-  const targetBuildingIds = targetUser.buildingUsers.map(bu => bu.buildingId);
-  return targetBuildingIds.some(id => actorBuildingIds.includes(id));
+function toAccessPerson(user: {
+  id: string;
+  globalRole: GlobalRole;
+  buildingUsers: {buildingId: string; role: {name: string}}[];
+  userUnits: {
+    unitId: string;
+    relationType: string;
+    unit: {buildingId: string};
+  }[];
+}): AccessPerson {
+  return {
+    id: user.id,
+    globalRole: user.globalRole,
+    buildings: user.buildingUsers.flatMap(membership => {
+      const role = asBuildingRole(membership.role.name);
+      return role ? [{id: membership.buildingId, role}] : [];
+    }),
+    units: user.userUnits.map(link => ({
+      id: link.unitId,
+      buildingId: link.unit.buildingId,
+    })),
+    ownedUnitIds: user.userUnits
+      .filter(link => link.relationType === 'OWNER')
+      .map(link => link.unitId),
+  };
 }
 
-async function validateUnitsForRole(
+async function assertUnitAssignment(
+  actor: {
+    buildingUsers: {buildingId: string; role: {name: string}}[];
+    userUnits: {unitId: string; relationType: string}[];
+  },
   buildingId: string,
-  creatorId: string,
-  targetRoleName: string,
+  roleName: string,
   unitIds: string[],
 ) {
-  if (targetRoleName === 'Admin') {
-    if (unitIds.length > 0) {
-      throw new Error('ADMIN_CANNOT_HAVE_UNITS');
-    }
-    return;
-  }
-
-  if (targetRoleName === 'Owner' && unitIds.length === 0) {
-    throw new Error('OWNER_UNITS_REQUIRED');
-  }
-
-  if (targetRoleName === 'Roomer' && unitIds.length !== 1) {
-    throw new Error('ROOMER_SINGLE_UNIT_REQUIRED');
-  }
-
-  if (unitIds.length === 0) {
-    return;
-  }
-
-  const units = await prisma.unit.findMany({
-    where: {
-      id: {in: unitIds},
-      buildingId,
-    },
+  const creatorRole =
+    actor.buildingUsers.find(membership => membership.buildingId === buildingId)
+      ?.role.name ?? null;
+  const error = validateUnitAssignment({
+    roleName,
+    unitIds,
+    actorIsOwner: creatorRole === 'Owner',
+    ownedUnitIds: actor.userUnits
+      .filter(link => link.relationType === 'OWNER')
+      .map(link => link.unitId),
   });
+  if (error) throw new Error(error);
+  await assertUnitsInBuilding(buildingId, unitIds);
+}
 
+async function assertUnitsInBuilding(buildingId: string, unitIds: string[]) {
+  if (unitIds.length === 0) return;
+  const units = await prisma.unit.findMany({
+    where: {id: {in: unitIds}, buildingId},
+  });
   if (units.length !== unitIds.length) {
     throw new Error('UNITS_NOT_IN_BUILDING');
-  }
-
-  const creator = await findUserById(creatorId);
-  if (!creator) {
-    throw new Error('CREATOR_NOT_FOUND');
-  }
-
-  const creatorBuildingRole = creator.buildingUsers.find(
-    bu => bu.buildingId === buildingId,
-  )?.role.name;
-
-  if (creatorBuildingRole === 'Owner') {
-    const creatorOwnedUnitIds = creator.userUnits
-      .filter(userUnit => userUnit.relationType === 'OWNER')
-      .map(userUnit => userUnit.unitId);
-
-    const allOwned = unitIds.every(unitId => creatorOwnedUnitIds.includes(unitId));
-    if (!allOwned) {
-      throw new Error('OWNER_CAN_ASSIGN_ONLY_OWN_UNITS');
-    }
   }
 }
 
@@ -123,8 +113,15 @@ router.get(
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
+      const actorPerson = toAccessPerson(actor);
       const filtered = visibleUsers.filter(u => u.id !== req.user!.id);
-      return res.json(filtered);
+      return res.json(
+        filtered.map(user => ({
+          ...toPublicUser(user),
+          canEdit: canEditUser(actorPerson, toAccessPerson(user)),
+          canDelete: canDeleteUser(actor),
+        })),
+      );
     } catch (err) {
       next(err);
     }
@@ -159,6 +156,32 @@ async function getVisibleUsersForActor(actorId: string) {
 }
 
 router.get(
+  '/:id/audit-logs',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({error: 'UNAUTHENTICATED'});
+      }
+
+      const targetUser = await findUserById(req.params.id as string);
+      if (!targetUser) return res.status(404).json({error: 'USER_NOT_FOUND'});
+
+      const visibleUsers = await getVisibleUsersForActor(req.user.id);
+      const canView = visibleUsers.some(user => user.id === targetUser.id);
+      if (!canView) {
+        return res.status(404).json({error: 'USER_NOT_FOUND'});
+      }
+
+      const logs = await getAuditLogsByUser(targetUser.id);
+      return res.json(logs);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
   '/:id',
   authMiddleware,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -176,7 +199,7 @@ router.get(
         return res.status(404).json({error: 'USER_NOT_FOUND'});
       }
 
-      res.json(targetUser);
+      res.json(toPublicUser(targetUser));
     } catch (err) {
       next(err);
     }
@@ -192,60 +215,101 @@ router.put(
         return res.status(401).json({error: 'UNAUTHENTICATED'});
       }
 
-      const allowed = await canEditUser(req.user.id, req.params.id as string);
-      if (!allowed) {
-        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      const actor = await findUserById(req.user.id);
+      if (!actor || !actor.isActive) {
+        return res.status(404).json({error: 'USER_NOT_FOUND'});
       }
 
       const targetUserId = req.params.id as string;
-      const {
-        email,
-        firstName,
-        lastName,
-        phone,
-        isActive,
-        password,
-        passwordPlain,
-        buildingId,
-        roleName,
-        unitIds: rawUnitIds,
-      } = req.body ?? {};
+      const target = await findUserById(targetUserId);
+      if (!target) return res.status(404).json({error: 'USER_NOT_FOUND'});
 
-      const profilePayload: Record<string, unknown> = {};
-      if (email !== undefined) profilePayload.email = email;
-      if (firstName !== undefined) profilePayload.firstName = firstName;
-      if (lastName !== undefined) profilePayload.lastName = lastName;
-      if (phone !== undefined) profilePayload.phone = phone;
-      if (isActive !== undefined) profilePayload.isActive = isActive;
-      if (password !== undefined || passwordPlain !== undefined) {
-        profilePayload.passwordPlain = password ?? passwordPlain;
+      const body = req.body ?? {};
+      const decision = decideUserEdit(
+        toAccessPerson(actor),
+        toAccessPerson(target),
+        {
+          email: body.email,
+          firstName: body.firstName,
+          lastName: body.lastName,
+          phone: body.phone,
+          password: body.password ?? body.passwordPlain,
+          currentPassword: body.currentPassword,
+          isActive: body.isActive,
+          buildingId: body.buildingId,
+          roleName: body.roleName,
+          unitIds: body.unitIds,
+        },
+      );
+      if (!decision.ok) {
+        return res.status(decision.status).json({error: decision.error});
       }
 
-      let user = await updateUser(targetUserId, profilePayload as any);
-
-      const unitIds = Array.isArray(rawUnitIds) ? (rawUnitIds as string[]) : [];
-
-      if (
-        buildingId &&
-        roleName &&
-        user.globalRole !== GlobalRole.SUPERADMIN
-      ) {
-        await validateUnitsForRole(
-          buildingId as string,
-          req.user.id,
-          roleName as string,
-          unitIds,
+      if (decision.currentPassword) {
+        const matches = await passwordMatches(
+          target.passwordHash,
+          decision.currentPassword,
         );
+        if (!matches) {
+          return res.status(400).json({error: 'INVALID_CURRENT_PASSWORD'});
+        }
+      }
+
+      if (decision.assignment) {
+        await assertUnitAssignment(
+          actor,
+          decision.assignment.buildingId,
+          decision.assignment.roleName,
+          decision.assignment.unitIds,
+        );
+      }
+
+      let user = await updateUser(targetUserId, decision.profile);
+      if (decision.assignment) {
         const updated = await updateUserBuildingAssignment(
           targetUserId,
-          buildingId as string,
-          roleName as string,
-          unitIds,
+          decision.assignment.buildingId,
+          decision.assignment.roleName,
+          decision.assignment.unitIds,
         );
         user = updated ?? user;
       }
 
-      res.json(user);
+      const access = toAccessPerson(target);
+      const membership = decision.assignment
+        ? access.buildings.find(
+            building => building.id === decision.assignment?.buildingId,
+          )
+        : access.buildings[0];
+      const events = userAuditEvents({
+        actorId: actor.id,
+        targetId: target.id,
+        previous: {
+          isActive: target.isActive,
+          buildingId: decision.assignment?.buildingId ?? membership?.id ?? null,
+          role: membership?.role ?? null,
+          unitIds: membership
+            ? access.units
+                .filter(unit => unit.buildingId === membership.id)
+                .map(unit => unit.id)
+            : [],
+        },
+        decision,
+      });
+      for (const event of events) {
+        await createAuditLog({
+          action: event.action,
+          entityType: 'USER',
+          entityId: target.id,
+          buildingId: event.buildingId,
+          actorUserId: actor.id,
+          ...(Object.keys(event.metadata).length > 0
+            ? {metadata: event.metadata}
+            : {}),
+        });
+      }
+
+      res.json(toPublicUser(user));
     } catch (err) {
       if (err instanceof Error) {
         const m = err.message;
@@ -256,7 +320,8 @@ router.put(
           m === 'OWNER_CAN_ASSIGN_ONLY_OWN_UNITS' ||
           m === 'ADMIN_CANNOT_HAVE_UNITS' ||
           m === 'CREATOR_NOT_FOUND' ||
-          m === 'INVALID_ROLE_NAME'
+          m === 'INVALID_ROLE_NAME' ||
+          m === 'PASSWORD_TOO_SHORT'
         ) {
           return res.status(400).json({error: m});
         }
@@ -314,7 +379,7 @@ router.post(
         globalRole,
       });
 
-      return res.status(201).json(created);
+      return res.status(201).json(toPublicUser(created));
     } catch (err) {
       if (
         err instanceof Error &&
@@ -386,19 +451,15 @@ router.post(
         return res.status(400).json({error: 'INVALID_ROLE_FOR_BUILDING'});
       }
 
-      await validateUnitsForRole(
+      await assertUnitAssignment(
+        creator,
         buildingId as string,
-        req.user.id,
         roleName as string,
         normalizedUnitIds,
       );
 
-      const unitRelationType =
-        roleName === 'Owner'
-          ? UnitRelationType.OWNER
-          : roleName === 'Roomer'
-            ? UnitRelationType.ROOMER
-            : undefined;
+      const relation = relationForRole(roleName as string);
+      const unitRelationType = relation ? UnitRelationType[relation] : undefined;
 
       const {user, buildingUser} = await createUserWithRole(
         {email, firstName, lastName, phone, passwordPlain: password},
@@ -428,7 +489,8 @@ router.post(
           m === 'UNITS_NOT_IN_BUILDING' ||
           m === 'OWNER_CAN_ASSIGN_ONLY_OWN_UNITS' ||
           m === 'ADMIN_CANNOT_HAVE_UNITS' ||
-          m === 'CREATOR_NOT_FOUND'
+          m === 'CREATOR_NOT_FOUND' ||
+          m === 'PASSWORD_TOO_SHORT'
         ) {
           return res.status(400).json({error: m});
         }

@@ -1,0 +1,21 @@
+---
+description: Buscar lógica existente antes de crear otra
+alwaysApply: true
+---
+
+# Reutilizar antes de crear
+
+Antes de agregar una función, constante o regla, buscá en `backend/lib/`. Si existe, usala. No copies la condición en una ruta, un servicio ni una pantalla.
+
+| Pregunta | Dónde está |
+| --- | --- |
+| ¿Entra o administra este edificio? | `buildingAccess.ts` `canAccessBuilding` |
+| ¿Puede editar, borrar o asignar un rol y unidades? | `userAccess.ts` |
+| ¿Cuánto está cobrado, reservado o todavía se puede pagar? | `money.ts` |
+| ¿El turno es válido, pasado o está lleno? | `reservationRules.ts` |
+| ¿Se puede crear, editar o borrar esta expensa? | `expenseRules.ts` |
+| ¿Puede ver esta unidad del hogar? | `householdRules.ts` `unitAccess` |
+
+La pantalla no reimplementa eso. El API devuelve el dato (`canEdit`, `canManage`, `canDelete`, `assignableRoles`, `remaining`, `past`, `full`) y la UI lo lee.
+
+No unifiques dos reglas solo porque se parecen. Quien ve edificios y quien ve usuarios no es la misma lista. `expenseScope` (cualquier vínculo con la unidad) no es `unitAccess` (el vínculo tiene que coincidir con el rol).

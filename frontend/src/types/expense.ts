@@ -30,6 +30,7 @@ export interface Expense {
     floor: string | null;
   };
   payments: Payment[];
+  remaining?: number;
 }
 
 export interface ExpensePeriod {

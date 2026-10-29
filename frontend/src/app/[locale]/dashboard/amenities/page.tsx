@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {useLocale, useTranslations} from 'next-intl';
 import {CalendarDays, ChevronLeft, ChevronRight} from 'lucide-react';
 import {toast} from 'sonner';
@@ -23,7 +23,6 @@ import {
   APP_TIMEZONE,
   formatHm,
   shiftDateKey,
-  slotsForWindow,
   todayKey,
   zonedClock,
   zonedDateTime,
@@ -42,29 +41,16 @@ export default function AmenitiesPage() {
   const [selectedAmenityId, setSelectedAmenityId] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState('');
   const [day, setDay] = useState(todayKey);
-  const [now, setNow] = useState(() => Date.now());
   const [notes, setNotes] = useState('');
   const [cancelReservationId, setCancelReservationId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(id);
-  }, []);
 
   const activeBuildingId = useMemo(
     () => selectedBuildingId || (buildings.length === 1 ? buildings[0].id : ''),
     [buildings, selectedBuildingId],
   );
 
-  const canManage = useMemo(
-    () =>
-      isSuperAdmin ||
-      (!!activeBuildingId &&
-        user?.buildingUsers?.some(
-          bu => bu.buildingId === activeBuildingId && bu.role?.name === 'Admin',
-        )),
-    [activeBuildingId, isSuperAdmin, user?.buildingUsers],
-  );
+  const canManage = !!buildings.find(building => building.id === activeBuildingId)
+    ?.canManage;
 
   const {data: amenitiesData, isLoading: loadingAmenities} = useBuildingAmenities(
     activeBuildingId || null,
@@ -80,7 +66,7 @@ export default function AmenitiesPage() {
     return {from: from.toISOString(), to: to.toISOString()};
   }, [day]);
 
-  const {data: reservations = [], isLoading: loadingReservations} = useReservations(
+  const {data: reservationDay, isLoading: loadingReservations} = useReservations(
     activeBuildingId || null,
     activeBuildingId ? range : null,
     amenity?.id ?? null,
@@ -88,9 +74,8 @@ export default function AmenitiesPage() {
   const createReservation = useCreateReservation();
   const cancelReservation = useCancelReservation();
 
-  const slots = amenity
-    ? slotsForWindow(amenity.openTime, amenity.closeTime, amenity.slotMinutes)
-    : [];
+  const reservations = reservationDay?.reservations ?? [];
+  const slots = reservationDay?.slots ?? [];
 
   const unitId = selectedUnitId || (units.length === 1 ? units[0].id : '');
 
@@ -266,15 +251,15 @@ export default function AmenitiesPage() {
             <LoadingState message={t('loadingSlots')} />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {slots.map(hm => {
+              {slots.map(slot => {
+                const hm = slot.time;
                 const matches = reservations.filter(reservation => {
                   const clock = zonedClock(new Date(reservation.startsAt));
                   return clock.day === day && formatHm(clock.minutes) === hm;
                 });
                 const mineReservation = matches.find(reservation => reservation.mine);
-                const slotStart = zonedDateTime(day, hm);
-                const past = slotStart.getTime() < now - 60_000;
-                const full = matches.length >= (amenity?.maxConcurrent ?? 1);
+                const past = slot.past;
+                const full = slot.full;
                 const mine = !!mineReservation;
                 return (
                   <button

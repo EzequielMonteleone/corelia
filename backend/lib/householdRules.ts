@@ -1,3 +1,5 @@
+import {canAccessBuilding, toBuildingMember} from './buildingAccess.js';
+
 export const HOUSEHOLD_RELATIONS = ['SPOUSE', 'CHILD', 'PARENT', 'OTHER'] as const;
 export const PET_SPECIES = ['DOG', 'CAT', 'OTHER'] as const;
 
@@ -74,17 +76,15 @@ export function unitAccess(
   viewer: HouseholdViewer,
   unit: {id: string; buildingId: string},
 ): UnitAccess {
-  if (viewer.globalRole === 'SUPERADMIN') return 'OK';
-
-  const roleName = viewer.buildingUsers.find(
-    membership => membership.buildingId === unit.buildingId,
-  )?.role.name;
-
-  if (roleName === 'Admin') return 'OK';
-  if (roleName !== 'Owner' && roleName !== 'Roomer') {
+  const actor = toBuildingMember(viewer);
+  if (canAccessBuilding(actor, unit.buildingId, 'admin')) return 'OK';
+  if (!canAccessBuilding(actor, unit.buildingId, 'member')) {
     return 'INSUFFICIENT_PERMISSIONS';
   }
 
+  const roleName = actor.buildings.find(
+    building => building.id === unit.buildingId,
+  )?.role;
   const relation = roleName === 'Roomer' ? 'ROOMER' : 'OWNER';
   const linked = viewer.userUnits.some(
     link =>
