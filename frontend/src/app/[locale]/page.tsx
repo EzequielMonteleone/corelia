@@ -5,6 +5,7 @@ import {useAuthStore} from '@/store/authStore';
 import {ArrowRight, Building2, ShieldCheck, Zap} from 'lucide-react';
 import {useTranslations} from 'next-intl';
 import {BrandLogo} from '@/components/brand/BrandLogo';
+import {LocaleSwitcher} from '@/components/i18n/LocaleSwitcher';
 import {firstAccessiblePath} from '@/lib/navAccess';
 
 export default function Home() {
@@ -25,13 +26,16 @@ export default function Home() {
       />
 
       {/* Navigation */}
-      <nav className="relative z-50 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto backdrop-blur-sm">
+      <nav className="relative z-50 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-6 backdrop-blur-sm sm:px-8">
         <BrandLogo />
-        <Link
-          href={homeHref}
-          className="px-5 py-2 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all duration-200">
-          {isAuthenticated ? tCommon('dashboard') : tCommon('login')}
-        </Link>
+        <div className="flex items-center gap-3">
+          <LocaleSwitcher />
+          <Link
+            href={homeHref}
+            className="px-5 py-2 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all duration-200">
+            {isAuthenticated ? tCommon('dashboard') : tCommon('login')}
+          </Link>
+        </div>
       </nav>
 
       {/* Hero Section */}

@@ -1,4 +1,5 @@
 import LoginForm from '@/components/auth/login-form';
+import {LocaleSwitcher} from '@/components/i18n/LocaleSwitcher';
 
 export default function LoginPage() {
   return (
@@ -6,6 +7,10 @@ export default function LoginPage() {
       {/* Dynamic Background Elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full" />
+
+      <div className="absolute top-6 right-6 z-20">
+        <LocaleSwitcher />
+      </div>
 
       <div className="relative z-10 w-full flex justify-center px-4">
         <LoginForm />

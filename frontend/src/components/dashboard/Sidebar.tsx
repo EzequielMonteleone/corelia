@@ -20,6 +20,7 @@ import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/Button';
 import {useTranslations} from 'next-intl';
 import {BrandLogo} from '@/components/brand/BrandLogo';
+import {LocaleSwitcher} from '@/components/i18n/LocaleSwitcher';
 
 function useMenuItems() {
   const tCommon = useTranslations('Common');
@@ -119,7 +120,8 @@ export default function Sidebar() {
           })}
       </nav>
 
-      <div className="p-4 border-t border-white/10">
+      <div className="space-y-2 border-t border-white/10 p-4">
+        <LocaleSwitcher className="w-full" />
         <Button
           intent="destructive"
           onClick={logout}

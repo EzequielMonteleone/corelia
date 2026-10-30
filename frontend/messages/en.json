@@ -14,6 +14,11 @@
       "paymentsDesc": "Expense automation and real-time payment reconciliation without friction."
     }
   },
+  "Locale": {
+    "label": "Language",
+    "es": "Español",
+    "en": "English"
+  },
   "Common": {
     "title": "Corelia",
     "dashboard": "Dashboard",

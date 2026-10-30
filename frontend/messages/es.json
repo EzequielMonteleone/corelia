@@ -14,6 +14,11 @@
       "paymentsDesc": "Automatización de expensas y conciliación de pagos en tiempo real sin fricciones."
     }
   },
+  "Locale": {
+    "label": "Idioma",
+    "es": "Español",
+    "en": "English"
+  },
   "Common": {
     "title": "Corelia",
     "dashboard": "Panel de Control",
