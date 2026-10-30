@@ -1,10 +1,18 @@
+import {locale as localeParam} from 'next/root-params';
 import {getRequestConfig} from 'next-intl/server';
-import {defaultLocale} from './i18n/config';
+import {notFound} from 'next/navigation';
+import {defaultLocale, locales, type Locale} from './i18n/config';
 
-export default getRequestConfig(async ({requestLocale}) => {
-  const locale = (await requestLocale) ?? defaultLocale;
+function knownLocale(value: string | undefined): value is Locale {
+  return locales.some(locale => locale === value);
+}
+
+export default getRequestConfig(async ({locale}) => {
+  const requested = locale || (await localeParam()) || defaultLocale;
+  if (!knownLocale(requested)) notFound();
+
   return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
+    locale: requested,
+    messages: (await import(`../messages/${requested}.json`)).default,
   };
 });

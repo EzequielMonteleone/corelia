@@ -8,6 +8,7 @@ import {
 import {
   ChatError,
   confirmChatDraft,
+  confirmClaimChatDraft,
   getChatThread,
   runChatTurn,
 } from '../services/chatService.js';
@@ -105,6 +106,24 @@ router.post(
       if (!req.user?.id)
         return res.status(401).json({error: 'UNAUTHENTICATED'});
       const result = await confirmChatDraft(
+        req.user.id,
+        req.params.draftId as string,
+      );
+      return res.json(result);
+    } catch (err) {
+      return sendChatError(err, res, next);
+    }
+  },
+);
+
+router.post(
+  '/claim-drafts/:draftId/confirm',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user?.id)
+        return res.status(401).json({error: 'UNAUTHENTICATED'});
+      const result = await confirmClaimChatDraft(
         req.user.id,
         req.params.draftId as string,
       );

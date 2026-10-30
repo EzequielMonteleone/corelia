@@ -23,7 +23,11 @@ import {
   zonedDateTime,
 } from '../lib/zonedTime.js';
 import {moneyCents, paidAmount, toMoneyNumber} from '../lib/money.js';
-import {reservationWindow, validateReservationSlot} from '../lib/reservationRules.js';
+import {
+  reservationWindow,
+  validateReservationSlot,
+} from '../lib/reservationRules.js';
+import {ClaimError, listClaimsForActor} from './claimService.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -58,7 +62,8 @@ function remainingOf(expense: {
   amount: unknown;
   payments: {amount: unknown; status: PaymentStatus}[];
 }) {
-  const remaining = toMoneyNumber(expense.amount) - paidAmount(expense.payments);
+  const remaining =
+    toMoneyNumber(expense.amount) - paidAmount(expense.payments);
   return money(Math.max(remaining, 0));
 }
 
@@ -477,4 +482,69 @@ export async function listExpenseStandingForActor(
     buildingName: building.name,
     units: visible.units,
   };
+}
+
+export async function listClaimsForChat(
+  actor: ChatActor,
+  input: {
+    buildingId?: string | undefined;
+    unitId?: string | undefined;
+    buildingAmenityId?: string | undefined;
+  },
+) {
+  const requested = input.buildingId?.trim();
+  let buildingId = requested;
+  if (!buildingId) {
+    if (actor.globalRole === 'SUPERADMIN') {
+      return {error: 'BUILDING_REQUIRED' as const};
+    }
+    if (actor.buildings.length === 0) {
+      return {
+        canCreate: false,
+        canCreateAmenity: false,
+        canManage: false,
+        claims: [],
+      };
+    }
+    if (actor.buildings.length > 1) {
+      return {
+        error: 'BUILDING_AMBIGUOUS' as const,
+        buildings: actor.buildings.map(building => ({
+          id: building.id,
+          name: building.name,
+        })),
+      };
+    }
+    buildingId = actor.buildings[0]?.id;
+  }
+  if (!buildingId) return {error: 'BUILDING_REQUIRED' as const};
+
+  const trimmedUnit = input.unitId?.trim();
+  const trimmedAmenity = input.buildingAmenityId?.trim();
+  if (trimmedUnit && trimmedAmenity) return {error: 'INVALID_CLAIM' as const};
+  try {
+    const list = await listClaimsForActor(actor, buildingId, {
+      ...(trimmedUnit ? {unitId: trimmedUnit} : {}),
+      ...(trimmedAmenity ? {buildingAmenityId: trimmedAmenity} : {}),
+    });
+    return {
+      canCreate: list.canCreate,
+      canCreateAmenity: list.canCreateAmenity,
+      canManage: list.canManage,
+      claims: list.claims.slice(0, 30).map(claim => ({
+        id: claim.id,
+        unitName: claim.unitName,
+        amenityName: claim.amenityName,
+        title: claim.title,
+        body: claim.body,
+        status: claim.status,
+        reply: claim.reply,
+        authorName: `${claim.author.firstName} ${claim.author.lastName}`,
+        canManage: claim.canManage,
+      })),
+    };
+  } catch (err) {
+    if (err instanceof ClaimError) return {error: err.message};
+    throw err;
+  }
 }

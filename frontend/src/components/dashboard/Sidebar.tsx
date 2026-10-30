@@ -11,6 +11,7 @@ import {
   CalendarDays,
   MessageSquare,
   Home,
+  ClipboardList,
 } from 'lucide-react';
 import {useAuthStore} from '@/store/authStore';
 import {cn} from '@/lib/utils';
@@ -39,7 +40,12 @@ function useMenuItems() {
       href: '/dashboard/buildings',
       roles: ['admin', 'owner'],
     },
-    {icon: Users, label: tCommon('users'), href: '/dashboard/users', roles: ['admin', 'owner']},
+    {
+      icon: Users,
+      label: tCommon('users'),
+      href: '/dashboard/users',
+      roles: ['admin', 'owner'],
+    },
     {
       icon: Receipt,
       label: tSidebar('expenses'),
@@ -56,6 +62,12 @@ function useMenuItems() {
       icon: Home,
       label: tSidebar('household'),
       href: '/dashboard/household',
+      roles: ['admin', 'owner', 'roomer'],
+    },
+    {
+      icon: ClipboardList,
+      label: tSidebar('claims'),
+      href: '/dashboard/claims',
       roles: ['admin', 'owner', 'roomer'],
     },
     {

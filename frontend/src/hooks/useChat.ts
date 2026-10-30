@@ -1,7 +1,12 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import apiClient from '@/lib/apiClient';
 import {errorCode} from '@/lib/apiError';
-import type {ChatMessage, ChatThread, PendingDraft} from '@/types/chat';
+import type {
+  ChatMessage,
+  ChatThread,
+  PendingClaimDraft,
+  PendingDraft,
+} from '@/types/chat';
 
 const THREAD_STORAGE_KEY = 'corelia-chat-thread';
 const chatThreadKey = ['chat', 'thread'] as const;
@@ -10,6 +15,7 @@ const emptyThread = (): ChatThread => ({
   threadId: null,
   messages: [],
   pendingDrafts: [],
+  pendingClaimDrafts: [],
 });
 
 function storedThreadId() {
@@ -29,6 +35,7 @@ export function useChatThread() {
           threadId,
           messages: res.data.messages ?? [],
           pendingDrafts: res.data.pendingDrafts ?? [],
+          pendingClaimDrafts: res.data.pendingClaimDrafts ?? [],
         };
       } catch (err) {
         if (errorCode(err) === 'THREAD_NOT_FOUND') {
@@ -57,6 +64,7 @@ export function useSendChatMessage() {
         reply: string;
         choices: string[];
         pendingDrafts: PendingDraft[];
+        pendingClaimDrafts: PendingClaimDraft[];
       };
     },
     onMutate: async message => {
@@ -70,6 +78,7 @@ export function useSendChatMessage() {
         threadId: current?.threadId ?? storedThreadId(),
         messages: [...(current?.messages ?? []), optimistic],
         pendingDrafts: current?.pendingDrafts ?? [],
+        pendingClaimDrafts: current?.pendingClaimDrafts ?? [],
       }));
     },
     onSuccess: data => {
@@ -86,6 +95,7 @@ export function useSendChatMessage() {
           },
         ],
         pendingDrafts: data.pendingDrafts ?? [],
+        pendingClaimDrafts: data.pendingClaimDrafts ?? [],
       }));
     },
   });
@@ -105,6 +115,8 @@ export function useConfirmChatDraft() {
         threadId,
         messages: (res.data.messages ?? []) as ChatMessage[],
         pendingDrafts: (res.data.pendingDrafts ?? []) as PendingDraft[],
+        pendingClaimDrafts: (res.data.pendingClaimDrafts ??
+          []) as PendingClaimDraft[],
       };
     },
     onMutate: async draftId => {
@@ -128,6 +140,52 @@ export function useConfirmChatDraft() {
       }
     },
     onSuccess: data => {
+      if (!data) return;
+      queryClient.setQueryData<ChatThread>(chatThreadKey, data);
+    },
+  });
+}
+
+export function useConfirmClaimDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (draftId: string) => {
+      await apiClient.post(`/chat/claim-drafts/${draftId}/confirm`);
+      const threadId =
+        queryClient.getQueryData<ChatThread>(chatThreadKey)?.threadId ??
+        storedThreadId();
+      if (!threadId) return null;
+      const res = await apiClient.get(`/chat/threads/${threadId}`);
+      return {
+        threadId,
+        messages: (res.data.messages ?? []) as ChatMessage[],
+        pendingDrafts: (res.data.pendingDrafts ?? []) as PendingDraft[],
+        pendingClaimDrafts: (res.data.pendingClaimDrafts ??
+          []) as PendingClaimDraft[],
+      };
+    },
+    onMutate: async draftId => {
+      await queryClient.cancelQueries({queryKey: chatThreadKey});
+      const previous = queryClient.getQueryData<ChatThread>(chatThreadKey);
+      queryClient.setQueryData<ChatThread>(chatThreadKey, current =>
+        current
+          ? {
+              ...current,
+              pendingClaimDrafts: current.pendingClaimDrafts.filter(
+                draft => draft.id !== draftId,
+              ),
+            }
+          : current,
+      );
+      return {previous};
+    },
+    onError: (_err, _draftId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(chatThreadKey, context.previous);
+      }
+    },
+    onSuccess: data => {
+      queryClient.invalidateQueries({queryKey: ['claims']});
       if (!data) return;
       queryClient.setQueryData<ChatThread>(chatThreadKey, data);
     },

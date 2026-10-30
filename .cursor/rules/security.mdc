@@ -1,0 +1,18 @@
+---
+description: Quién puede leer o escribir, y qué no alcanza como permiso
+alwaysApply: true
+---
+
+# Seguridad
+
+El permiso se decide en `backend/lib/` y el servicio lo vuelve a chequear en cada lectura y cada escritura. El flag del JSON (`canCreate`, `canManage`, `canDelete`) lo lee la pantalla. No autoriza.
+
+Toda ruta protegida usa `authMiddleware`. La ruta no lee el rol. Un id que manda el cliente o el chat no alcanza: el servicio carga el recurso y aplica la regla de ese recurso.
+
+No copies `unitAccess` ni `expenseScope` para crear un reclamo. `unitAccess` deja pasar al admin. `expenseScope` acepta cualquier vínculo. Crear es `claimCreateAccess` (el vínculo coincide con el rol) o `claimAmenityAccess` (dueño o inquilino de ese edificio, amenity habilitado).
+
+Un reclamo tiene un solo destino. Si el id es de otro edificio, la respuesta es `UNIT_NOT_FOUND` o `AMENITY_NOT_FOUND`, el mismo código que si no existe. Quien no entra al edificio recibe `INSUFFICIENT_PERMISSIONS` antes de buscar el id.
+
+El borrador del chat no escribe. Confirmar vuelve a correr la misma regla con la persona de ahora. El texto del modelo no es un permiso.
+
+Título, cuerpo y respuesta tienen tope en `claimRules.ts`. La pantalla los muestra como texto, sin HTML.

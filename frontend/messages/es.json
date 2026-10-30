@@ -368,11 +368,44 @@
       "OTHER": "Otro"
     }
   },
+  "Claims": {
+    "title": "Reclamos",
+    "description": "Cargá un reclamo de tu unidad o de un amenity, o respondé los del edificio.",
+    "selectBuilding": "Elegí un edificio",
+    "allSubjects": "Todos",
+    "units": "Unidades",
+    "amenities": "Amenities",
+    "loading": "Cargando reclamos...",
+    "empty": "No hay reclamos.",
+    "newTitle": "Nuevo reclamo",
+    "titleLabel": "Título",
+    "bodyLabel": "Detalle",
+    "submit": "Cargar reclamo",
+    "statusLabel": "Estado",
+    "replyLabel": "Respuesta",
+    "save": "Guardar",
+    "meta": "Unidad {unit} · {author}",
+    "metaAmenity": "Amenity {amenity} · {author}",
+    "noReply": "Todavía no hay respuesta.",
+    "createSuccess": "Reclamo cargado.",
+    "saveSuccess": "Reclamo actualizado.",
+    "saveError": "No se pudo guardar el reclamo.",
+    "invalid": "Revisá el título y el texto.",
+    "forbidden": "No tenés permiso para este reclamo.",
+    "unitNotLinked": "Esa unidad no está vinculada a tu usuario.",
+    "amenityNotFound": "Ese amenity no está habilitado en el edificio.",
+    "status": {
+      "OPEN": "Abierto",
+      "IN_PROGRESS": "En curso",
+      "CLOSED": "Cerrado"
+    }
+  },
   "Sidebar": {
     "rolesAndPermissions": "Roles y Permisos",
     "expenses": "Expensas",
     "amenities": "Amenities",
     "household": "Grupo del lote",
+    "claims": "Reclamos",
     "chat": "Chat"
   },
   "Footer": {
@@ -388,14 +421,19 @@
   },
   "Chat": {
     "title": "Asistente",
-    "description": "Reservas, expensas y reglas del edificio, según tus permisos.",
-    "placeholder": "Reservá el SUM o preguntá por tus expensas",
+    "description": "Reservas, expensas, reclamos y reglas del edificio, según tus permisos.",
+    "placeholder": "Reservá el SUM, cargá un reclamo o preguntá por tus expensas",
     "send": "Enviar",
     "thinking": "Pensando...",
     "empty": "Preguntá por tu unidad, un amenity o un edificio que administres.",
     "confirm": "Confirmar reserva",
     "confirming": "Confirmando...",
     "draft": "{amenity} · unidad {unit} · {when}",
+    "confirmClaim": "Confirmar reclamo",
+    "claimDraft": "{title} · unidad {unit}",
+    "claimAmenityDraft": "{title} · {amenity}",
+    "claimResolve": "{title}",
+    "claimReply": "Respuesta: {reply}",
     "error": "El asistente no pudo responder.",
     "notConfigured": "El asistente todavía no está configurado."
   }

@@ -46,9 +46,7 @@ function owner(): ChatActor {
     lastName: 'Fernández',
     globalRole: 'USER',
     buildings: [{id: torre, name: 'Torre Palermo', role: 'Owner'}],
-    units: [
-      {id: 'u1', name: '1A', buildingId: torre, relationType: 'OWNER'},
-    ],
+    units: [{id: 'u1', name: '1A', buildingId: torre, relationType: 'OWNER'}],
   };
 }
 
@@ -95,6 +93,17 @@ describe('expense standing permissions', () => {
   it('hides listExpenseStanding from owners', () => {
     assert.equal(toolsForActor(owner()).includes('listExpenseStanding'), false);
     assert.equal(toolsForActor(admin()).includes('listExpenseStanding'), true);
+  });
+
+  it('lets residents prepare a claim and only admins resolve one', () => {
+    assert.equal(toolsForActor(owner()).includes('listClaims'), true);
+    assert.equal(toolsForActor(owner()).includes('draftClaim'), true);
+    assert.equal(
+      toolsForActor(owner()).includes('draftClaimResolution'),
+      false,
+    );
+    assert.equal(toolsForActor(admin()).includes('listClaims'), true);
+    assert.equal(toolsForActor(admin()).includes('draftClaimResolution'), true);
   });
 });
 
@@ -160,8 +169,11 @@ describe('confirmReservationDraft', () => {
   const startsAt = new Date('2026-11-13T18:00:00.000Z');
 
   it('calls createReservation only after the user confirms', async () => {
-    const calls: {viewerId: string; buildingAmenityId: string; unitId: string}[] =
-      [];
+    const calls: {
+      viewerId: string;
+      buildingAmenityId: string;
+      unitId: string;
+    }[] = [];
     const draft = {
       userId: 'owner-1',
       buildingId: torre,

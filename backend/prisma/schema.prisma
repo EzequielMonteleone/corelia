@@ -48,6 +48,7 @@ model Building {
   documents      BuildingDocument[]
   knowledgeChunks KnowledgeChunk[]
   vehicles       Vehicle[]
+  claims         Claim[]
 }
 
 enum GlobalRole {
@@ -73,6 +74,9 @@ model User {
   amenityReservations AmenityReservation[]
   chatThreads         ChatThread[]
   reservationDrafts   ReservationDraft[]
+  authoredClaims      Claim[]      @relation("ClaimAuthor")
+  repliedClaims       Claim[]      @relation("ClaimReplier")
+  claimDrafts         ClaimDraft[]
 }
 
 model Role {
@@ -100,6 +104,7 @@ model Unit {
   householdMembers    HouseholdMember[]
   vehicles            Vehicle[]
   pets                Pet[]
+  claims              Claim[]
 
   @@unique([buildingId, name])
 }
@@ -192,6 +197,7 @@ model BuildingAmenity {
   building     Building             @relation(fields: [buildingId], references: [id])
   amenity      Amenity              @relation(fields: [amenityId], references: [id])
   reservations AmenityReservation[]
+  claims       Claim[]
 
   @@unique([buildingId, amenityId])
 }
@@ -330,9 +336,10 @@ model ChatThread {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User                @relation(fields: [userId], references: [id])
-  messages ChatMessage[]
-  drafts   ReservationDraft[]
+  user        User                @relation(fields: [userId], references: [id])
+  messages    ChatMessage[]
+  drafts      ReservationDraft[]
+  claimDrafts ClaimDraft[]
 
   @@index([userId])
 }
@@ -372,6 +379,78 @@ model ReservationDraft {
   reservationId     String?
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id])
+
+  @@index([threadId, status])
+  @@index([userId])
+}
+
+enum ClaimStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+enum ClaimDraftKind {
+  CREATE
+  RESOLVE
+}
+
+enum ClaimDraftStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+}
+
+model Claim {
+  id                 String      @id @default(uuid())
+  buildingId         String
+  unitId             String?
+  buildingAmenityId  String?
+  authorUserId       String
+  title              String
+  body               String
+  status             ClaimStatus @default(OPEN)
+  reply              String?
+  repliedAt          DateTime?
+  repliedByUserId    String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  building         Building         @relation(fields: [buildingId], references: [id])
+  unit             Unit?            @relation(fields: [unitId], references: [id])
+  buildingAmenity  BuildingAmenity? @relation(fields: [buildingAmenityId], references: [id])
+  author           User             @relation("ClaimAuthor", fields: [authorUserId], references: [id])
+  repliedBy        User?            @relation("ClaimReplier", fields: [repliedByUserId], references: [id])
+
+  @@index([buildingId, createdAt])
+  @@index([unitId, createdAt])
+  @@index([buildingAmenityId])
+}
+
+model ClaimDraft {
+  id            String           @id @default(uuid())
+  threadId      String
+  userId        String
+  kind          ClaimDraftKind
+  buildingId        String
+  unitId            String?
+  buildingAmenityId String?
+  claimId           String?
+  title             String
+  body              String?
+  nextStatus        ClaimStatus?
+  reply             String?
+  replyProvided     Boolean          @default(false)
+  unitName          String
+  amenityName       String?
+  buildingName      String
+  status        ClaimDraftStatus @default(PENDING)
+  resultClaimId String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   user   User       @relation(fields: [userId], references: [id])

@@ -16,6 +16,10 @@ Antes de agregar una función, constante o regla, buscá en `backend/lib/`. Si e
 | ¿El turno es válido, pasado o está lleno? | `reservationRules.ts` |
 | ¿Se puede crear, editar o borrar esta expensa? | `expenseRules.ts` |
 | ¿Puede ver esta unidad del hogar? | `householdRules.ts` `unitAccess` |
+| ¿Puede cargar un reclamo de esta unidad? | `claimRules.ts` `claimCreateAccess` |
+| ¿Puede cargar un reclamo de un amenity? | `claimRules.ts` `claimAmenityAccess` |
+| ¿Qué reclamos ve y puede crear? | `claimRules.ts` `claimListScope` |
+| ¿Puede cambiar el estado o la respuesta? | `claimRules.ts` `canManageClaim` |
 
 La pantalla no reimplementa eso. El API devuelve el dato (`canEdit`, `canManage`, `canDelete`, `assignableRoles`, `remaining`, `past`, `full`) y la UI lo lee.
 

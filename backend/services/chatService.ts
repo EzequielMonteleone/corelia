@@ -12,9 +12,18 @@ import {
   getExpensesForActor,
   getMyContext,
   listAmenitiesForActor,
+  listClaimsForChat,
   listExpenseStandingForActor,
   listMyReservationsForActor,
 } from './chatToolService.js';
+import {
+  confirmClaimDraftForActor,
+  describeClaimDraftConfirmation,
+  draftClaimForActor,
+  draftClaimResolutionForActor,
+  pendingClaimDrafts,
+  ClaimError,
+} from './claimService.js';
 import {
   confirmReservationDraft,
   toolsForActor,
@@ -223,6 +232,65 @@ function buildTools(actor: ChatActor, threadId: string): ToolSet {
     });
   }
 
+  if (allowed.has('listClaims')) {
+    tools.listClaims = tool({
+      description:
+        'Reclamos visibles para esta persona. Dueños e inquilinos ven los de sus unidades y los de los amenities del edificio. La administración ve todos. No cambia nada.',
+      inputSchema: z.object({
+        buildingId: z
+          .string()
+          .optional()
+          .describe('Id del edificio. Omitilo si la persona tiene uno solo'),
+        unitId: z.string().optional(),
+        buildingAmenityId: z.string().optional(),
+      }),
+      execute: async input => listClaimsForChat(actor, input),
+    });
+  }
+
+  if (allowed.has('draftClaim')) {
+    tools.draftClaim = tool({
+      description:
+        'Prepara un reclamo de una unidad o de un amenity. No lo carga. Si no está dicho cuál, no elijas: la tool devuelve las opciones. La persona tiene que apretar Confirmar en la interfaz.',
+      inputSchema: z.object({
+        buildingId: z.string(),
+        unitId: z.string().optional(),
+        buildingAmenityId: z.string().optional(),
+        amenityQuery: z
+          .string()
+          .optional()
+          .describe('Nombre del amenity, por ejemplo SUM o pileta'),
+        title: z.string(),
+        body: z.string(),
+      }),
+      execute: async input => draftClaimForActor(actor, threadId, input),
+    });
+  }
+
+  if (allowed.has('draftClaimResolution')) {
+    tools.draftClaimResolution = tool({
+      description:
+        'Prepara el cambio de estado o la respuesta de un reclamo de un edificio que esta persona administra. No lo aplica. La persona tiene que apretar Confirmar.',
+      inputSchema: z.object({
+        claimId: z.string(),
+        status: z.enum(['OPEN', 'IN_PROGRESS', 'CLOSED']).optional(),
+        reply: z.string().optional(),
+      }),
+      execute: async input => draftClaimResolutionForActor(actor, threadId, input),
+    });
+  }
+
+  if (allowed.has('confirmClaimDraft')) {
+    tools.confirmClaimDraft = tool({
+      description:
+        'No carga ni resuelve el reclamo. Recordá que hay que confirmar el borrador con el botón de la interfaz.',
+      inputSchema: z.object({
+        draftId: z.string(),
+      }),
+      execute: async ({draftId}) => describeClaimDraftConfirmation(actor, draftId),
+    });
+  }
+
   return tools;
 }
 
@@ -342,6 +410,7 @@ export async function runChatTurn(params: {
       reply,
       choices: choiceLines(reply),
       pendingDrafts: await pendingDrafts(threadId, actor.userId),
+      pendingClaimDrafts: await pendingClaimDrafts(threadId, actor.userId),
     };
   }
 
@@ -369,11 +438,14 @@ export async function runChatTurn(params: {
   }
 
   const drafts = await pendingDrafts(threadId, actor.userId);
+  const claimDrafts = await pendingClaimDrafts(threadId, actor.userId);
   const reply =
     result.text.trim() ||
     (drafts.length > 0
       ? 'Preparé la reserva. Confirmala en el botón para dejarla hecha.'
-      : cannotHelpMenu(actor));
+      : claimDrafts.length > 0
+        ? 'Preparé el reclamo. Confirmalo en el botón para dejarlo hecho.'
+        : cannotHelpMenu(actor));
 
   await prisma.chatMessage.create({
     data: {
@@ -383,7 +455,13 @@ export async function runChatTurn(params: {
     },
   });
 
-  return {threadId, reply, choices: choiceLines(reply), pendingDrafts: drafts};
+  return {
+    threadId,
+    reply,
+    choices: choiceLines(reply),
+    pendingDrafts: drafts,
+    pendingClaimDrafts: claimDrafts,
+  };
 }
 
 export async function getChatThread(userId: string, threadId: string) {
@@ -412,6 +490,7 @@ export async function getChatThread(userId: string, threadId: string) {
           : [],
     })),
     pendingDrafts: await pendingDrafts(threadId, userId),
+    pendingClaimDrafts: await pendingClaimDrafts(threadId, userId),
   };
 }
 
@@ -474,5 +553,47 @@ export async function confirmChatDraft(userId: string, draftId: string) {
   return {
     reservationId: outcome.reservation.id,
     pendingDrafts: await pendingDrafts(draft.threadId, actor.userId),
+    pendingClaimDrafts: await pendingClaimDrafts(draft.threadId, actor.userId),
   };
+}
+
+const CLAIM_STATUS_LABEL: Record<string, string> = {
+  OPEN: 'abierto',
+  IN_PROGRESS: 'en curso',
+  CLOSED: 'cerrado',
+};
+
+export async function confirmClaimChatDraft(userId: string, draftId: string) {
+  const actor = await loadChatActor(userId);
+  if (!actor) throw new ChatError('USER_NOT_FOUND', 404);
+
+  try {
+    const {draft} = await confirmClaimDraftForActor(actor, draftId);
+    const status = draft.nextStatus
+      ? CLAIM_STATUS_LABEL[draft.nextStatus]
+      : null;
+    const subject = draft.amenityName
+      ? draft.amenityName
+      : `unidad ${draft.unitName}`;
+    const content =
+      draft.kind === 'CREATE'
+        ? `Reclamo cargado: ${draft.title}, ${subject}.`
+        : `Reclamo actualizado: ${draft.title}${status ? `, ${status}` : ''}${
+            draft.replyProvided && draft.reply ? `. Respuesta: ${draft.reply}` : ''
+          }.`;
+    await prisma.chatMessage.create({
+      data: {
+        threadId: draft.threadId,
+        role: ChatMessageRole.ASSISTANT,
+        content,
+      },
+    });
+    return {
+      pendingDrafts: await pendingDrafts(draft.threadId, actor.userId),
+      pendingClaimDrafts: await pendingClaimDrafts(draft.threadId, actor.userId),
+    };
+  } catch (err) {
+    if (err instanceof ClaimError) throw new ChatError(err.message, err.status);
+    throw err;
+  }
 }

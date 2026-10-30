@@ -18,7 +18,11 @@ export type ChatToolName =
   | 'confirmAmenityReservation'
   | 'getMyExpenses'
   | 'listExpenseStanding'
-  | 'searchBuildingDocs';
+  | 'searchBuildingDocs'
+  | 'listClaims'
+  | 'draftClaim'
+  | 'draftClaimResolution'
+  | 'confirmClaimDraft';
 
 export type ChatActor = {
   userId: string;
@@ -72,6 +76,9 @@ const MEMBER_TOOLS: ChatToolName[] = [
   'confirmAmenityReservation',
   'getMyExpenses',
   'searchBuildingDocs',
+  'listClaims',
+  'draftClaim',
+  'confirmClaimDraft',
 ];
 
 export function toolsForActor(actor: ChatActor): ChatToolName[] {
@@ -79,7 +86,10 @@ export function toolsForActor(actor: ChatActor): ChatToolName[] {
   const managesABuilding =
     actor.globalRole === 'SUPERADMIN' ||
     actor.buildings.some(building => building.role === 'Admin');
-  if (managesABuilding) tools.push('listExpenseStanding');
+  if (managesABuilding) {
+    tools.push('draftClaimResolution');
+    tools.push('listExpenseStanding');
+  }
   return tools;
 }
 

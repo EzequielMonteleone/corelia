@@ -7,6 +7,7 @@ import {PageHeader} from '@/components/dashboard/PageHeader';
 import {
   useChatThread,
   useConfirmChatDraft,
+  useConfirmClaimDraft,
   useSendChatMessage,
 } from '@/hooks/useChat';
 import {errorCode} from '@/lib/apiError';
@@ -22,9 +23,11 @@ function withoutChoiceLines(content: string, choices: string[]) {
 
 export default function ChatPage() {
   const t = useTranslations('Chat');
+  const tClaims = useTranslations('Claims');
   const thread = useChatThread();
   const sendMessage = useSendChatMessage();
   const confirmDraft = useConfirmChatDraft();
+  const confirmClaim = useConfirmClaimDraft();
   const [input, setInput] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +39,11 @@ export default function ChatPage() {
     () => thread.data?.pendingDrafts ?? [],
     [thread.data?.pendingDrafts],
   );
-  const failure = sendMessage.error ?? confirmDraft.error;
+  const claimDrafts = useMemo(
+    () => thread.data?.pendingClaimDrafts ?? [],
+    [thread.data?.pendingClaimDrafts],
+  );
+  const failure = sendMessage.error ?? confirmDraft.error ?? confirmClaim.error;
   const error = failure
     ? errorCode(failure) === 'CHAT_NOT_CONFIGURED'
       ? t('notConfigured')
@@ -45,7 +52,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     listRef.current?.scrollTo({top: listRef.current.scrollHeight});
-  }, [messages, drafts, sendMessage.isPending]);
+  }, [messages, drafts, claimDrafts, sendMessage.isPending]);
 
   function onSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -53,12 +60,18 @@ export default function ChatPage() {
     if (!text || sendMessage.isPending) return;
     setInput('');
     confirmDraft.reset();
+    confirmClaim.reset();
     sendMessage.mutate(text);
   }
 
   function onConfirm(draftId: string) {
     sendMessage.reset();
     confirmDraft.mutate(draftId);
+  }
+
+  function onConfirmClaim(draftId: string) {
+    sendMessage.reset();
+    confirmClaim.mutate(draftId);
   }
 
   function onChoose(choice: string) {
@@ -141,6 +154,51 @@ export default function ChatPage() {
                 isLoading={confirming}
                 onClick={() => onConfirm(draft.id)}>
                 {confirming ? t('confirming') : t('confirm')}
+              </Button>
+            </div>
+          );
+        })}
+        {claimDrafts.map(draft => {
+          const confirming =
+            confirmClaim.isPending && confirmClaim.variables === draft.id;
+          const status = draft.nextStatus
+            ? tClaims(`status.${draft.nextStatus}`)
+            : null;
+          return (
+            <div
+              key={draft.id}
+              className="max-w-2xl rounded-2xl border border-blue-500/40 bg-blue-500/10 px-4 py-3">
+              <p className="text-sm text-blue-100">
+                {draft.kind === 'CREATE'
+                  ? draft.amenityName
+                    ? t('claimAmenityDraft', {
+                        title: draft.title,
+                        amenity: draft.amenityName,
+                      })
+                    : t('claimDraft', {
+                        title: draft.title,
+                        unit: draft.unitName,
+                      })
+                  : t('claimResolve', {title: draft.title})}
+              </p>
+              {draft.kind === 'CREATE' && draft.body && (
+                <p className="mt-1 text-sm text-gray-200">{draft.body}</p>
+              )}
+              {draft.kind === 'RESOLVE' && status && (
+                <p className="mt-1 text-sm text-gray-200">{status}</p>
+              )}
+              {draft.kind === 'RESOLVE' && draft.reply && (
+                <p className="mt-1 text-sm text-gray-200">
+                  {t('claimReply', {reply: draft.reply})}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-400">{draft.buildingName}</p>
+              <Button
+                className="mt-3"
+                size="sm"
+                isLoading={confirming}
+                onClick={() => onConfirmClaim(draft.id)}>
+                {confirming ? t('confirming') : t('confirmClaim')}
               </Button>
             </div>
           );

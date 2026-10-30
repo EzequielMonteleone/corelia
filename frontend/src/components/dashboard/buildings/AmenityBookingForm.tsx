@@ -1,6 +1,6 @@
 'use client';
 
-import {FormEvent, useState} from 'react';
+import {SubmitEvent, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/Button';
@@ -23,7 +23,7 @@ export function AmenityBookingForm({
   const [closeTime, setCloseTime] = useState(item.closeTime ?? '22:00');
   const [rules, setRules] = useState(item.rules ?? '');
 
-  const onSubmit = (event: FormEvent) => {
+  const onSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     updateAmenity.mutate(
       {

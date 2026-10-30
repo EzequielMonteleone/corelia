@@ -367,11 +367,44 @@
       "OTHER": "Other"
     }
   },
+  "Claims": {
+    "title": "Claims",
+    "description": "File a claim for your unit or an amenity, or answer the ones in the building.",
+    "selectBuilding": "Choose a building",
+    "allSubjects": "All",
+    "units": "Units",
+    "amenities": "Amenities",
+    "loading": "Loading claims...",
+    "empty": "There are no claims.",
+    "newTitle": "New claim",
+    "titleLabel": "Title",
+    "bodyLabel": "Details",
+    "submit": "File claim",
+    "statusLabel": "Status",
+    "replyLabel": "Reply",
+    "save": "Save",
+    "meta": "Unit {unit} · {author}",
+    "metaAmenity": "Amenity {amenity} · {author}",
+    "noReply": "There is no reply yet.",
+    "createSuccess": "Claim filed.",
+    "saveSuccess": "Claim updated.",
+    "saveError": "The claim could not be saved.",
+    "invalid": "Check the title and the text.",
+    "forbidden": "You cannot manage this claim.",
+    "unitNotLinked": "That unit is not linked to your user.",
+    "amenityNotFound": "That amenity is not enabled in the building.",
+    "status": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In progress",
+      "CLOSED": "Closed"
+    }
+  },
   "Sidebar": {
     "rolesAndPermissions": "Roles and Permissions",
     "expenses": "Expenses",
     "amenities": "Amenities",
     "household": "Household",
+    "claims": "Claims",
     "chat": "Chat"
   },
   "Footer": {
@@ -387,14 +420,19 @@
   },
   "Chat": {
     "title": "Assistant",
-    "description": "Reservations, expenses, and building rules, within your permissions.",
-    "placeholder": "Book the SUM or ask about your expenses",
+    "description": "Reservations, expenses, claims, and building rules, within your permissions.",
+    "placeholder": "Book the SUM, file a claim, or ask about your expenses",
     "send": "Send",
     "thinking": "Thinking...",
     "empty": "Ask about your unit, an amenity, or a building you manage.",
     "confirm": "Confirm reservation",
     "confirming": "Confirming...",
     "draft": "{amenity} · unit {unit} · {when}",
+    "confirmClaim": "Confirm claim",
+    "claimDraft": "{title} · unit {unit}",
+    "claimAmenityDraft": "{title} · {amenity}",
+    "claimResolve": "{title}",
+    "claimReply": "Reply: {reply}",
     "error": "The assistant could not answer.",
     "notConfigured": "The assistant is not configured yet."
   }

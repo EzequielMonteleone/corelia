@@ -38,3 +38,5 @@ Los tipos de la API van en `frontend/src/types/<feature>.ts`. El hook los import
 Los textos pasan por `useTranslations`. La clave se agrega en `frontend/messages/es.json` y en `en.json`. Los fallos de la API se leen con `errorCode()` de `@/lib/apiError` y se traducen en la pantalla.
 
 Los schemas Zod de formularios van en `frontend/src/schemas/`. Las pantallas del dashboard son client components bajo `app/[locale]/dashboard/`.
+
+No uses un símbolo marcado `@deprecated`. El submit de un formulario es `SubmitEvent`. `FormEvent` no existe.

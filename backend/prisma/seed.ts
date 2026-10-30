@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import {
   AmenityReservationStatus,
+  ClaimStatus,
   ExpensePeriodStatus,
   ExpenseStatus,
   GlobalRole,
@@ -491,6 +492,50 @@ async function seedDemo() {
           },
         });
       }
+
+      const camila = userByEmail.get('camila.nunez@torre-palermo.local');
+      const martin = userByEmail.get('martin.gomez@torre-palermo.local');
+      const adminUser = userByEmail.get('admin@torre-palermo.local');
+      const unit1A = unitByName.get('1A');
+      const unit2A = unitByName.get('2A');
+      if (!camila || !martin || !adminUser || !unit1A || !unit2A) {
+        throw new Error('Reclamos demo incompletos');
+      }
+      await tx.claim.create({
+        data: {
+          buildingId: building.id,
+          unitId: unit1A.id,
+          authorUserId: camila.id,
+          title: 'Pérdida en el baño',
+          body: 'Hay una pérdida debajo del lavamanos desde anoche.',
+          status: ClaimStatus.OPEN,
+        },
+      });
+      await tx.claim.create({
+        data: {
+          buildingId: building.id,
+          unitId: unit2A.id,
+          authorUserId: martin.id,
+          title: 'Luz del palier',
+          body: 'La luz del palier del segundo piso no enciende.',
+          status: ClaimStatus.IN_PROGRESS,
+          reply: 'Ya pedimos el cambio del artefacto. Lo hacen esta semana.',
+          repliedAt: now,
+          repliedByUserId: adminUser.id,
+        },
+      });
+      const sum = amenityByKey.get('SUM');
+      if (!sum) throw new Error('Reclamos demo incompletos');
+      await tx.claim.create({
+        data: {
+          buildingId: building.id,
+          buildingAmenityId: sum.id,
+          authorUserId: camila.id,
+          title: 'Luces del SUM',
+          body: 'Dos luces del salón de usos múltiples no encienden.',
+          status: ClaimStatus.OPEN,
+        },
+      });
 
       const periods: {
         period: string;

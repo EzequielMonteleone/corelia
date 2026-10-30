@@ -1,6 +1,6 @@
 'use client';
 
-import {FormEvent, useState} from 'react';
+import {SubmitEvent, useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
@@ -63,7 +63,7 @@ export function MemberForm({
   const [documentNumber, setDocumentNumber] = useState(initial?.documentNumber ?? '');
   const [phone, setPhone] = useState(initial?.phone ?? '');
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: SubmitEvent) => {
     event.preventDefault();
     onSubmit({
       firstName,
@@ -127,7 +127,7 @@ export function VehicleForm({
   const [model, setModel] = useState(initial?.model ?? '');
   const [color, setColor] = useState(initial?.color ?? '');
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: SubmitEvent) => {
     event.preventDefault();
     onSubmit({
       plate,
@@ -176,7 +176,7 @@ export function PetForm({
   const [species, setSpecies] = useState<PetSpecies>(initial?.species ?? 'DOG');
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: SubmitEvent) => {
     event.preventDefault();
     onSubmit({
       name,

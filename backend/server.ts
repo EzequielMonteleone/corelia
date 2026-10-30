@@ -26,6 +26,11 @@ import {
   unitHouseholdRouter,
   vehicleRouter,
 } from './routes/householdRoutes.js';
+import {
+  buildingClaimRouter,
+  claimRouter,
+  unitClaimRouter,
+} from './routes/claimRoutes.js';
 
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'] as const;
 for (const key of requiredEnvVars) {
@@ -56,6 +61,9 @@ app.use('/users', userRoutes);
 app.use('/roles', roleRoutes);
 app.use('/units', unitRoutes);
 app.use('/units', unitHouseholdRouter);
+app.use('/units', unitClaimRouter);
+app.use('/buildings', buildingClaimRouter);
+app.use('/claims', claimRouter);
 app.use('/members', memberRouter);
 app.use('/vehicles', vehicleRouter);
 app.use('/pets', petRouter);
