@@ -1,5 +1,11 @@
-export type {BuildingRoleName} from './buildingAccess.js';
-import type {BuildingRoleName} from './buildingAccess.js';
+export type {BuildingRoleName} from '../types/member.js';
+import type {
+  BuildingMember,
+  BuildingRoleName,
+  GlobalRoleName,
+  LinkedUnit,
+  UnitRelationName,
+} from '../types/member.js';
 export {asBuildingRole, canAccessBuilding} from './buildingAccess.js';
 import {canAccessBuilding} from './buildingAccess.js';
 
@@ -18,7 +24,7 @@ export type ChatActor = {
   userId: string;
   firstName: string;
   lastName: string;
-  globalRole: 'SUPERADMIN' | 'USER';
+  globalRole: GlobalRoleName;
   buildings: {
     id: string;
     name: string;
@@ -28,7 +34,7 @@ export type ChatActor = {
     id: string;
     name: string;
     buildingId: string;
-    relationType: 'OWNER' | 'ROOMER';
+    relationType: UnitRelationName;
   }[];
 };
 
@@ -77,8 +83,12 @@ export function toolsForActor(actor: ChatActor): ChatToolName[] {
   return tools;
 }
 
+export type ExpenseScopeActor = BuildingMember & {
+  units: LinkedUnit[];
+};
+
 export function expenseScope(
-  actor: ChatActor,
+  actor: ExpenseScopeActor,
   buildingId: string,
 ):
   | {ok: false; error: 'INSUFFICIENT_PERMISSIONS'}
@@ -134,7 +144,10 @@ export function expenseStandingForActor(
   };
 }
 
-export function canSearchBuildingDocs(actor: ChatActor, buildingId: string): boolean {
+export function canSearchBuildingDocs(
+  actor: ChatActor,
+  buildingId: string,
+): boolean {
   return canAccessBuilding(actor, buildingId, 'member');
 }
 
@@ -150,7 +163,9 @@ export function myReservationScope(
     return {ok: false, error: 'INSUFFICIENT_PERMISSIONS'};
   }
 
-  const buildings = requested ? [requested] : actor.buildings.map(building => building.id);
+  const buildings = requested
+    ? [requested]
+    : actor.buildings.map(building => building.id);
   const unitIds = actor.units
     .filter(unit => !requested || unit.buildingId === requested)
     .map(unit => unit.id);

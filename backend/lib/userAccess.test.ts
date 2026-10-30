@@ -8,6 +8,7 @@ import {
   decideUserEdit,
   userAuditEvents,
   validateUnitAssignment,
+  visibleUserScope,
   type AccessPerson,
 } from './userAccess.js';
 
@@ -49,11 +50,56 @@ const superadmin = person({
   globalRole: 'SUPERADMIN',
 });
 
+describe('visibleUserScope', () => {
+  it('keeps a superadmin who administers a building on those buildings', () => {
+    assert.deepEqual(
+      visibleUserScope(
+        person({
+          globalRole: 'SUPERADMIN',
+          buildings: [{id: buildingId, role: 'Admin'}],
+        }),
+      ),
+      {kind: 'admin-buildings', buildingIds: [buildingId]},
+    );
+  });
+
+  it('lists every account when a superadmin administers none', () => {
+    assert.deepEqual(visibleUserScope(person({globalRole: 'SUPERADMIN'})), {
+      kind: 'all',
+    });
+  });
+
+  it('lists roomers for an owner and ignores a roomer membership', () => {
+    assert.deepEqual(
+      visibleUserScope(
+        person({
+          buildings: [
+            {id: buildingId, role: 'Owner'},
+            {id: 'other', role: 'Roomer'},
+          ],
+        }),
+      ),
+      {kind: 'owner-roomers', buildingIds: [buildingId]},
+    );
+  });
+
+  it('shows nobody to a roomer', () => {
+    assert.deepEqual(
+      visibleUserScope(person({buildings: [{id: buildingId, role: 'Roomer'}]})),
+      {kind: 'none'},
+    );
+  });
+});
+
 describe('canManageUser', () => {
   it('lets a superadmin manage anyone, including another superadmin', () => {
     assert.equal(canManageUser(superadmin, admin, buildingId), true);
     assert.equal(
-      canManageUser(superadmin, person({id: 'other-super', globalRole: 'SUPERADMIN'}), buildingId),
+      canManageUser(
+        superadmin,
+        person({id: 'other-super', globalRole: 'SUPERADMIN'}),
+        buildingId,
+      ),
       true,
     );
   });
@@ -64,7 +110,14 @@ describe('canManageUser', () => {
   });
 
   it('refuses peers, superiors, and a superadmin target', () => {
-    assert.equal(canManageUser(admin, person({id: 'admin-2', buildings: [{id: buildingId, role: 'Admin'}]}), buildingId), false);
+    assert.equal(
+      canManageUser(
+        admin,
+        person({id: 'admin-2', buildings: [{id: buildingId, role: 'Admin'}]}),
+        buildingId,
+      ),
+      false,
+    );
     assert.equal(canManageUser(roomer, admin, buildingId), false);
     assert.equal(canManageUser(owner, admin, buildingId), false);
     assert.equal(canManageUser(admin, superadmin, buildingId), false);
@@ -106,12 +159,14 @@ describe('canCreateRole', () => {
 
 describe('assignableRoles', () => {
   it('includes the unit selection the form needs', () => {
-    assert.deepEqual(assignableRoles({globalRole: 'USER', buildingRole: 'Admin'}), [
-      {name: 'Owner', unitSelection: 'many', relation: 'OWNER'},
-    ]);
-    assert.deepEqual(assignableRoles({globalRole: 'USER', buildingRole: 'Owner'}), [
-      {name: 'Roomer', unitSelection: 'one', relation: 'ROOMER'},
-    ]);
+    assert.deepEqual(
+      assignableRoles({globalRole: 'USER', buildingRole: 'Admin'}),
+      [{name: 'Owner', unitSelection: 'many', relation: 'OWNER'}],
+    );
+    assert.deepEqual(
+      assignableRoles({globalRole: 'USER', buildingRole: 'Owner'}),
+      [{name: 'Roomer', unitSelection: 'one', relation: 'ROOMER'}],
+    );
   });
 });
 
@@ -195,7 +250,11 @@ describe('decideUserEdit', () => {
       buildingId,
       password: 'short',
     });
-    assert.deepEqual(decision, {ok: false, error: 'PASSWORD_TOO_SHORT', status: 400});
+    assert.deepEqual(decision, {
+      ok: false,
+      error: 'PASSWORD_TOO_SHORT',
+      status: 400,
+    });
   });
 
   it('lets an admin reset a subordinate password without the current one', () => {

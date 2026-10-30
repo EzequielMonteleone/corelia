@@ -52,22 +52,50 @@ export async function createBuilding(data: {
   });
 }
 
-export async function updateBuilding(
-  id: string,
-  data: {
+const BUILDING_PATCH_FIELDS = [
+  'name',
+  'address',
+  'city',
+  'country',
+  'taxId',
+  'logo',
+  'planType',
+] as const;
+
+function buildingPatch(input: unknown) {
+  const data: {
     name?: string;
     address?: string;
     city?: string;
     country?: string;
-    taxId?: string;
-    logo?: string;
-    planType?: string;
-    active?: boolean;
-  },
-) {
+    taxId?: string | null;
+    logo?: string | null;
+    planType?: string | null;
+  } = {};
+  if (!input || typeof input !== 'object') return data;
+
+  const source = input as Record<string, unknown>;
+  for (const key of BUILDING_PATCH_FIELDS) {
+    if (!(key in source)) continue;
+    const value = source[key];
+    if (typeof value === 'string') {
+      data[key] = value;
+      continue;
+    }
+    if (
+      value === null &&
+      (key === 'taxId' || key === 'logo' || key === 'planType')
+    ) {
+      data[key] = null;
+    }
+  }
+  return data;
+}
+
+export async function updateBuilding(id: string, input: unknown) {
   return await prisma.building.update({
     where: {id},
-    data,
+    data: buildingPatch(input),
   });
 }
 

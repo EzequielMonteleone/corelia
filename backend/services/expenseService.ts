@@ -1,20 +1,22 @@
 import {prisma} from '../prismaClient.js';
 import {
+  Prisma,
   ExpensePeriodStatus,
   ExpenseStatus,
   PaymentStatus,
 } from '@prisma/client';
 import {
+  approvalExceedsAmount,
   exceedsBalance,
   moneyCents,
   openBalance,
   paidAmount,
   parsePositiveMoney,
-  reservedAmount,
   roundMoney,
   toMoneyNumber,
 } from '../lib/money.js';
-import {expenseWriteBlock} from '../lib/expenseRules.js';
+import {expenseAmountBlock, expenseWriteBlock} from '../lib/expenseRules.js';
+import {expenseScope, type ExpenseScopeActor} from '../lib/chatAccess.js';
 
 export async function getExpensePeriods(buildingId: string) {
   return prisma.expensePeriod.findMany({
@@ -115,7 +117,10 @@ export async function createExpense(data: {
 async function assertExpenseWritable(id: string) {
   const current = await prisma.expense.findUnique({
     where: {id},
-    include: {period: {select: {status: true}}},
+    include: {
+      period: {select: {status: true}},
+      payments: {select: {status: true}},
+    },
   });
   if (!current) throw new Error('EXPENSE_NOT_FOUND');
   const block = expenseWriteBlock({
@@ -130,7 +135,6 @@ export async function updateExpense(
   id: string,
   data: {amount?: number; status?: ExpenseStatus},
 ) {
-  await assertExpenseWritable(id);
   const updateData: {amount?: number; status?: ExpenseStatus} = {};
   if (data.status !== undefined) updateData.status = data.status;
   if (data.amount !== undefined) {
@@ -139,13 +143,36 @@ export async function updateExpense(
     updateData.amount = amount;
   }
 
-  const expense = await prisma.expense.update({
-    where: {id},
-    data: updateData,
-    include: {
-      unit: {select: {id: true, name: true, floor: true}},
-      payments: true,
-    },
+  const expense = await prisma.$transaction(async tx => {
+    const locked = await lockExpense(tx, id);
+    if (!locked) throw new Error('EXPENSE_NOT_FOUND');
+
+    const current = await tx.expense.findUnique({
+      where: {id},
+      include: {
+        period: {select: {status: true}},
+        payments: {select: {status: true}},
+      },
+    });
+    if (!current) throw new Error('EXPENSE_NOT_FOUND');
+    const block = expenseWriteBlock({
+      periodStatus: current.period.status,
+      expenseStatus: current.status,
+    });
+    if (block) throw new Error(block);
+    if (data.amount !== undefined) {
+      const amountBlock = expenseAmountBlock(current.payments);
+      if (amountBlock) throw new Error(amountBlock);
+    }
+
+    return tx.expense.update({
+      where: {id},
+      data: updateData,
+      include: {
+        unit: {select: {id: true, name: true, floor: true}},
+        payments: true,
+      },
+    });
   });
   return presentExpense(expense);
 }
@@ -155,45 +182,72 @@ export async function deleteExpense(id: string) {
   return prisma.expense.delete({where: {id}});
 }
 
+async function lockExpense(tx: Prisma.TransactionClient, expenseId: string) {
+  const rows = await tx.$queryRaw<Array<{id: string}>>`
+    SELECT id FROM "Expense" WHERE id::text = ${expenseId} FOR UPDATE
+  `;
+  return rows.length > 0;
+}
+
 export async function createPayment(data: {
-  buildingId: string;
+  actor: ExpenseScopeActor;
   expenseId: string;
-  amount: number;
+  amount: unknown;
   paymentMethod?: string;
   externalPaymentId?: string;
 }) {
-  const amount = parsePositiveMoney(data.amount);
-  if (amount === 'INVALID_AMOUNT') throw new Error('INVALID_AMOUNT');
-
   const expense = await prisma.expense.findUnique({
     where: {id: data.expenseId},
-    include: {payments: true},
   });
   if (!expense) throw new Error('EXPENSE_NOT_FOUND');
 
-  const reserved = reservedAmount(expense.payments);
-  const remaining = roundMoney(
-    Math.max(toMoneyNumber(expense.amount) - reserved, 0),
-  );
-  if (exceedsBalance(amount, remaining)) {
-    throw new Error('AMOUNT_EXCEEDS_BALANCE');
+  const scope = expenseScope(data.actor, expense.buildingId);
+  if (
+    !scope.ok ||
+    (scope.unitIds !== null && !scope.unitIds.includes(expense.unitId))
+  ) {
+    throw new Error('INSUFFICIENT_PERMISSIONS');
   }
 
-  const payment = await prisma.payment.create({
-    data: {
-      buildingId: data.buildingId,
-      expenseId: data.expenseId,
-      amount,
-      paymentMethod: data.paymentMethod ?? null,
-      externalPaymentId: data.externalPaymentId ?? null,
-      status: PaymentStatus.PENDING,
-      paidAt: null,
-    },
+  const amount = parsePositiveMoney(data.amount);
+  if (amount === 'INVALID_AMOUNT') throw new Error('INVALID_AMOUNT');
+
+  const payment = await prisma.$transaction(async tx => {
+    const locked = await lockExpense(tx, data.expenseId);
+    if (!locked) throw new Error('EXPENSE_NOT_FOUND');
+
+    const lockedExpense = await tx.expense.findUnique({
+      where: {id: data.expenseId},
+      include: {payments: true},
+    });
+    if (!lockedExpense) throw new Error('EXPENSE_NOT_FOUND');
+
+    const remaining = openBalance(lockedExpense.amount, lockedExpense.payments);
+    if (exceedsBalance(amount, remaining)) {
+      throw new Error('AMOUNT_EXCEEDS_BALANCE');
+    }
+
+    const created = await tx.payment.create({
+      data: {
+        buildingId: expense.buildingId,
+        expenseId: data.expenseId,
+        amount,
+        paymentMethod: data.paymentMethod ?? null,
+        externalPaymentId: data.externalPaymentId ?? null,
+        status: PaymentStatus.PENDING,
+        paidAt: null,
+      },
+    });
+
+    await recalculateExpenseStatus(tx, data.expenseId);
+    return created;
   });
 
-  await recalculateExpenseStatus(data.expenseId);
-
-  return presentPayment(payment);
+  return {
+    payment: presentPayment(payment),
+    buildingId: expense.buildingId,
+    periodId: expense.periodId,
+  };
 }
 
 function presentPayment<T extends {amount: unknown}>(payment: T) {
@@ -399,21 +453,45 @@ export async function updatePayment(
   id: string,
   status: typeof PAYMENT_COMPLETED | typeof PAYMENT_REJECTED,
 ) {
-  const payment = await prisma.payment.update({
-    where: {id},
-    data: {
-      status,
-      paidAt: status === PAYMENT_COMPLETED ? new Date() : null,
-    },
-  });
+  const payment = await prisma.$transaction(async tx => {
+    const current = await tx.payment.findUnique({where: {id}});
+    if (!current) throw new Error('PAYMENT_NOT_FOUND');
 
-  await recalculateExpenseStatus(payment.expenseId);
+    const locked = await lockExpense(tx, current.expenseId);
+    if (!locked) throw new Error('EXPENSE_NOT_FOUND');
+
+    const expense = await tx.expense.findUnique({
+      where: {id: current.expenseId},
+      include: {payments: true},
+    });
+    if (!expense) throw new Error('EXPENSE_NOT_FOUND');
+
+    if (status === PAYMENT_COMPLETED && current.status !== PAYMENT_COMPLETED) {
+      if (approvalExceedsAmount(expense.amount, expense.payments, current.id)) {
+        throw new Error('AMOUNT_EXCEEDS_BALANCE');
+      }
+    }
+
+    const updated = await tx.payment.update({
+      where: {id},
+      data: {
+        status,
+        paidAt: status === PAYMENT_COMPLETED ? new Date() : null,
+      },
+    });
+
+    await recalculateExpenseStatus(tx, updated.expenseId);
+    return updated;
+  });
 
   return presentPayment(payment);
 }
 
-async function recalculateExpenseStatus(expenseId: string) {
-  const expense = await prisma.expense.findUnique({
+async function recalculateExpenseStatus(
+  tx: Prisma.TransactionClient,
+  expenseId: string,
+) {
+  const expense = await tx.expense.findUnique({
     where: {id: expenseId},
     include: {
       payments: true,
@@ -436,7 +514,7 @@ async function recalculateExpenseStatus(expenseId: string) {
     newStatus = ExpenseStatus.UNPAID;
   }
 
-  await prisma.expense.update({
+  await tx.expense.update({
     where: {id: expenseId},
     data: {status: newStatus},
   });

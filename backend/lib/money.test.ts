@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {describe, it} from 'node:test';
 import {
+  approvalExceedsAmount,
   exceedsBalance,
   parsePositiveMoney,
   reservedAmount,
@@ -54,5 +55,36 @@ describe('exceedsBalance', () => {
     assert.equal(exceedsBalance(10, 10), false);
     assert.equal(exceedsBalance(9.99, 10), false);
     assert.equal(exceedsBalance(10.01, 10), true);
+  });
+});
+
+describe('approvalExceedsAmount', () => {
+  const expense = 100;
+  const pending = {id: 'pay-1', amount: 100, status: 'PENDING'};
+
+  it('allows an approval that lands on the expense amount', () => {
+    assert.equal(approvalExceedsAmount(expense, [pending], pending.id), false);
+  });
+
+  it('rejects an approval that would stack on money already completed', () => {
+    assert.equal(
+      approvalExceedsAmount(
+        expense,
+        [pending, {id: 'pay-2', amount: 100, status: 'COMPLETED'}],
+        pending.id,
+      ),
+      true,
+    );
+  });
+
+  it('ignores rejected payments', () => {
+    assert.equal(
+      approvalExceedsAmount(
+        expense,
+        [pending, {id: 'pay-2', amount: 100, status: 'REJECTED'}],
+        pending.id,
+      ),
+      false,
+    );
   });
 });

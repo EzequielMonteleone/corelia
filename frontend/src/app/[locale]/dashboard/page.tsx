@@ -20,11 +20,17 @@ export default function DashboardPage() {
   const [selectedBuildingId, setSelectedBuildingId] = useState('');
 
   const activeBuildingId = useMemo(
-    () => selectedBuildingId || (buildings.length === 1 ? buildings[0].id : null),
+    () =>
+      selectedBuildingId || (buildings.length === 1 ? buildings[0].id : null),
     [buildings, selectedBuildingId],
   );
 
-  const {data: summary} = useCollectionSummary(activeBuildingId);
+  const activeBuilding = buildings.find(
+    building => building.id === activeBuildingId,
+  );
+  const {data: summary} = useCollectionSummary(
+    activeBuilding?.canManage ? activeBuilding.id : null,
+  );
 
   const currency = useMemo(
     () =>
@@ -104,17 +110,13 @@ export default function DashboardPage() {
             <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-400">
               {t('buildingsCard')}
             </h3>
-            <p className="text-gray-400 text-sm">
-              {t('buildingsCardDesc')}
-            </p>
+            <p className="text-gray-400 text-sm">{t('buildingsCardDesc')}</p>
           </Card>
           <Card className="p-6 hover:border-indigo-500/50 cursor-pointer">
             <h3 className="text-xl font-semibold mb-2 group-hover:text-indigo-400">
               {t('usersCard')}
             </h3>
-            <p className="text-gray-400 text-sm">
-              {t('usersCardDesc')}
-            </p>
+            <p className="text-gray-400 text-sm">{t('usersCardDesc')}</p>
           </Card>
           <Link href="/dashboard/expenses">
             <Card className="p-6 hover:border-purple-500/50 cursor-pointer">

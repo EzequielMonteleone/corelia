@@ -38,6 +38,20 @@ export function exceedsBalance(amount: number, remaining: number): boolean {
   return moneyCents(amount) > moneyCents(remaining);
 }
 
+/** Approving this payment would push the completed total past the expense. */
+export function approvalExceedsAmount(
+  expenseAmount: unknown,
+  payments: {id: string; amount: unknown; status: string}[],
+  paymentId: string,
+): boolean {
+  const projected = payments.map(payment =>
+    payment.id === paymentId ? {...payment, status: 'COMPLETED'} : payment,
+  );
+  return (
+    moneyCents(paidAmount(projected)) > moneyCents(toMoneyNumber(expenseAmount))
+  );
+}
+
 const RESERVED_PAYMENT_STATUSES = new Set(['COMPLETED', 'PENDING']);
 
 /** Payments already approved. Pending payments are not collected yet. */

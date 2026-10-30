@@ -15,40 +15,29 @@ import {
 } from '../services/buildingService.js';
 import {findUserById} from '../services/userService.js';
 import userRoutes from './userRoutes.js';
-import {GlobalRole} from '@prisma/client';
 import {createUnit, getUnitsByBuildingId} from '../services/unitService.js';
 import {
   createBuildingAmenity,
   getAmenityCatalog,
   getBuildingAmenities,
 } from '../services/amenityService.js';
-import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
+import {
+  canAccessBuilding,
+  canDeleteBuilding,
+  canOpenBuilding,
+  listedBuildingIds,
+  toBuildingMember,
+} from '../lib/buildingAccess.js';
+import type {MembershipUser} from '../types/member.js';
+import {unitAccess} from '../lib/householdRules.js';
 import {assignableRoles, roleCatalog} from '../lib/userAccess.js';
 import {buildingPeriodRouter} from './expenseRoutes.js';
 
 const router = Router();
 
-function getAssignedBuildingIds(
-  buildingUsers: {buildingId: string; role: {name: string}}[],
-) {
-  const adminIds = buildingUsers
-    .filter(bu => bu.role.name === 'Admin')
-    .map(bu => bu.buildingId);
-  const ownerIds = buildingUsers
-    .filter(bu => bu.role.name === 'Owner')
-    .map(bu => bu.buildingId);
-  const roomerIds = buildingUsers
-    .filter(bu => bu.role.name === 'Roomer')
-    .map(bu => bu.buildingId);
-  return {adminIds, ownerIds, roomerIds};
-}
-
 function presentBuilding<T extends {id: string}>(
   building: T,
-  user: {
-    globalRole: string;
-    buildingUsers: {buildingId: string; role: {name: string}}[];
-  },
+  user: MembershipUser,
 ) {
   const actor = toBuildingMember(user);
   const buildingRole =
@@ -57,7 +46,7 @@ function presentBuilding<T extends {id: string}>(
   return {
     ...building,
     canManage: canAccessBuilding(actor, building.id, 'admin'),
-    canDelete: user.globalRole === 'SUPERADMIN',
+    canDelete: canDeleteBuilding(actor),
     roleCatalog: roleCatalog(),
     assignableRoles: assignableRoles({
       globalRole: user.globalRole,
@@ -67,10 +56,7 @@ function presentBuilding<T extends {id: string}>(
 }
 
 function hasRoleForBuilding(
-  user: {
-    globalRole: string;
-    buildingUsers: {buildingId: string; role: {name: string}}[];
-  },
+  user: MembershipUser,
   buildingId: string,
   level: 'admin' | 'member',
 ) {
@@ -93,31 +79,16 @@ router.get(
       const present = <T extends {id: string}>(buildings: T[]) =>
         buildings.map(building => presentBuilding(building, user));
 
-      if (user.globalRole === GlobalRole.SUPERADMIN) {
-        const buildings = await getAllBuildings();
-        return res.json(present(buildings));
+      const scope = listedBuildingIds(toBuildingMember(user));
+      if (scope.kind === 'none') {
+        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
-      const {adminIds, ownerIds, roomerIds} = getAssignedBuildingIds(
-        user.buildingUsers,
-      );
-
-      if (adminIds.length > 0) {
-        const buildings = await getBuildingsByIds(adminIds);
-        return res.json(present(buildings));
-      }
-
-      if (ownerIds.length > 0) {
-        const buildings = await getBuildingsByIds(ownerIds);
-        return res.json(present(buildings));
-      }
-
-      if (roomerIds.length > 0) {
-        const buildings = await getBuildingsByIds(roomerIds);
-        return res.json(present(buildings));
-      }
-
-      return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      const buildings =
+        scope.kind === 'all'
+          ? await getAllBuildings()
+          : await getBuildingsByIds(scope.ids);
+      return res.json(present(buildings));
     } catch (err) {
       next(err);
     }
@@ -143,12 +114,8 @@ router.get(
         return res.status(404).json({error: 'BUILDING_NOT_FOUND'});
       }
 
-      if (user.globalRole !== GlobalRole.SUPERADMIN) {
-        const {adminIds, ownerIds} = getAssignedBuildingIds(user.buildingUsers);
-        const allowedIds = [...adminIds, ...ownerIds];
-        if (!allowedIds.includes(buildingId)) {
-          return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
-        }
+      if (!canOpenBuilding(toBuildingMember(user), buildingId)) {
+        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
       res.json(presentBuilding(building, user));
@@ -244,24 +211,29 @@ router.get(
       }
 
       const units = await getUnitsByBuildingId(buildingId);
-      if (user.globalRole === GlobalRole.SUPERADMIN) {
-        return res.json(units);
-      }
-
-      const buildingRole = user.buildingUsers.find(
-        bu => bu.buildingId === buildingId,
-      )?.role.name;
-
-      if (buildingRole === 'Admin') {
-        return res.json(units);
-      }
-
-      const relation =
-        buildingRole === 'Roomer' ? 'ROOMER' : 'OWNER';
-      const linkedUnitIds = user.userUnits
-        .filter(userUnit => userUnit.relationType === relation)
-        .map(userUnit => userUnit.unitId);
-      return res.json(units.filter(unit => linkedUnitIds.includes(unit.id)));
+      const viewer = {
+        globalRole:
+          user.globalRole === 'SUPERADMIN'
+            ? ('SUPERADMIN' as const)
+            : ('USER' as const),
+        buildingUsers: user.buildingUsers,
+        userUnits: user.userUnits.flatMap(link =>
+          link.relationType === 'OWNER' || link.relationType === 'ROOMER'
+            ? [
+                {
+                  unitId: link.unitId,
+                  relationType: link.relationType,
+                  unit: {buildingId: link.unit.buildingId},
+                },
+              ]
+            : [],
+        ),
+      };
+      return res.json(
+        units.filter(
+          unit => unitAccess(viewer, {id: unit.id, buildingId}) === 'OK',
+        ),
+      );
     } catch (err) {
       return next(err);
     }
@@ -335,7 +307,9 @@ router.get(
       ]);
       return res.json({
         catalog,
-        amenities: canManage ? amenities : amenities.filter(item => item.isEnabled),
+        amenities: canManage
+          ? amenities
+          : amenities.filter(item => item.isEnabled),
       });
     } catch (err) {
       return next(err);

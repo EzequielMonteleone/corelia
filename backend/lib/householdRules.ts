@@ -1,4 +1,9 @@
 import {canAccessBuilding, toBuildingMember} from './buildingAccess.js';
+import type {
+  BuildingMembership,
+  GlobalRoleName,
+  UnitLink,
+} from '../types/member.js';
 
 export const HOUSEHOLD_RELATIONS = ['SPOUSE', 'CHILD', 'PARENT', 'OTHER'] as const;
 export const PET_SPECIES = ['DOG', 'CAT', 'OTHER'] as const;
@@ -14,13 +19,9 @@ const MAX_VEHICLE_LABEL = 40;
 const MAX_NOTES = 300;
 
 export type HouseholdViewer = {
-  globalRole: 'SUPERADMIN' | 'USER';
-  buildingUsers: {buildingId: string; role: {name: string}}[];
-  userUnits: {
-    unitId: string;
-    relationType: 'OWNER' | 'ROOMER';
-    unit: {buildingId: string};
-  }[];
+  globalRole: GlobalRoleName;
+  buildingUsers: BuildingMembership[];
+  userUnits: UnitLink[];
 };
 
 export type UnitAccess = 'OK' | 'INSUFFICIENT_PERMISSIONS' | 'UNIT_NOT_LINKED';

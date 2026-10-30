@@ -21,8 +21,13 @@ import {
   buildExpensePeriodCsv,
   buildExpensePeriodPdf,
 } from '../services/expenseService.js';
-import {createAuditLog, getAuditLogsByPeriod} from '../services/auditService.js';
+import {
+  createAuditLog,
+  getAuditLogsByPeriod,
+} from '../services/auditService.js';
 import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
+import type {MembershipUser, UnitLink} from '../types/member.js';
+import {expenseScope} from '../lib/chatAccess.js';
 import {parsePositiveMoney} from '../lib/money.js';
 
 function sendMoneyError(err: unknown, res: Response, next: NextFunction) {
@@ -32,41 +37,43 @@ function sendMoneyError(err: unknown, res: Response, next: NextFunction) {
       err.message === 'UNIT_NOT_IN_BUILDING' ||
       err.message === 'AMOUNT_EXCEEDS_BALANCE' ||
       err.message === 'PERIOD_CLOSED' ||
-      err.message === 'EXPENSE_ALREADY_PAID'
+      err.message === 'EXPENSE_ALREADY_PAID' ||
+      err.message === 'EXPENSE_HAS_PAYMENTS'
     ) {
       return res.status(400).json({error: err.message});
     }
     if (
       err.message === 'EXPENSE_NOT_FOUND' ||
-      err.message === 'EXPENSE_PERIOD_NOT_FOUND'
+      err.message === 'EXPENSE_PERIOD_NOT_FOUND' ||
+      err.message === 'PAYMENT_NOT_FOUND'
     ) {
       return res.status(404).json({error: err.message});
+    }
+    if (err.message === 'INSUFFICIENT_PERMISSIONS') {
+      return res.status(403).json({error: err.message});
     }
   }
   return next(err);
 }
 
 function hasRoleForBuilding(
-  user: {
-    globalRole: string;
-    buildingUsers: {buildingId: string; role: {name: string}}[];
-  },
+  user: MembershipUser,
   buildingId: string,
   level: 'admin' | 'member',
 ) {
   return canAccessBuilding(toBuildingMember(user), buildingId, level);
 }
 
-function getUnitIdsForBuilding(
-  user: {
-    userUnits?: {unitId: string; unit: {buildingId: string}}[];
-  },
-  buildingId: string,
-): string[] {
-  if (!user.userUnits) return [];
-  return user.userUnits
-    .filter(uu => uu.unit.buildingId === buildingId)
-    .map(uu => uu.unitId);
+function toExpenseActor(
+  user: MembershipUser & {userUnits: Pick<UnitLink, 'unitId' | 'unit'>[]},
+) {
+  return {
+    ...toBuildingMember(user),
+    units: user.userUnits.map(link => ({
+      id: link.unitId,
+      buildingId: link.unit.buildingId,
+    })),
+  };
 }
 
 // ─── Building-scoped period routes (/buildings/:buildingId/expense-periods) ───
@@ -112,7 +119,7 @@ buildingPeriodRouter.get(
       const user = await findUserById(req.user.id);
       if (!user) return res.status(404).json({error: 'USER_NOT_FOUND'});
 
-      if (!hasRoleForBuilding(user, buildingId, 'member')) {
+      if (!hasRoleForBuilding(user, buildingId, 'admin')) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
@@ -187,20 +194,18 @@ periodRouter.get(
       if (!detail)
         return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
 
-      if (
-        !hasRoleForBuilding(user, detail.buildingId, 'member')
-      ) {
-        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      const scope = expenseScope(toExpenseActor(user), detail.buildingId);
+      if (!scope.ok) {
+        return res.status(403).json({error: scope.error});
       }
 
-      if (!hasRoleForBuilding(user, detail.buildingId, 'admin')) {
-        const unitIds = getUnitIdsForBuilding(user, detail.buildingId);
-        const filteredExpenses = detail.expenses.filter(e =>
-          unitIds.includes(e.unitId),
-        );
+      if (scope.unitIds) {
+        const allowed = new Set(scope.unitIds);
         return res.json({
           ...detail,
-          expenses: filteredExpenses,
+          expenses: detail.expenses.filter(expense =>
+            allowed.has(expense.unitId),
+          ),
         });
       }
 
@@ -311,10 +316,9 @@ periodRouter.get(
         return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
       }
 
-      if (
-        !hasRoleForBuilding(user, detail.buildingId, 'member')
-      ) {
-        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
+      const scope = expenseScope(toExpenseActor(user), detail.buildingId);
+      if (!scope.ok) {
+        return res.status(403).json({error: scope.error});
       }
 
       const format = String(req.query.format ?? 'csv').toLowerCase();
@@ -322,15 +326,14 @@ periodRouter.get(
         return res.status(400).json({error: 'INVALID_EXPORT_FORMAT'});
       }
 
-      const unitIds = hasRoleForBuilding(user, detail.buildingId, 'admin')
-        ? null
-        : getUnitIdsForBuilding(user, detail.buildingId);
+      const unitIds = scope.unitIds;
 
       const safePeriod = detail.period.replace(/[^a-zA-Z0-9_-]/g, '_');
 
       if (format === 'csv') {
         const csv = await buildExpensePeriodCsv(periodId, unitIds);
-        if (!csv) return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
+        if (!csv)
+          return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader(
           'Content-Disposition',
@@ -340,7 +343,8 @@ periodRouter.get(
       }
 
       const pdf = await buildExpensePeriodPdf(periodId, unitIds);
-      if (!pdf) return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
+      if (!pdf)
+        return res.status(404).json({error: 'EXPENSE_PERIOD_NOT_FOUND'});
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
@@ -557,57 +561,34 @@ expenseRouter.post(
 
       const expenseId = req.params.id as string;
 
-      const existing = await import('../prismaClient.js').then(m =>
-        m.prisma.expense.findUnique({where: {id: expenseId}}),
-      );
-      if (!existing) return res.status(404).json({error: 'EXPENSE_NOT_FOUND'});
-
-      if (
-        !hasRoleForBuilding(user, existing.buildingId, 'member')
-      ) {
-        return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
-      }
-
-      if (!hasRoleForBuilding(user, existing.buildingId, 'admin')) {
-        const unitIds = getUnitIdsForBuilding(user, existing.buildingId);
-        if (!unitIds.includes(existing.unitId)) {
-          return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
-        }
-      }
-
       const {amount, paymentMethod, externalPaymentId} = req.body as {
-        amount?: number;
+        amount?: unknown;
         paymentMethod?: string;
         externalPaymentId?: string;
       };
 
-      const parsedAmount = parsePositiveMoney(amount);
-      if (parsedAmount === 'INVALID_AMOUNT') {
-        return res.status(400).json({error: 'INVALID_AMOUNT'});
-      }
-
-      const payment = await createPayment({
-        buildingId: existing.buildingId,
+      const created = await createPayment({
+        actor: toExpenseActor(user),
         expenseId,
-        amount: parsedAmount,
+        amount,
         ...(paymentMethod !== undefined && {paymentMethod}),
         ...(externalPaymentId !== undefined && {externalPaymentId}),
       });
       await createAuditLog({
         action: 'PAYMENT_CREATED',
         entityType: 'PAYMENT',
-        entityId: payment.id,
-        periodId: existing.periodId,
-        buildingId: existing.buildingId,
+        entityId: created.payment.id,
+        periodId: created.periodId,
+        buildingId: created.buildingId,
         actorUserId: req.user.id,
         metadata: {
           expenseId,
-          amount: parsedAmount,
+          amount: created.payment.amount,
           paymentMethod: paymentMethod ?? null,
           externalPaymentId: externalPaymentId ?? null,
         },
       });
-      return res.status(201).json(payment);
+      return res.status(201).json(created.payment);
     } catch (err) {
       return sendMoneyError(err, res, next);
     }
@@ -657,7 +638,10 @@ paymentRouter.put(
         return res.status(400).json({error: 'INVALID_STATUS'});
       }
 
-      const updated = await updatePayment(paymentId, status as 'COMPLETED' | 'REJECTED');
+      const updated = await updatePayment(
+        paymentId,
+        status as 'COMPLETED' | 'REJECTED',
+      );
       await createAuditLog({
         action: 'PAYMENT_UPDATED',
         entityType: 'PAYMENT',

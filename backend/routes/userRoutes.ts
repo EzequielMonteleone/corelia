@@ -27,31 +27,31 @@ import {
   relationForRole,
   userAuditEvents,
   validateUnitAssignment,
-  asBuildingRole,
+  visibleUserScope,
   type AccessPerson,
 } from '../lib/userAccess.js';
 import {createAuditLog, getAuditLogsByUser} from '../services/auditService.js';
+import {toBuildingMember} from '../lib/buildingAccess.js';
+import type {
+  BuildingMembership,
+  MembershipUser,
+  UnitLink,
+} from '../types/member.js';
 import {GlobalRole, UnitRelationType} from '@prisma/client';
 
 const router = Router();
 
-function toAccessPerson(user: {
-  id: string;
-  globalRole: GlobalRole;
-  buildingUsers: {buildingId: string; role: {name: string}}[];
-  userUnits: {
-    unitId: string;
-    relationType: string;
-    unit: {buildingId: string};
-  }[];
-}): AccessPerson {
+function toAccessPerson(
+  user: MembershipUser & {
+    id: string;
+    globalRole: GlobalRole;
+    userUnits: UnitLink[];
+  },
+): AccessPerson {
   return {
     id: user.id,
     globalRole: user.globalRole,
-    buildings: user.buildingUsers.flatMap(membership => {
-      const role = asBuildingRole(membership.role.name);
-      return role ? [{id: membership.buildingId, role}] : [];
-    }),
+    buildings: toBuildingMember(user).buildings,
     units: user.userUnits.map(link => ({
       id: link.unitId,
       buildingId: link.unit.buildingId,
@@ -64,8 +64,8 @@ function toAccessPerson(user: {
 
 async function assertUnitAssignment(
   actor: {
-    buildingUsers: {buildingId: string; role: {name: string}}[];
-    userUnits: {unitId: string; relationType: string}[];
+    buildingUsers: BuildingMembership[];
+    userUnits: Pick<UnitLink, 'unitId' | 'relationType'>[];
   },
   buildingId: string,
   roleName: string,
@@ -132,26 +132,14 @@ async function getVisibleUsersForActor(actorId: string) {
   const user = await findUserById(actorId);
   if (!user) return [];
 
-  const adminBuildingIds = user.buildingUsers
-    .filter(bu => bu.role.name === 'Admin')
-    .map(bu => bu.buildingId);
-
-  if (adminBuildingIds.length > 0) {
-    return getUsersByBuildings(adminBuildingIds);
+  const scope = visibleUserScope(toBuildingMember(user));
+  if (scope.kind === 'admin-buildings') {
+    return getUsersByBuildings(scope.buildingIds);
   }
-
-  if (user.globalRole === GlobalRole.SUPERADMIN) {
-    return getAllUsers();
+  if (scope.kind === 'all') return getAllUsers();
+  if (scope.kind === 'owner-roomers') {
+    return getRoomersByBuildings(scope.buildingIds);
   }
-
-  const ownerBuildingIds = user.buildingUsers
-    .filter(bu => bu.role.name === 'Owner')
-    .map(bu => bu.buildingId);
-
-  if (ownerBuildingIds.length > 0) {
-    return getRoomersByBuildings(ownerBuildingIds);
-  }
-
   return [];
 }
 
@@ -459,7 +447,9 @@ router.post(
       );
 
       const relation = relationForRole(roleName as string);
-      const unitRelationType = relation ? UnitRelationType[relation] : undefined;
+      const unitRelationType = relation
+        ? UnitRelationType[relation]
+        : undefined;
 
       const {user, buildingUser} = await createUserWithRole(
         {email, firstName, lastName, phone, passwordPlain: password},

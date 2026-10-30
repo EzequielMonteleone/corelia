@@ -12,6 +12,7 @@ Dos apps. El frontend no toca Prisma ni la base.
 | `backend/routes/` | HTTP: auth, params, status, `{error}` |
 | `backend/services/` | Prisma, permisos, orquestación |
 | `backend/lib/` | Reglas puras y su `*.test.ts` |
+| `backend/types/` | Tipos compartidos. Las funciones siguen en `lib` |
 | `backend/server.ts` | Montar cada router nuevo |
 | `frontend/src/app/[locale]/dashboard/` | Pantallas |
 | `frontend/src/hooks/` | TanStack Query. Único lugar que llama a `apiClient` |

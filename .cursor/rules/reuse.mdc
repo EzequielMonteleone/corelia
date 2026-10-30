@@ -10,6 +10,7 @@ Antes de agregar una función, constante o regla, buscá en `backend/lib/`. Si e
 | Pregunta | Dónde está |
 | --- | --- |
 | ¿Entra o administra este edificio? | `buildingAccess.ts` `canAccessBuilding` |
+| ¿Qué forma tiene el usuario cargado, su unidad o el vínculo? | `backend/types/member.ts` `MembershipUser`, `LinkedUnit`, `UnitLink` |
 | ¿Puede editar, borrar o asignar un rol y unidades? | `userAccess.ts` |
 | ¿Cuánto está cobrado, reservado o todavía se puede pagar? | `money.ts` |
 | ¿El turno es válido, pasado o está lleno? | `reservationRules.ts` |

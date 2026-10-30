@@ -1,5 +1,6 @@
 import {GlobalRole} from '@prisma/client';
 import {findUserById} from './userService.js';
+import {buildingIsOpen} from '../lib/buildingAccess.js';
 import {asBuildingRole, type ChatActor} from '../lib/chatAccess.js';
 
 export async function loadChatActor(userId: string): Promise<ChatActor | null> {
@@ -8,7 +9,7 @@ export async function loadChatActor(userId: string): Promise<ChatActor | null> {
 
   const buildings: ChatActor['buildings'] = [];
   for (const membership of user.buildingUsers) {
-    if (membership.building.deleted || !membership.building.active) continue;
+    if (!buildingIsOpen(membership.building)) continue;
     const role = asBuildingRole(membership.role.name);
     if (!role) continue;
     buildings.push({
@@ -22,7 +23,8 @@ export async function loadChatActor(userId: string): Promise<ChatActor | null> {
     userId: user.id,
     firstName: user.firstName,
     lastName: user.lastName,
-    globalRole: user.globalRole === GlobalRole.SUPERADMIN ? 'SUPERADMIN' : 'USER',
+    globalRole:
+      user.globalRole === GlobalRole.SUPERADMIN ? 'SUPERADMIN' : 'USER',
     buildings,
     units: user.userUnits.map(link => ({
       id: link.unitId,

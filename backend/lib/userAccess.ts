@@ -1,15 +1,22 @@
-import {asBuildingRole, type BuildingRoleName} from './buildingAccess.js';
+import {asBuildingRole} from './buildingAccess.js';
+import type {
+  BuildingMember,
+  BuildingRoleName,
+  GlobalRoleName,
+  LinkedUnit,
+  UnitRelationName,
+} from '../types/member.js';
 
 export const MIN_PASSWORD_LENGTH = 8;
 
-export type {BuildingRoleName} from './buildingAccess.js';
+export type {BuildingRoleName} from '../types/member.js';
 export {asBuildingRole} from './buildingAccess.js';
 
 export type AccessPerson = {
   id: string;
-  globalRole: 'SUPERADMIN' | 'USER';
-  buildings: {id: string; role: BuildingRoleName}[];
-  units: {id: string; buildingId: string}[];
+  globalRole: GlobalRoleName;
+  buildings: BuildingMember['buildings'];
+  units: LinkedUnit[];
   ownedUnitIds: string[];
 };
 
@@ -112,7 +119,10 @@ export function canManageUser(
 }
 
 /** Own profile, or someone canManageUser allows in a shared building. */
-export function canEditUser(actor: AccessPerson, target: AccessPerson): boolean {
+export function canEditUser(
+  actor: AccessPerson,
+  target: AccessPerson,
+): boolean {
   if (actor.id === target.id) return true;
 
   const buildingIds = [
@@ -123,7 +133,9 @@ export function canEditUser(actor: AccessPerson, target: AccessPerson): boolean 
   ];
   if (buildingIds.length === 0) return canManageUser(actor, target, '');
 
-  return buildingIds.some(buildingId => canManageUser(actor, target, buildingId));
+  return buildingIds.some(buildingId =>
+    canManageUser(actor, target, buildingId),
+  );
 }
 
 export type UnitSelection = 'none' | 'one' | 'many';
@@ -157,7 +169,7 @@ export function unitSelectionForRole(roleName: string): UnitSelection | null {
 export function roleCatalog(): {
   name: BuildingRoleName;
   unitSelection: UnitSelection;
-  relation: 'OWNER' | 'ROOMER' | null;
+  relation: UnitRelationName | null;
 }[] {
   const names: BuildingRoleName[] = ['Admin', 'Owner', 'Roomer'];
   return names.flatMap(name => {
@@ -173,7 +185,7 @@ export function assignableRoles(input: {
 }): {
   name: BuildingRoleName;
   unitSelection: UnitSelection;
-  relation: 'OWNER' | 'ROOMER' | null;
+  relation: UnitRelationName | null;
 }[] {
   const names: BuildingRoleName[] = ['Admin', 'Owner', 'Roomer'];
   return names.flatMap(name => {
@@ -184,7 +196,7 @@ export function assignableRoles(input: {
   });
 }
 
-export function relationForRole(roleName: string): 'OWNER' | 'ROOMER' | null {
+export function relationForRole(roleName: string): UnitRelationName | null {
   if (roleName === 'Owner') return 'OWNER';
   if (roleName === 'Roomer') return 'ROOMER';
   return null;
@@ -192,6 +204,33 @@ export function relationForRole(roleName: string): 'OWNER' | 'ROOMER' | null {
 
 export function canDeleteUser(actor: {globalRole: string}): boolean {
   return actor.globalRole === 'SUPERADMIN';
+}
+
+export type VisibleUserScope =
+  | {kind: 'admin-buildings'; buildingIds: string[]}
+  | {kind: 'all'}
+  | {kind: 'owner-roomers'; buildingIds: string[]}
+  | {kind: 'none'};
+
+/**
+ * Users this person can list. A superadmin who also administers a building
+ * sees that building's users, not every account.
+ */
+export function visibleUserScope(actor: BuildingMember): VisibleUserScope {
+  const adminIds = actor.buildings
+    .filter(building => building.role === 'Admin')
+    .map(building => building.id);
+  if (adminIds.length > 0) {
+    return {kind: 'admin-buildings', buildingIds: adminIds};
+  }
+  if (actor.globalRole === 'SUPERADMIN') return {kind: 'all'};
+  const ownerIds = actor.buildings
+    .filter(building => building.role === 'Owner')
+    .map(building => building.id);
+  if (ownerIds.length > 0) {
+    return {kind: 'owner-roomers', buildingIds: ownerIds};
+  }
+  return {kind: 'none'};
 }
 
 /** Cardinality and owner-owned units. Building membership of the ids stays in the route. */

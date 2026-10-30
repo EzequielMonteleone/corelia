@@ -2,6 +2,7 @@ import {AmenityReservationStatus, Prisma} from '@prisma/client';
 import {prisma} from '../prismaClient.js';
 import {findUserById} from './userService.js';
 import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
+import type {MembershipUser} from '../types/member.js';
 import {APP_TIMEZONE, zonedClock} from '../lib/zonedTime.js';
 import {
   amenityDaySlots,
@@ -53,23 +54,11 @@ function present(row: ReservationRow, viewerId: string, isManager: boolean) {
   };
 }
 
-function isManagerOf(
-  user: {
-    globalRole: string;
-    buildingUsers: {buildingId: string; role: {name: string}}[];
-  },
-  buildingId: string,
-) {
+function isManagerOf(user: MembershipUser, buildingId: string) {
   return canAccessBuilding(toBuildingMember(user), buildingId, 'admin');
 }
 
-function isMemberOf(
-  user: {
-    globalRole: string;
-    buildingUsers: {buildingId: string; role: {name: string}}[];
-  },
-  buildingId: string,
-) {
+function isMemberOf(user: MembershipUser, buildingId: string) {
   return canAccessBuilding(toBuildingMember(user), buildingId, 'member');
 }
 

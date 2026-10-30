@@ -1,6 +1,17 @@
 import type {Request} from 'express';
 
-export type UserRoleName = 'Admin' | 'Owner' | 'Roomer';
+export type {
+  BuildingAccessLevel,
+  BuildingMember,
+  BuildingMembership,
+  BuildingRoleName,
+  GlobalRoleName,
+  LinkedUnit,
+  ListedBuildings,
+  MembershipUser,
+  UnitLink,
+  UnitRelationName,
+} from './member.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
