@@ -3,6 +3,16 @@ import apiClient from '@/lib/apiClient';
 import {UserAuditLog, UserData} from '@/types/user';
 import {UserCreateFormValues} from '@/schemas/user';
 
+export function useProfile() {
+  return useQuery<UserData>({
+    queryKey: ['users', 'me'],
+    queryFn: async () => {
+      const res = await apiClient.get('/users/me');
+      return res.data;
+    },
+  });
+}
+
 export function useUsers() {
   return useQuery<UserData[]>({
     queryKey: ['users'],

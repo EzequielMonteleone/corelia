@@ -58,7 +58,9 @@
   },
   "Users": {
     "title": "Usuarios",
-    "description": "Administra el acceso global y roles de los usuarios.",
+    "descriptionAll": "Todos los usuarios del sistema.",
+    "descriptionBuilding": "Usuarios del edificio que administra.",
+    "EMAIL_ALREADY_EXISTS": "Ese email ya está en uso.",
     "inviteUser": "Invitar Usuario",
     "searchPlaceholder": "Buscar por nombre o email...",
     "loading": "Cargando usuarios...",
@@ -406,10 +408,22 @@
     "amenities": "Amenities",
     "household": "Grupo del lote",
     "claims": "Reclamos",
-    "chat": "Chat"
+    "chat": "Chat",
+    "profile": "Perfil"
+  },
+  "Profile": {
+    "title": "Perfil",
+    "description": "Actualizá tu nombre, contacto y contraseña.",
+    "loading": "Cargando perfil...",
+    "save": "Guardar perfil"
   },
   "Footer": {
     "copyright": "© 2026 Corelia Platform. Construido para la excelencia."
+  },
+  "Access": {
+    "noAccessTitle": "No tenés acceso",
+    "noAccessBody": "Esta sección no está disponible para tu usuario.",
+    "goHome": "Ir al inicio"
   },
   "Auth": {
     "loginError": "Error al iniciar sesión",

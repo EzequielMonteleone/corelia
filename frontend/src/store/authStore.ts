@@ -10,6 +10,11 @@ interface AuthState {
   isAuthenticated: boolean;
   _hasHydrated: boolean;
   setAuth: (user: UserData, token: string) => void;
+  patchUser: (
+    patch: Pick<UserData, 'email' | 'firstName' | 'lastName'> & {
+      phone?: string;
+    },
+  ) => void;
   logout: () => void;
   setHasHydrated: (state: boolean) => void;
 }
@@ -27,6 +32,14 @@ export const useAuthStore = create<AuthState>()(
             state.user = user;
             state.token = token;
             state.isAuthenticated = true;
+          }),
+        patchUser: patch =>
+          set(state => {
+            if (!state.user) return;
+            state.user.email = patch.email;
+            state.user.firstName = patch.firstName;
+            state.user.lastName = patch.lastName;
+            state.user.phone = patch.phone;
           }),
         logout: () => {
           queryClient.clear();

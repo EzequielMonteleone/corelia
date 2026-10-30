@@ -9,6 +9,7 @@ import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
 import {useBuildings} from '@/hooks/useBuildings';
 import {useCollectionSummary} from '@/hooks/useExpenses';
+import {canAccessPath} from '@/lib/navAccess';
 
 export default function DashboardPage() {
   const {user, logout} = useAuthStore();
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const tExpenses = useTranslations('Expenses');
   const {data: buildings = []} = useBuildings();
   const isSuperAdmin = user?.globalRole === 'SUPERADMIN';
+  const canListUsers = canAccessPath(user, '/dashboard/users');
   const [selectedBuildingId, setSelectedBuildingId] = useState('');
 
   const activeBuildingId = useMemo(
@@ -112,12 +114,16 @@ export default function DashboardPage() {
             </h3>
             <p className="text-gray-400 text-sm">{t('buildingsCardDesc')}</p>
           </Card>
-          <Card className="p-6 hover:border-indigo-500/50 cursor-pointer">
-            <h3 className="text-xl font-semibold mb-2 group-hover:text-indigo-400">
-              {t('usersCard')}
-            </h3>
-            <p className="text-gray-400 text-sm">{t('usersCardDesc')}</p>
-          </Card>
+          {canListUsers && (
+            <Link href="/dashboard/users">
+              <Card className="p-6 hover:border-indigo-500/50 cursor-pointer">
+                <h3 className="text-xl font-semibold mb-2 group-hover:text-indigo-400">
+                  {t('usersCard')}
+                </h3>
+                <p className="text-gray-400 text-sm">{t('usersCardDesc')}</p>
+              </Card>
+            </Link>
+          )}
           <Link href="/dashboard/expenses">
             <Card className="p-6 hover:border-purple-500/50 cursor-pointer">
               <h3 className="text-xl font-semibold mb-2 group-hover:text-purple-400">

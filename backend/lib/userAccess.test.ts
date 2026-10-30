@@ -51,7 +51,7 @@ const superadmin = person({
 });
 
 describe('visibleUserScope', () => {
-  it('keeps a superadmin who administers a building on those buildings', () => {
+  it('lists every account for a superadmin, including one who administers a building', () => {
     assert.deepEqual(
       visibleUserScope(
         person({
@@ -59,17 +59,21 @@ describe('visibleUserScope', () => {
           buildings: [{id: buildingId, role: 'Admin'}],
         }),
       ),
-      {kind: 'admin-buildings', buildingIds: [buildingId]},
+      {kind: 'all'},
     );
-  });
-
-  it('lists every account when a superadmin administers none', () => {
     assert.deepEqual(visibleUserScope(person({globalRole: 'SUPERADMIN'})), {
       kind: 'all',
     });
   });
 
-  it('lists roomers for an owner and ignores a roomer membership', () => {
+  it('lists the buildings an admin administers', () => {
+    assert.deepEqual(
+      visibleUserScope(person({buildings: [{id: buildingId, role: 'Admin'}]})),
+      {kind: 'admin-buildings', buildingIds: [buildingId]},
+    );
+  });
+
+  it('shows nobody to an owner or a roomer', () => {
     assert.deepEqual(
       visibleUserScope(
         person({
@@ -79,11 +83,8 @@ describe('visibleUserScope', () => {
           ],
         }),
       ),
-      {kind: 'owner-roomers', buildingIds: [buildingId]},
+      {kind: 'none'},
     );
-  });
-
-  it('shows nobody to a roomer', () => {
     assert.deepEqual(
       visibleUserScope(person({buildings: [{id: buildingId, role: 'Roomer'}]})),
       {kind: 'none'},

@@ -209,26 +209,19 @@ export function canDeleteUser(actor: {globalRole: string}): boolean {
 export type VisibleUserScope =
   | {kind: 'admin-buildings'; buildingIds: string[]}
   | {kind: 'all'}
-  | {kind: 'owner-roomers'; buildingIds: string[]}
   | {kind: 'none'};
 
 /**
- * Users this person can list. A superadmin who also administers a building
- * sees that building's users, not every account.
+ * Users this person can list. A superadmin sees every account.
+ * An admin sees the users of the buildings they administer.
  */
 export function visibleUserScope(actor: BuildingMember): VisibleUserScope {
+  if (actor.globalRole === 'SUPERADMIN') return {kind: 'all'};
   const adminIds = actor.buildings
     .filter(building => building.role === 'Admin')
     .map(building => building.id);
   if (adminIds.length > 0) {
     return {kind: 'admin-buildings', buildingIds: adminIds};
-  }
-  if (actor.globalRole === 'SUPERADMIN') return {kind: 'all'};
-  const ownerIds = actor.buildings
-    .filter(building => building.role === 'Owner')
-    .map(building => building.id);
-  if (ownerIds.length > 0) {
-    return {kind: 'owner-roomers', buildingIds: ownerIds};
   }
   return {kind: 'none'};
 }

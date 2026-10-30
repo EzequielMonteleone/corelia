@@ -147,7 +147,13 @@ export default function UsersPage() {
 
   return (
     <div className="p-8">
-      <PageHeader title={t('title')} description={t('description')}>
+      <PageHeader
+        title={t('title')}
+        description={
+          actor?.globalRole === 'SUPERADMIN'
+            ? t('descriptionAll')
+            : t('descriptionBuilding')
+        }>
         <Button
           className="gap-2 bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20"
           onClick={() => {

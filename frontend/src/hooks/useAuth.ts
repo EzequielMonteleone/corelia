@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {useRouter} from '@/i18n/navigation';
 import apiClient from '@/lib/apiClient';
+import {firstAccessiblePath} from '@/lib/navAccess';
 import {useAuthStore} from '@/store/authStore';
 import type {LoginFormValues} from '@/schemas/auth';
 import {isAxiosError} from 'axios';
@@ -17,7 +18,7 @@ export function useLoginMutation() {
     onSuccess: data => {
       const {user, token} = data;
       setAuth(user, token);
-      router.push('/dashboard');
+      router.push(firstAccessiblePath(user));
     },
   });
 }

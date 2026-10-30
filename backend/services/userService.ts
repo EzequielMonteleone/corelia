@@ -140,22 +140,6 @@ export async function getUsersByBuildings(buildingIds: string[]) {
   });
 }
 
-/** Users with role Roomer in the given buildings (for Owner visibility). */
-export async function getRoomersByBuildings(buildingIds: string[]) {
-  return prisma.user.findMany({
-    where: {
-      deleted: false,
-      buildingUsers: {
-        some: {
-          buildingId: {in: buildingIds},
-          role: {name: 'Roomer'},
-        },
-      },
-    },
-    include: userInclude,
-  });
-}
-
 export async function updateUser(
   id: string,
   data: {

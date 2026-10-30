@@ -59,3 +59,18 @@ export const userEditSchema = z.object({
 
 export type UserCreateFormValues = z.infer<typeof userCreateSchema>;
 export type UserEditFormValues = z.infer<typeof userEditSchema>;
+
+export const profileSchema = z.object({
+  email: z.email('Email inválido'),
+  firstName: z.string().min(2, 'Mínimo 2 caracteres'),
+  lastName: z.string().min(2, 'Mínimo 2 caracteres'),
+  phone: z.string().optional(),
+  password: z
+    .string()
+    .refine(value => value.length === 0 || value.length >= 8, {
+      message: 'Mínimo 8 caracteres',
+    }),
+  currentPassword: z.string().optional(),
+});
+
+export type ProfileFormValues = z.infer<typeof profileSchema>;

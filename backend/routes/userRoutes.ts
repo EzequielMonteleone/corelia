@@ -11,7 +11,6 @@ import {
   createUserWithRole,
   getAllUsers,
   getUsersByBuildings,
-  getRoomersByBuildings,
   updateUser,
   updateUserBuildingAssignment,
   deleteUser,
@@ -137,11 +136,27 @@ async function getVisibleUsersForActor(actorId: string) {
     return getUsersByBuildings(scope.buildingIds);
   }
   if (scope.kind === 'all') return getAllUsers();
-  if (scope.kind === 'owner-roomers') {
-    return getRoomersByBuildings(scope.buildingIds);
-  }
   return [];
 }
+
+router.get(
+  '/me',
+  authMiddleware,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({error: 'UNAUTHENTICATED'});
+      }
+
+      const actor = await findUserById(req.user.id);
+      if (!actor) return res.status(404).json({error: 'USER_NOT_FOUND'});
+
+      return res.json(toPublicUser(actor));
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 router.get(
   '/:id/audit-logs',
@@ -312,6 +327,9 @@ router.put(
           m === 'PASSWORD_TOO_SHORT'
         ) {
           return res.status(400).json({error: m});
+        }
+        if (m.includes('Unique constraint failed on the fields: (`email`)')) {
+          return res.status(400).json({error: 'EMAIL_ALREADY_EXISTS'});
         }
       }
       next(err);

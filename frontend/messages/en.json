@@ -58,7 +58,9 @@
   },
   "Users": {
     "title": "Users",
-    "description": "Manage global access and user roles.",
+    "descriptionAll": "All users in the system.",
+    "descriptionBuilding": "Users of the building they administer.",
+    "EMAIL_ALREADY_EXISTS": "That email is already in use.",
     "inviteUser": "Invite User",
     "searchPlaceholder": "Search by name or email...",
     "loading": "Loading users...",
@@ -405,10 +407,22 @@
     "amenities": "Amenities",
     "household": "Household",
     "claims": "Claims",
-    "chat": "Chat"
+    "chat": "Chat",
+    "profile": "Profile"
+  },
+  "Profile": {
+    "title": "Profile",
+    "description": "Update your name, contact details, and password.",
+    "loading": "Loading profile...",
+    "save": "Save profile"
   },
   "Footer": {
     "copyright": "© 2026 Corelia Platform. Built for Excellence."
+  },
+  "Access": {
+    "noAccessTitle": "You don't have access",
+    "noAccessBody": "This section isn't available for your account.",
+    "goHome": "Go home"
   },
   "Auth": {
     "loginError": "Error signing in",

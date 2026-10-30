@@ -5,9 +5,12 @@ import {useAuthStore} from '@/store/authStore';
 import {ArrowRight, Building2, ShieldCheck, Zap} from 'lucide-react';
 import {useTranslations} from 'next-intl';
 import {BrandLogo} from '@/components/brand/BrandLogo';
+import {firstAccessiblePath} from '@/lib/navAccess';
 
 export default function Home() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const user = useAuthStore(state => state.user);
+  const homeHref = isAuthenticated ? firstAccessiblePath(user) : '/login';
   const t = useTranslations('Index');
   const tCommon = useTranslations('Common');
   const tFooter = useTranslations('Footer');
@@ -25,7 +28,7 @@ export default function Home() {
       <nav className="relative z-50 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto backdrop-blur-sm">
         <BrandLogo />
         <Link
-          href={isAuthenticated ? '/dashboard' : '/login'}
+          href={homeHref}
           className="px-5 py-2 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all duration-200">
           {isAuthenticated ? tCommon('dashboard') : tCommon('login')}
         </Link>
@@ -51,7 +54,7 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
           <Link
-            href={isAuthenticated ? '/dashboard' : '/login'}
+            href={homeHref}
             className="group relative flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-2xl font-semibold transition-all duration-300 shadow-xl shadow-blue-600/20 hover:scale-105">
             {t('cta')}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

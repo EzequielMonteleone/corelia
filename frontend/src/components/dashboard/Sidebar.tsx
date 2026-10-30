@@ -7,6 +7,7 @@ import {
   Users,
   ShieldCheck,
   LogOut,
+  CircleUser,
   Receipt,
   CalendarDays,
   MessageSquare,
@@ -14,6 +15,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import {useAuthStore} from '@/store/authStore';
+import {canAccessPath} from '@/lib/navAccess';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/Button';
 import {useTranslations} from 'next-intl';
@@ -27,7 +29,6 @@ function useMenuItems() {
       icon: LayoutDashboard,
       label: tCommon('dashboard'),
       href: '/dashboard',
-      roles: ['admin'],
     },
     {
       icon: MessageSquare,
@@ -38,43 +39,41 @@ function useMenuItems() {
       icon: Building2,
       label: tCommon('buildings'),
       href: '/dashboard/buildings',
-      roles: ['admin', 'owner'],
     },
     {
       icon: Users,
       label: tCommon('users'),
       href: '/dashboard/users',
-      roles: ['admin', 'owner'],
     },
     {
       icon: Receipt,
       label: tSidebar('expenses'),
       href: '/dashboard/expenses',
-      roles: ['admin', 'owner', 'roomer'],
     },
     {
       icon: CalendarDays,
       label: tSidebar('amenities'),
       href: '/dashboard/amenities',
-      roles: ['admin', 'owner', 'roomer'],
     },
     {
       icon: Home,
       label: tSidebar('household'),
       href: '/dashboard/household',
-      roles: ['admin', 'owner', 'roomer'],
     },
     {
       icon: ClipboardList,
       label: tSidebar('claims'),
       href: '/dashboard/claims',
-      roles: ['admin', 'owner', 'roomer'],
+    },
+    {
+      icon: CircleUser,
+      label: tSidebar('profile'),
+      href: '/dashboard/profile',
     },
     {
       icon: ShieldCheck,
       label: tSidebar('rolesAndPermissions'),
       href: '/dashboard/roles',
-      justSuperAdmin: true,
     },
   ];
 }
@@ -93,39 +92,31 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-4 space-y-2 mt-4">
-        {menuItems.map(item => {
-          const isActive = pathname === item.href;
-          const isSuperAdmin = user?.globalRole === 'SUPERADMIN';
+        {menuItems
+          .filter(item => canAccessPath(user, item.href))
+          .map(item => {
+            const isActive = pathname === item.href;
 
-          if (item.justSuperAdmin && !isSuperAdmin) return null;
-
-          if (item.roles && !isSuperAdmin) {
-            const hasRequiredRole = user?.buildingUsers?.some(bu =>
-              item.roles?.includes(bu.role?.name.toLowerCase() || ''),
-            );
-            if (!hasRequiredRole) return null;
-          }
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl transition-all group',
-                isActive
-                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/50'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white',
-              )}>
-              <item.icon
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
                 className={cn(
-                  'w-5 h-5 transition-colors',
-                  isActive ? 'text-blue-400' : 'group-hover:text-white',
-                )}
-              />
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
+                  'flex items-center gap-3 px-4 py-3 rounded-xl transition-all group',
+                  isActive
+                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/50'
+                    : 'text-gray-400 hover:bg-white/5 hover:text-white',
+                )}>
+                <item.icon
+                  className={cn(
+                    'w-5 h-5 transition-colors',
+                    isActive ? 'text-blue-400' : 'group-hover:text-white',
+                  )}
+                />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
       </nav>
 
       <div className="p-4 border-t border-white/10">
