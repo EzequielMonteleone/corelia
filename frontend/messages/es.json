@@ -407,12 +407,43 @@
       "CLOSED": "Cerrado"
     }
   },
+  "Notifications": {
+    "title": "Avisos",
+    "empty": "No hay avisos.",
+    "enableBrowser": "Activar avisos del navegador",
+    "bylaw": "Nuevo reglamento: {title}",
+    "notice": "Nuevo aviso: {title}",
+    "claim": "Tu reclamo «{title}» está {status}"
+  },
+  "Documents": {
+    "title": "Documentos",
+    "description": "Reglamento y avisos del edificio.",
+    "selectBuilding": "Elegí un edificio",
+    "loading": "Cargando documentos...",
+    "empty": "No hay documentos.",
+    "newTitle": "Nuevo documento",
+    "titleLabel": "Título",
+    "bodyLabel": "Texto",
+    "kindLabel": "Tipo",
+    "kind": {
+      "BYLAW": "Reglamento",
+      "NOTICE": "Aviso"
+    },
+    "submit": "Publicar",
+    "createSuccess": "Documento publicado.",
+    "saveError": "No se pudo guardar el documento.",
+    "invalid": "Revisá el título y el texto.",
+    "forbidden": "No tenés permiso para publicar en este edificio.",
+    "notFound": "Ese documento no existe.",
+    "chatNotConfigured": "El asistente no está configurado. El documento no se publicó."
+  },
   "Sidebar": {
     "rolesAndPermissions": "Roles y Permisos",
     "expenses": "Expensas",
     "amenities": "Amenities",
     "household": "Grupo del lote",
     "claims": "Reclamos",
+    "documents": "Documentos",
     "chat": "Chat",
     "profile": "Perfil"
   },

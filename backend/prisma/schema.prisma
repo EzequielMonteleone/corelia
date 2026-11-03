@@ -49,6 +49,7 @@ model Building {
   knowledgeChunks KnowledgeChunk[]
   vehicles       Vehicle[]
   claims         Claim[]
+  notifications  Notification[]
 }
 
 enum GlobalRole {
@@ -77,6 +78,7 @@ model User {
   authoredClaims      Claim[]      @relation("ClaimAuthor")
   repliedClaims       Claim[]      @relation("ClaimReplier")
   claimDrafts         ClaimDraft[]
+  notifications       Notification[]
 }
 
 model Role {
@@ -457,6 +459,29 @@ model ClaimDraft {
 
   @@index([threadId, status])
   @@index([userId])
+}
+
+enum NotificationKind {
+  BYLAW_PUBLISHED
+  NOTICE_PUBLISHED
+  CLAIM_UPDATED
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  buildingId  String
+  kind        NotificationKind
+  entityId    String
+  title       String
+  claimStatus ClaimStatus?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 enum KnowledgeSourceType {

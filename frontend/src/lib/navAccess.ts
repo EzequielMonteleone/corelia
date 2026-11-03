@@ -16,6 +16,7 @@ export const navRules: readonly NavRule[] = [
   {href: '/dashboard/amenities', roles: ['admin', 'owner', 'roomer']},
   {href: '/dashboard/household', roles: ['admin', 'owner', 'roomer']},
   {href: '/dashboard/claims', roles: ['admin', 'owner', 'roomer']},
+  {href: '/dashboard/documents', roles: ['admin', 'owner', 'roomer']},
   {href: '/dashboard/profile'},
   {href: '/dashboard/roles', justSuperAdmin: true},
 ];

@@ -22,6 +22,8 @@ import {
   type ClaimStatusName,
   type ClaimUpdateInput,
 } from '../lib/claimRules.js';
+import {claimUpdateNotice} from '../lib/notificationRules.js';
+import {notifyClaimUpdated} from './notificationService.js';
 
 const DRAFT_TTL_MS = 30 * 60 * 1000;
 
@@ -286,7 +288,14 @@ export async function updateClaimForActor(
 ) {
   const existing = await prisma.claim.findUnique({
     where: {id: claimId},
-    select: {id: true, buildingId: true},
+    select: {
+      id: true,
+      buildingId: true,
+      authorUserId: true,
+      title: true,
+      status: true,
+      reply: true,
+    },
   });
   if (!existing) throw new ClaimError('CLAIM_NOT_FOUND', 404);
   if (!canManageClaim(actor, existing.buildingId)) {
@@ -296,10 +305,32 @@ export async function updateClaimForActor(
   const update = parseClaimUpdate(input);
   if (update === 'INVALID_CLAIM') throw new ClaimError('INVALID_CLAIM');
 
-  const row = await prisma.claim.update({
-    where: {id: existing.id},
-    data: claimUpdateData(actor.userId, update),
-    include: claimInclude,
+  const notice = claimUpdateNotice(
+    {
+      authorUserId: existing.authorUserId,
+      status: existing.status,
+      reply: existing.reply,
+    },
+    update,
+    actor.userId,
+  );
+
+  const row = await prisma.$transaction(async tx => {
+    const updated = await tx.claim.update({
+      where: {id: existing.id},
+      data: claimUpdateData(actor.userId, update),
+      include: claimInclude,
+    });
+    if (notice) {
+      await notifyClaimUpdated(tx, {
+        userId: existing.authorUserId,
+        buildingId: existing.buildingId,
+        entityId: existing.id,
+        title: existing.title,
+        claimStatus: notice.claimStatus,
+      });
+    }
+    return updated;
   });
   return presentClaim(row, true);
 }

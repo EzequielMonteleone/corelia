@@ -406,12 +406,43 @@
       "CLOSED": "Closed"
     }
   },
+  "Notifications": {
+    "title": "Notices",
+    "empty": "There are no notices.",
+    "enableBrowser": "Turn on browser notices",
+    "bylaw": "New bylaws: {title}",
+    "notice": "New notice: {title}",
+    "claim": "Your claim “{title}” is {status}"
+  },
+  "Documents": {
+    "title": "Documents",
+    "description": "Building bylaws and notices.",
+    "selectBuilding": "Choose a building",
+    "loading": "Loading documents...",
+    "empty": "There are no documents.",
+    "newTitle": "New document",
+    "titleLabel": "Title",
+    "bodyLabel": "Text",
+    "kindLabel": "Type",
+    "kind": {
+      "BYLAW": "Bylaws",
+      "NOTICE": "Notice"
+    },
+    "submit": "Publish",
+    "createSuccess": "Document published.",
+    "saveError": "The document could not be saved.",
+    "invalid": "Check the title and the text.",
+    "forbidden": "You cannot publish in this building.",
+    "notFound": "That document does not exist.",
+    "chatNotConfigured": "The assistant is not configured. The document was not published."
+  },
   "Sidebar": {
     "rolesAndPermissions": "Roles and Permissions",
     "expenses": "Expenses",
     "amenities": "Amenities",
     "household": "Household",
     "claims": "Claims",
+    "documents": "Documents",
     "chat": "Chat",
     "profile": "Profile"
   },

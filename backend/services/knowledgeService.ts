@@ -4,6 +4,7 @@ import {KnowledgeSourceType} from '@prisma/client';
 import {prisma} from '../prismaClient.js';
 import {chunkText, contentHash} from '../lib/chunkText.js';
 import {canSearchBuildingDocs, type ChatActor} from '../lib/chatAccess.js';
+import {notifyDocumentPublished} from './notificationService.js';
 import {
   EMBEDDING_DIMENSIONS,
   embeddingModel,
@@ -125,6 +126,7 @@ export async function createBuildingDocument(params: {
   title: string;
   body: string;
   kind: 'BYLAW' | 'NOTICE';
+  actorUserId: string;
 }) {
   const document = await prisma.buildingDocument.create({
     data: {
@@ -135,6 +137,13 @@ export async function createBuildingDocument(params: {
     },
   });
   await indexBuildingDocument(document.id);
+  await notifyDocumentPublished({
+    buildingId: document.buildingId,
+    entityId: document.id,
+    title: document.title,
+    kind: params.kind,
+    actorUserId: params.actorUserId,
+  });
   return document;
 }
 

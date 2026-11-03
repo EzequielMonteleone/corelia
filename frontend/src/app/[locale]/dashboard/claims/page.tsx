@@ -1,6 +1,7 @@
 'use client';
 
-import {SubmitEvent, useMemo, useState} from 'react';
+import {SubmitEvent, useEffect, useMemo, useState} from 'react';
+import {useSearchParams} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {toast} from 'sonner';
 import {errorCode} from '@/lib/apiError';
@@ -11,7 +12,11 @@ import {Select} from '@/components/ui/Select';
 import {Input} from '@/components/ui/Input';
 import {Button} from '@/components/ui/Button';
 import {ClaimCard} from '@/components/dashboard/claims/ClaimCard';
-import {useBuildingAmenities, useBuildingUnits, useBuildings} from '@/hooks/useBuildings';
+import {
+  useBuildingAmenities,
+  useBuildingUnits,
+  useBuildings,
+} from '@/hooks/useBuildings';
 import {useClaims, useCreateClaim, useUpdateClaim} from '@/hooks/useClaims';
 import {ClaimUpdateInput} from '@/types/claims';
 
@@ -32,11 +37,26 @@ function parseTarget(value: string) {
 
 export default function ClaimsPage() {
   const t = useTranslations('Claims');
+  const searchParams = useSearchParams();
+  const queryBuildingId = searchParams.get('buildingId') ?? '';
+  const claimId = searchParams.get('claimId');
   const {data: buildings = [], isLoading: loadingBuildings} = useBuildings();
-  const [selectedBuildingId, setSelectedBuildingId] = useState('');
-  const [selectedTarget, setSelectedTarget] = useState('');
+  const [buildingChoice, setBuildingChoice] = useState<{
+    forQuery: string;
+    value: string;
+  } | null>(null);
+  const [targetChoice, setTargetChoice] = useState<{
+    forClaim: string | null;
+    value: string;
+  }>({forClaim: claimId, value: ''});
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const selectedBuildingId =
+    buildingChoice?.forQuery === queryBuildingId
+      ? buildingChoice.value
+      : queryBuildingId;
+  const selectedTarget =
+    targetChoice.forClaim === claimId ? targetChoice.value : '';
 
   const activeBuildingId = useMemo(
     () => selectedBuildingId || (buildings.length === 1 ? buildings[0].id : ''),
@@ -48,12 +68,21 @@ export default function ClaimsPage() {
   const {data: amenityData, isLoading: loadingAmenities} = useBuildingAmenities(
     activeBuildingId || null,
   );
-  const amenities = (amenityData?.amenities ?? []).filter(amenity => amenity.isEnabled);
+  const amenities = (amenityData?.amenities ?? []).filter(
+    amenity => amenity.isEnabled,
+  );
   const target = parseTarget(selectedTarget);
   const claimsQuery = useClaims(activeBuildingId || null, target);
   const createClaim = useCreateClaim();
   const updateClaim = useUpdateClaim();
   const list = claimsQuery.data;
+
+  useEffect(() => {
+    if (!claimId || !list?.claims.some(claim => claim.id === claimId)) return;
+    document
+      .getElementById(`claim-${claimId}`)
+      ?.scrollIntoView({block: 'center'});
+  }, [claimId, list]);
 
   const toastError = (error: unknown) => {
     const code = errorCode(error);
@@ -112,8 +141,11 @@ export default function ClaimsPage() {
               className="w-56 shrink-0"
               value={activeBuildingId}
               onChange={event => {
-                setSelectedBuildingId(event.target.value);
-                setSelectedTarget('');
+                setBuildingChoice({
+                  forQuery: queryBuildingId,
+                  value: event.target.value,
+                });
+                setTargetChoice({forClaim: claimId, value: ''});
               }}>
               <option value="">{t('selectBuilding')}</option>
               {buildings.map(building => (
@@ -127,7 +159,9 @@ export default function ClaimsPage() {
             <Select
               className="w-56 shrink-0"
               value={selectedTarget}
-              onChange={event => setSelectedTarget(event.target.value)}>
+              onChange={event =>
+                setTargetChoice({forClaim: claimId, value: event.target.value})
+              }>
               <option value="">{t('allSubjects')}</option>
               {units.length > 0 && (
                 <optgroup label={t('units')}>
@@ -156,13 +190,17 @@ export default function ClaimsPage() {
         <LoadingState message={t('loading')} />
       ) : !activeBuildingId ? (
         <Card>
-          <CardContent className="p-8 text-gray-400">{t('selectBuilding')}</CardContent>
+          <CardContent className="p-8 text-gray-400">
+            {t('selectBuilding')}
+          </CardContent>
         </Card>
       ) : claimsQuery.isLoading ? (
         <LoadingState message={t('loading')} />
       ) : claimsQuery.isError ? (
         <Card>
-          <CardContent className="p-8 text-gray-400">{t('saveError')}</CardContent>
+          <CardContent className="p-8 text-gray-400">
+            {t('saveError')}
+          </CardContent>
         </Card>
       ) : (
         <div className="grid gap-6">
@@ -170,7 +208,9 @@ export default function ClaimsPage() {
             <form
               onSubmit={submit}
               className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h2 className="text-lg font-semibold text-white">{t('newTitle')}</h2>
+              <h2 className="text-lg font-semibold text-white">
+                {t('newTitle')}
+              </h2>
               <label className={fieldClass}>
                 <span className={labelClass}>{t('titleLabel')}</span>
                 <Input
@@ -204,7 +244,11 @@ export default function ClaimsPage() {
               <ClaimCard
                 key={claim.id}
                 claim={claim}
-                pending={updateClaim.isPending && updateClaim.variables?.id === claim.id}
+                highlighted={claim.id === claimId}
+                pending={
+                  updateClaim.isPending &&
+                  updateClaim.variables?.id === claim.id
+                }
                 onSave={input => saveClaim(claim.id, input)}
               />
             ))}

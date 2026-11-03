@@ -16,17 +16,25 @@ function statusIntent(status: ClaimStatus) {
 export function ClaimCard({
   claim,
   pending,
+  highlighted = false,
   onSave,
 }: {
   claim: Claim;
   pending: boolean;
+  highlighted?: boolean;
   onSave: (input: ClaimUpdateInput) => void;
 }) {
   const t = useTranslations('Claims');
   const author = `${claim.author.firstName} ${claim.author.lastName}`;
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/5 p-5">
+    <article
+      id={`claim-${claim.id}`}
+      className={`rounded-2xl border bg-white/5 p-5 ${
+        highlighted
+          ? 'border-blue-500/50 ring-1 ring-blue-500/40'
+          : 'border-white/10'
+      }`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-white">{claim.title}</h3>

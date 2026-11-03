@@ -1,7 +1,7 @@
 import AuthGuard from '@/components/auth/auth-guard';
 import {NavGate} from '@/components/dashboard/NavGate';
 import Sidebar from '@/components/dashboard/Sidebar';
-import {ReactNode} from 'react';
+import {ReactNode, Suspense} from 'react';
 
 export default function DashboardLayout({children}: {children: ReactNode}) {
   return (
@@ -9,7 +9,9 @@ export default function DashboardLayout({children}: {children: ReactNode}) {
       <div className="flex min-h-screen bg-[#0a0a0a]">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
-          <NavGate>{children}</NavGate>
+          <Suspense fallback={null}>
+            <NavGate>{children}</NavGate>
+          </Suspense>
         </main>
       </div>
     </AuthGuard>

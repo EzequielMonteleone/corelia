@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Home,
   ClipboardList,
+  FileText,
 } from 'lucide-react';
 import {useAuthStore} from '@/store/authStore';
 import {canAccessPath} from '@/lib/navAccess';
@@ -21,6 +22,7 @@ import {Button} from '@/components/ui/Button';
 import {useTranslations} from 'next-intl';
 import {BrandLogo} from '@/components/brand/BrandLogo';
 import {LocaleSwitcher} from '@/components/i18n/LocaleSwitcher';
+import {NotificationBell} from '@/components/dashboard/NotificationBell';
 
 function useMenuItems() {
   const tCommon = useTranslations('Common');
@@ -67,6 +69,11 @@ function useMenuItems() {
       href: '/dashboard/claims',
     },
     {
+      icon: FileText,
+      label: tSidebar('documents'),
+      href: '/dashboard/documents',
+    },
+    {
       icon: CircleUser,
       label: tSidebar('profile'),
       href: '/dashboard/profile',
@@ -88,8 +95,9 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-[#0a0a0a] border-r border-white/10 flex flex-col h-screen sticky top-0">
-      <div className="px-6 pt-7 pb-2">
-        <BrandLogo />
+      <div className="flex items-start justify-between gap-2 px-6 pt-7 pb-2">
+        <BrandLogo className="text-[2rem]" />
+        <NotificationBell />
       </div>
 
       <nav className="flex-1 px-4 space-y-2 mt-4">
