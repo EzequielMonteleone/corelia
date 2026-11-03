@@ -29,12 +29,12 @@ El permiso vive en `backend/lib/` y se vuelve a chequear en el servicio. Seguí 
 
 ## Reclamos
 
-| Pregunta | Función |
-| --- | --- |
-| ¿Crea en esta unidad? | `claimCreateAccess` |
-| ¿Crea en este amenity? | `claimAmenityAccess` |
-| ¿Qué lista ve y qué puede crear? | `claimListScope` |
-| ¿Cambia estado o respuesta? | `canManageClaim` |
-| ¿Confirma este borrador? | `claimDraftConfirmAccess` |
+| Pregunta                         | Función                   |
+| -------------------------------- | ------------------------- |
+| ¿Crea en esta unidad?            | `claimCreateAccess`       |
+| ¿Crea en este amenity?           | `claimAmenityAccess`      |
+| ¿Qué lista ve y qué puede crear? | `claimListScope`          |
+| ¿Cambia estado o respuesta?      | `canManageClaim`          |
+| ¿Confirma este borrador?         | `claimDraftConfirmAccess` |
 
-Un reclamo de amenity lo ven los residentes de ese edificio. Un reclamo de unidad lo ven el residente con el vínculo que coincide y quien administra el edificio.
+Un reclamo de amenity lo ven el propietario de ese edificio y quien administra el edificio. Un reclamo de unidad lo ven el residente con el vínculo que coincide y quien administra el edificio. El superadmin ve todos.

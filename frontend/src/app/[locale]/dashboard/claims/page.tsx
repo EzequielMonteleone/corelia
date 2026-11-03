@@ -76,6 +76,8 @@ export default function ClaimsPage() {
   const createClaim = useCreateClaim();
   const updateClaim = useUpdateClaim();
   const list = claimsQuery.data;
+  const showAmenities =
+    list?.canViewAmenityClaims === true && amenities.length > 0;
 
   useEffect(() => {
     if (!claimId || !list?.claims.some(claim => claim.id === claimId)) return;
@@ -130,7 +132,7 @@ export default function ClaimsPage() {
   const isLoading =
     loadingBuildings ||
     (!!activeBuildingId && (loadingUnits || loadingAmenities));
-  const showTarget = units.length > 0 || amenities.length > 0;
+  const showTarget = units.length > 0 || showAmenities;
 
   return (
     <div className="p-8">
@@ -172,7 +174,7 @@ export default function ClaimsPage() {
                   ))}
                 </optgroup>
               )}
-              {amenities.length > 0 && (
+              {showAmenities && (
                 <optgroup label={t('amenities')}>
                   {amenities.map(amenity => (
                     <option key={amenity.id} value={`amenity:${amenity.id}`}>

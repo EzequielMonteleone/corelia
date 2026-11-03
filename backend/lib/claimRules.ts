@@ -39,6 +39,7 @@ export type ClaimListScope =
       buildingAmenityId: string | null;
       canCreate: boolean;
       canCreateAmenity: boolean;
+      canViewAmenityClaims: boolean;
     };
 
 export type ClaimDraftSnapshot = {
@@ -102,12 +103,22 @@ export function canManageClaim(actor: ClaimActor, buildingId: string): boolean {
   return canAccessBuilding(actor, buildingId, 'admin');
 }
 
-/** An amenity belongs to the building, so any resident of that building can file it. */
+/** A common space belongs to the building. Only an owner of that building can file it. */
 export function claimAmenityAccess(
   actor: ClaimActor,
   buildingId: string,
 ): 'OK' | 'INSUFFICIENT_PERMISSIONS' {
-  return residentRole(actor, buildingId) ? 'OK' : 'INSUFFICIENT_PERMISSIONS';
+  return residentRole(actor, buildingId) === 'Owner'
+    ? 'OK'
+    : 'INSUFFICIENT_PERMISSIONS';
+}
+
+/** Admins see every claim. Owners also see common spaces. A roomer does not. */
+function canViewAmenityClaims(actor: ClaimActor, buildingId: string): boolean {
+  return (
+    canManageClaim(actor, buildingId) ||
+    residentRole(actor, buildingId) === 'Owner'
+  );
 }
 
 export function claimListScope(
@@ -118,6 +129,7 @@ export function claimListScope(
   const unitId = filter.unitId;
   const buildingAmenityId = filter.buildingAmenityId;
   const canCreateAmenity = claimAmenityAccess(actor, buildingId) === 'OK';
+  const viewAmenityClaims = canViewAmenityClaims(actor, buildingId);
 
   if (canManageClaim(actor, buildingId)) {
     if (buildingAmenityId) {
@@ -128,6 +140,7 @@ export function claimListScope(
         buildingAmenityId,
         canCreate: false,
         canCreateAmenity: false,
+        canViewAmenityClaims: true,
       };
     }
     return {
@@ -139,6 +152,7 @@ export function claimListScope(
         ? claimCreateAccess(actor, {id: unitId, buildingId}) === 'OK'
         : false,
       canCreateAmenity: false,
+      canViewAmenityClaims: true,
     };
   }
   if (!canAccessBuilding(actor, buildingId, 'member')) {
@@ -146,6 +160,9 @@ export function claimListScope(
   }
   const own = residentUnitIds(actor, buildingId);
   if (buildingAmenityId) {
+    if (!viewAmenityClaims) {
+      return {ok: false, error: 'INSUFFICIENT_PERMISSIONS'};
+    }
     return {
       ok: true,
       unitIds: [],
@@ -153,6 +170,7 @@ export function claimListScope(
       buildingAmenityId,
       canCreate: canCreateAmenity,
       canCreateAmenity,
+      canViewAmenityClaims: true,
     };
   }
   if (unitId && !own.includes(unitId)) {
@@ -161,10 +179,11 @@ export function claimListScope(
   return {
     ok: true,
     unitIds: unitId ? [unitId] : own,
-    includeAmenityClaims: !unitId,
+    includeAmenityClaims: !unitId && viewAmenityClaims,
     buildingAmenityId: null,
     canCreate: Boolean(unitId && own.includes(unitId)),
     canCreateAmenity,
+    canViewAmenityClaims: viewAmenityClaims,
   };
 }
 

@@ -79,12 +79,32 @@ describe('claimCreateAccess', () => {
 });
 
 describe('claimListScope', () => {
-  it('gives the admin every unit and no create flag', () => {
+  it('gives the admin every claim of the building and no create flag', () => {
     const scope = claimListScope(admin, buildingId);
     assert.equal(scope.ok, true);
     if (!scope.ok) return;
     assert.equal(scope.unitIds, null);
+    assert.equal(scope.includeAmenityClaims, true);
+    assert.equal(scope.canViewAmenityClaims, true);
     assert.equal(scope.canCreate, false);
+  });
+
+  it('lets a superadmin see every claim without a membership', () => {
+    const scope = claimListScope(actor({globalRole: 'SUPERADMIN'}), buildingId);
+    assert.equal(scope.ok, true);
+    if (!scope.ok) return;
+    assert.equal(scope.unitIds, null);
+    assert.equal(scope.includeAmenityClaims, true);
+    assert.equal(scope.canViewAmenityClaims, true);
+    assert.equal(scope.canCreate, false);
+    assert.equal(scope.canCreateAmenity, false);
+  });
+
+  it('refuses an admin of another building', () => {
+    const scope = claimListScope(admin, 'other');
+    assert.equal(scope.ok, false);
+    if (scope.ok) return;
+    assert.equal(scope.error, 'INSUFFICIENT_PERMISSIONS');
   });
 
   it('keeps create closed when an admin filters a unit', () => {
@@ -124,8 +144,8 @@ describe('claimListScope', () => {
     assert.equal(scope.error, 'UNIT_NOT_LINKED');
   });
 
-  it('lets a resident file an amenity claim and hides that from the admin', () => {
-    const resident = claimListScope(roomer, buildingId, {
+  it('lets an owner file a common-space claim and hides that from the admin', () => {
+    const resident = claimListScope(owner, buildingId, {
       buildingAmenityId: 'amenity-1',
     });
     assert.equal(resident.ok, true);
@@ -133,6 +153,7 @@ describe('claimListScope', () => {
     assert.equal(resident.canCreate, true);
     assert.equal(resident.canCreateAmenity, true);
     assert.equal(resident.includeAmenityClaims, true);
+    assert.equal(resident.canViewAmenityClaims, true);
 
     const managed = claimListScope(admin, buildingId);
     assert.equal(managed.ok, true);
@@ -141,13 +162,38 @@ describe('claimListScope', () => {
     assert.equal(managed.includeAmenityClaims, true);
   });
 
-  it('includes amenity claims when a resident does not filter', () => {
+  it('includes common-space claims when an owner does not filter', () => {
     const scope = claimListScope(owner, buildingId);
     assert.equal(scope.ok, true);
     if (!scope.ok) return;
+    assert.deepEqual(scope.unitIds, ['unit-1']);
     assert.equal(scope.includeAmenityClaims, true);
+    assert.equal(scope.canViewAmenityClaims, true);
     assert.equal(scope.canCreate, false);
     assert.equal(scope.canCreateAmenity, true);
+  });
+
+  it('limits a roomer to claims of the linked unit', () => {
+    const scope = claimListScope(roomer, buildingId);
+    assert.equal(scope.ok, true);
+    if (!scope.ok) return;
+    assert.deepEqual(scope.unitIds, ['unit-1']);
+    assert.equal(scope.includeAmenityClaims, false);
+    assert.equal(scope.canViewAmenityClaims, false);
+    assert.equal(scope.canCreateAmenity, false);
+  });
+
+  it('refuses a roomer filtering a common space', () => {
+    const scope = claimListScope(roomer, buildingId, {
+      buildingAmenityId: 'amenity-1',
+    });
+    assert.equal(scope.ok, false);
+    if (scope.ok) return;
+    assert.equal(scope.error, 'INSUFFICIENT_PERMISSIONS');
+    assert.equal(
+      claimAmenityAccess(roomer, buildingId),
+      'INSUFFICIENT_PERMISSIONS',
+    );
   });
 
   it('refuses another building', () => {
@@ -271,7 +317,17 @@ describe('claimDraftConfirmAccess', () => {
     );
   });
 
-  it('lets a resident confirm an amenity draft', () => {
+  it('lets an owner confirm a common-space draft', () => {
+    assert.equal(
+      claimDraftConfirmAccess(owner, {
+        userId: owner.userId,
+        kind: 'CREATE',
+        buildingId,
+        unitId: null,
+        buildingAmenityId: 'amenity-1',
+      }),
+      'OK',
+    );
     assert.equal(
       claimDraftConfirmAccess(roomer, {
         userId: roomer.userId,
@@ -280,7 +336,7 @@ describe('claimDraftConfirmAccess', () => {
         unitId: null,
         buildingAmenityId: 'amenity-1',
       }),
-      'OK',
+      'INSUFFICIENT_PERMISSIONS',
     );
     assert.equal(
       claimAmenityAccess(admin, buildingId),

@@ -28,6 +28,7 @@ export type Claim = {
 export type ClaimList = {
   canCreate: boolean;
   canCreateAmenity: boolean;
+  canViewAmenityClaims: boolean;
   canManage: boolean;
   claims: Claim[];
 };

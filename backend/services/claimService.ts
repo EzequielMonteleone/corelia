@@ -180,6 +180,7 @@ export async function listClaimsForActor(
   return {
     canCreate: scope.canCreate,
     canCreateAmenity: scope.canCreateAmenity,
+    canViewAmenityClaims: scope.canViewAmenityClaims,
     canManage,
     claims: rows.map(row => presentClaim(row, canManage)),
   };

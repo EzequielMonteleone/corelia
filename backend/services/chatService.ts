@@ -235,7 +235,7 @@ function buildTools(actor: ChatActor, threadId: string): ToolSet {
   if (allowed.has('listClaims')) {
     tools.listClaims = tool({
       description:
-        'Reclamos visibles para esta persona. Dueños e inquilinos ven los de sus unidades y los de los amenities del edificio. La administración ve todos. No cambia nada.',
+        'Reclamos visibles para esta persona. El superadmin ve todos. El admin ve los de su edificio. El propietario ve los espacios comunes y los de su unidad. El inquilino ve los de su unidad. No cambia nada.',
       inputSchema: z.object({
         buildingId: z
           .string()
@@ -276,7 +276,8 @@ function buildTools(actor: ChatActor, threadId: string): ToolSet {
         status: z.enum(['OPEN', 'IN_PROGRESS', 'CLOSED']).optional(),
         reply: z.string().optional(),
       }),
-      execute: async input => draftClaimResolutionForActor(actor, threadId, input),
+      execute: async input =>
+        draftClaimResolutionForActor(actor, threadId, input),
     });
   }
 
@@ -287,7 +288,8 @@ function buildTools(actor: ChatActor, threadId: string): ToolSet {
       inputSchema: z.object({
         draftId: z.string(),
       }),
-      execute: async ({draftId}) => describeClaimDraftConfirmation(actor, draftId),
+      execute: async ({draftId}) =>
+        describeClaimDraftConfirmation(actor, draftId),
     });
   }
 
@@ -579,7 +581,9 @@ export async function confirmClaimChatDraft(userId: string, draftId: string) {
       draft.kind === 'CREATE'
         ? `Reclamo cargado: ${draft.title}, ${subject}.`
         : `Reclamo actualizado: ${draft.title}${status ? `, ${status}` : ''}${
-            draft.replyProvided && draft.reply ? `. Respuesta: ${draft.reply}` : ''
+            draft.replyProvided && draft.reply
+              ? `. Respuesta: ${draft.reply}`
+              : ''
           }.`;
     await prisma.chatMessage.create({
       data: {
@@ -590,7 +594,10 @@ export async function confirmClaimChatDraft(userId: string, draftId: string) {
     });
     return {
       pendingDrafts: await pendingDrafts(draft.threadId, actor.userId),
-      pendingClaimDrafts: await pendingClaimDrafts(draft.threadId, actor.userId),
+      pendingClaimDrafts: await pendingClaimDrafts(
+        draft.threadId,
+        actor.userId,
+      ),
     };
   } catch (err) {
     if (err instanceof ClaimError) throw new ChatError(err.message, err.status);
