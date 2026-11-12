@@ -1,17 +1,15 @@
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
-import {findUserById} from '../services/userService.js';
 import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
+import {authMiddleware} from '../middleware/authMiddleware.js';
 import {
   createUnit,
   deleteUnit,
   getUnitById,
   updateUnit,
 } from '../services/unitService.js';
+import {findUserById} from '../services/userService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 const router = Router();
 
@@ -41,13 +39,18 @@ router.put(
         return res.status(404).json({error: 'UNIT_NOT_FOUND'});
       }
 
-      const {allowed} = await canManageBuildingUnits(req.user.id, unit.buildingId);
+      const {allowed} = await canManageBuildingUnits(
+        req.user.id,
+        unit.buildingId,
+      );
       if (!allowed) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
 
       const updated = await updateUnit(req.params.id as string, {
-        ...((req.body?.name as string | undefined) ? {name: req.body.name as string} : {}),
+        ...((req.body?.name as string | undefined)
+          ? {name: req.body.name as string}
+          : {}),
         ...(typeof req.body?.floor !== 'undefined'
           ? {floor: req.body.floor as string}
           : {}),
@@ -77,7 +80,10 @@ router.delete(
         return res.status(404).json({error: 'UNIT_NOT_FOUND'});
       }
 
-      const {allowed} = await canManageBuildingUnits(req.user.id, unit.buildingId);
+      const {allowed} = await canManageBuildingUnits(
+        req.user.id,
+        unit.buildingId,
+      );
       if (!allowed) {
         return res.status(403).json({error: 'INSUFFICIENT_PERMISSIONS'});
       }
@@ -112,7 +118,9 @@ router.post(
       const unit = await createUnit({
         buildingId,
         name,
-        ...((req.body?.floor as string | undefined) ? {floor: req.body.floor as string} : {}),
+        ...((req.body?.floor as string | undefined)
+          ? {floor: req.body.floor as string}
+          : {}),
         ...(typeof req.body?.coefficient === 'number'
           ? {coefficient: req.body.coefficient as number}
           : {}),

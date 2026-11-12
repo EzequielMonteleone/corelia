@@ -1,18 +1,14 @@
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
+import {authMiddleware, superAdminOnly} from '../middleware/authMiddleware.js';
 import {
-  authMiddleware,
-  superAdminOnly,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
-import {
-  getAllRoles,
-  getRoleById,
   createRole,
-  updateRole,
   deleteRole,
   getAllPermissions,
+  getAllRoles,
+  updateRole,
 } from '../services/roleService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 const router = Router();
 

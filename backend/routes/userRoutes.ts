@@ -1,23 +1,7 @@
+import {GlobalRole, UnitRelationType} from '@prisma/client';
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  superAdminOnly,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
-import {
-  findUserById,
-  createGlobalUser,
-  createUserWithRole,
-  getAllUsers,
-  getUsersByBuildings,
-  updateUser,
-  updateUserBuildingAssignment,
-  deleteUser,
-  passwordMatches,
-  toPublicUser,
-} from '../services/userService.js';
-import {prisma} from '../prismaClient.js';
+import {toBuildingMember} from '../lib/buildingAccess.js';
 import {
   canCreateRole,
   canDeleteUser,
@@ -29,14 +13,27 @@ import {
   visibleUserScope,
   type AccessPerson,
 } from '../lib/userAccess.js';
+import {authMiddleware, superAdminOnly} from '../middleware/authMiddleware.js';
+import {prisma} from '../prismaClient.js';
 import {createAuditLog, getAuditLogsByUser} from '../services/auditService.js';
-import {toBuildingMember} from '../lib/buildingAccess.js';
+import {
+  createGlobalUser,
+  createUserWithRole,
+  deleteUser,
+  findUserById,
+  getAllUsers,
+  getUsersByBuildings,
+  passwordMatches,
+  toPublicUser,
+  updateUser,
+  updateUserBuildingAssignment,
+} from '../services/userService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 import type {
   BuildingMembership,
   MembershipUser,
   UnitLink,
 } from '../types/member.js';
-import {GlobalRole, UnitRelationType} from '@prisma/client';
 
 const router = Router();
 

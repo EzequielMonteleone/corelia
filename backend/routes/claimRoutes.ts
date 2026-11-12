@@ -1,9 +1,6 @@
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
+import {authMiddleware} from '../middleware/authMiddleware.js';
 import {
   ClaimError,
   createClaimForActor,
@@ -11,6 +8,7 @@ import {
   loadClaimActor,
   updateClaimForActor,
 } from '../services/claimService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 function sendClaimError(err: unknown, res: Response, next: NextFunction) {
   if (err instanceof ClaimError) {

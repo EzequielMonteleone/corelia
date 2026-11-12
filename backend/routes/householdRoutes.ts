@@ -1,9 +1,6 @@
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
+import {authMiddleware} from '../middleware/authMiddleware.js';
 import {
   HouseholdError,
   createMember,
@@ -17,6 +14,7 @@ import {
   updatePet,
   updateVehicle,
 } from '../services/householdService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 function sendHouseholdError(err: unknown, res: Response, next: NextFunction) {
   if (err instanceof HouseholdError) {
@@ -57,7 +55,11 @@ unitHouseholdRouter.post(
     try {
       const userId = viewerId(req, res);
       if (!userId) return;
-      const created = await createMember(userId, req.params.unitId as string, req.body ?? {});
+      const created = await createMember(
+        userId,
+        req.params.unitId as string,
+        req.body ?? {},
+      );
       return res.status(201).json(created);
     } catch (err) {
       return sendHouseholdError(err, res, next);
@@ -91,7 +93,11 @@ unitHouseholdRouter.post(
     try {
       const userId = viewerId(req, res);
       if (!userId) return;
-      const created = await createPet(userId, req.params.unitId as string, req.body ?? {});
+      const created = await createPet(
+        userId,
+        req.params.unitId as string,
+        req.body ?? {},
+      );
       return res.status(201).json(created);
     } catch (err) {
       return sendHouseholdError(err, res, next);
@@ -108,7 +114,11 @@ memberRouter.put(
     try {
       const userId = viewerId(req, res);
       if (!userId) return;
-      const updated = await updateMember(userId, req.params.id as string, req.body ?? {});
+      const updated = await updateMember(
+        userId,
+        req.params.id as string,
+        req.body ?? {},
+      );
       return res.json(updated);
     } catch (err) {
       return sendHouseholdError(err, res, next);
@@ -140,7 +150,11 @@ vehicleRouter.put(
     try {
       const userId = viewerId(req, res);
       if (!userId) return;
-      const updated = await updateVehicle(userId, req.params.id as string, req.body ?? {});
+      const updated = await updateVehicle(
+        userId,
+        req.params.id as string,
+        req.body ?? {},
+      );
       return res.json(updated);
     } catch (err) {
       return sendHouseholdError(err, res, next);
@@ -172,7 +186,11 @@ petRouter.put(
     try {
       const userId = viewerId(req, res);
       if (!userId) return;
-      const updated = await updatePet(userId, req.params.id as string, req.body ?? {});
+      const updated = await updatePet(
+        userId,
+        req.params.id as string,
+        req.body ?? {},
+      );
       return res.json(updated);
     } catch (err) {
       return sendHouseholdError(err, res, next);

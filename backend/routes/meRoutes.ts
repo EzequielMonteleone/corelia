@@ -1,15 +1,13 @@
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
-import {findUserById} from '../services/userService.js';
+import {authMiddleware} from '../middleware/authMiddleware.js';
 import {
   listNotifications,
   markNotificationRead,
   NotificationError,
 } from '../services/notificationService.js';
+import {findUserById} from '../services/userService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 const router = Router();
 

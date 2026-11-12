@@ -1,17 +1,15 @@
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
-import {findUserById} from '../services/userService.js';
 import {canAccessBuilding, toBuildingMember} from '../lib/buildingAccess.js';
+import {authMiddleware} from '../middleware/authMiddleware.js';
+import {prisma} from '../prismaClient.js';
 import {
   deleteBuildingAmenity,
   getAmenityCatalog,
   updateBuildingAmenity,
 } from '../services/amenityService.js';
-import {prisma} from '../prismaClient.js';
+import {findUserById} from '../services/userService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 const router = Router();
 
@@ -62,14 +60,22 @@ router.put(
 
       const body = req.body ?? {};
       const updated = await updateBuildingAmenity(req.params.id as string, {
-        ...(typeof body.isEnabled === 'boolean' ? {isEnabled: body.isEnabled} : {}),
-        ...(typeof body.customName === 'string' ? {customName: body.customName} : {}),
-        ...(typeof body.slotMinutes === 'number' ? {slotMinutes: body.slotMinutes} : {}),
+        ...(typeof body.isEnabled === 'boolean'
+          ? {isEnabled: body.isEnabled}
+          : {}),
+        ...(typeof body.customName === 'string'
+          ? {customName: body.customName}
+          : {}),
+        ...(typeof body.slotMinutes === 'number'
+          ? {slotMinutes: body.slotMinutes}
+          : {}),
         ...(typeof body.maxConcurrent === 'number'
           ? {maxConcurrent: body.maxConcurrent}
           : {}),
         ...(typeof body.openTime === 'string' ? {openTime: body.openTime} : {}),
-        ...(typeof body.closeTime === 'string' ? {closeTime: body.closeTime} : {}),
+        ...(typeof body.closeTime === 'string'
+          ? {closeTime: body.closeTime}
+          : {}),
         ...(typeof body.rules === 'string' || body.rules === null
           ? {rules: body.rules as string | null}
           : {}),
@@ -87,7 +93,8 @@ router.put(
           'BUILDING_AMENITY_NOT_FOUND',
         ];
         if (known.includes(err.message)) {
-          const status = err.message === 'BUILDING_AMENITY_NOT_FOUND' ? 404 : 400;
+          const status =
+            err.message === 'BUILDING_AMENITY_NOT_FOUND' ? 404 : 400;
           return res.status(status).json({error: err.message});
         }
       }

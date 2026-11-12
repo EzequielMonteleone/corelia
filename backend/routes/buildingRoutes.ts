@@ -1,26 +1,5 @@
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  superAdminOnly,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
-import {
-  getAllBuildings,
-  getBuildingsByIds,
-  getBuildingById,
-  createBuilding,
-  updateBuilding,
-  deleteBuilding,
-} from '../services/buildingService.js';
-import {findUserById} from '../services/userService.js';
-import userRoutes from './userRoutes.js';
-import {createUnit, getUnitsByBuildingId} from '../services/unitService.js';
-import {
-  createBuildingAmenity,
-  getAmenityCatalog,
-  getBuildingAmenities,
-} from '../services/amenityService.js';
 import {
   canAccessBuilding,
   canDeleteBuilding,
@@ -28,10 +7,28 @@ import {
   listedBuildingIds,
   toBuildingMember,
 } from '../lib/buildingAccess.js';
-import type {MembershipUser} from '../types/member.js';
 import {unitAccess} from '../lib/householdRules.js';
 import {assignableRoles, roleCatalog} from '../lib/userAccess.js';
+import {authMiddleware, superAdminOnly} from '../middleware/authMiddleware.js';
+import {
+  createBuildingAmenity,
+  getAmenityCatalog,
+  getBuildingAmenities,
+} from '../services/amenityService.js';
+import {
+  createBuilding,
+  deleteBuilding,
+  getAllBuildings,
+  getBuildingById,
+  getBuildingsByIds,
+  updateBuilding,
+} from '../services/buildingService.js';
+import {createUnit, getUnitsByBuildingId} from '../services/unitService.js';
+import {findUserById} from '../services/userService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
+import type {MembershipUser} from '../types/member.js';
 import {buildingPeriodRouter} from './expenseRoutes.js';
+import userRoutes from './userRoutes.js';
 
 const router = Router();
 

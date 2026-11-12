@@ -1,4 +1,3 @@
-export type {BuildingRoleName} from '../types/member.js';
 import type {
   BuildingMember,
   BuildingRoleName,
@@ -6,8 +5,8 @@ import type {
   LinkedUnit,
   UnitRelationName,
 } from '../types/member.js';
-export {asBuildingRole, canAccessBuilding} from './buildingAccess.js';
 import {canAccessBuilding} from './buildingAccess.js';
+export {asBuildingRole, canAccessBuilding} from './buildingAccess.js';
 
 export type ChatToolName =
   | 'getMyContext'

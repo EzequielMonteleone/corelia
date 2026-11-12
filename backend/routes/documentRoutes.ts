@@ -1,17 +1,15 @@
+import type {NextFunction, Response} from 'express';
 import {Router} from 'express';
-import type {Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
 import {canAccessBuilding} from '../lib/buildingAccess.js';
+import {authMiddleware} from '../middleware/authMiddleware.js';
 import {loadChatActor} from '../services/chatActorService.js';
-import {createBuildingDocument} from '../services/knowledgeService.js';
 import {
   DocumentError,
   getBuildingDocument,
   listBuildingDocuments,
 } from '../services/documentService.js';
+import {createBuildingDocument} from '../services/knowledgeService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 const router = Router({mergeParams: true});
 

@@ -1,10 +1,7 @@
+import type {NextFunction, Request, Response} from 'express';
 import {Router} from 'express';
 import rateLimit from 'express-rate-limit';
-import type {Request, Response, NextFunction} from 'express';
-import {
-  authMiddleware,
-  type AuthenticatedRequest,
-} from '../middleware/authMiddleware.js';
+import {authMiddleware} from '../middleware/authMiddleware.js';
 import {
   ChatError,
   confirmChatDraft,
@@ -12,6 +9,7 @@ import {
   getChatThread,
   runChatTurn,
 } from '../services/chatService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 const router = Router();
 

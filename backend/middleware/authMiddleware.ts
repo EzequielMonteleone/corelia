@@ -1,10 +1,8 @@
-import type {Response, NextFunction} from 'express';
-import jwt from 'jsonwebtoken';
-import type {AuthenticatedRequest} from '../types/index.js';
-import {findUserById} from '../services/userService.js';
 import {GlobalRole} from '@prisma/client';
-
-export type {AuthenticatedRequest};
+import type {NextFunction, Response} from 'express';
+import jwt from 'jsonwebtoken';
+import {findUserById} from '../services/userService.js';
+import type {AuthenticatedRequest} from '../types/index.js';
 
 const JWT_SECRET = process.env.JWT_SECRET as jwt.Secret;
 

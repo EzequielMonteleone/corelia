@@ -1,4 +1,3 @@
-import {asBuildingRole} from './buildingAccess.js';
 import type {
   BuildingMember,
   BuildingRoleName,
@@ -6,10 +5,10 @@ import type {
   LinkedUnit,
   UnitRelationName,
 } from '../types/member.js';
+import {asBuildingRole} from './buildingAccess.js';
 
 export const MIN_PASSWORD_LENGTH = 8;
 
-export type {BuildingRoleName} from '../types/member.js';
 export {asBuildingRole} from './buildingAccess.js';
 
 export type AccessPerson = {
