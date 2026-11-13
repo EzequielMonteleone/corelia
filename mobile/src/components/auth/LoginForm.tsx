@@ -1,3 +1,4 @@
+import {BrandLogo} from '@/components/brand/BrandLogo';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {validationMessage} from '@/lib/validation';
@@ -39,7 +40,7 @@ export function LoginForm({pending, error, onSubmit}: LoginFormProps) {
   return (
     <View style={styles.card}>
       <View style={styles.brand}>
-        <Text style={styles.logo}>{t('Common.title')}</Text>
+        <BrandLogo size={44} />
         <Text style={styles.brandTag}>{t('Login.brand')}</Text>
       </View>
 
@@ -114,13 +115,7 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     width: '100%',
   },
-  brand: {alignItems: 'center', gap: spacing.xs},
-  logo: {
-    color: colors.text,
-    fontSize: 34,
-    fontWeight: '800',
-    letterSpacing: -1.5,
-  },
+  brand: {alignItems: 'center', gap: spacing.sm},
   brandTag: {
     color: colors.indigo,
     fontSize: typography.caption,
