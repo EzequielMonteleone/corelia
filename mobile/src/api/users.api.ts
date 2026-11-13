@@ -1,6 +1,6 @@
 import {apiClient} from '@/api/client';
-import type {UserAuditLog, UserData} from '@/types/user';
 import type {UserCreateFormValues} from '@/schemas/user';
+import type {UserAuditLog, UserData} from '@/types/user';
 
 export interface UpdateUserInput extends Partial<UserData> {
   id: string;

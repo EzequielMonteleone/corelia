@@ -1,20 +1,15 @@
-import {useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {AppHeader} from '@/components/layout/AppHeader';
-import {Section} from '@/components/layout/Section';
-import {RequireAccess} from '@/components/layout/RequireAccess';
 import {PaymentModal} from '@/components/expenses/PaymentModal';
+import {AppHeader} from '@/components/layout/AppHeader';
+import {RequireAccess} from '@/components/layout/RequireAccess';
+import {Section} from '@/components/layout/Section';
 import {Badge, type BadgeIntent} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {Input} from '@/components/ui/Input';
+import {Screen} from '@/components/ui/Screen';
 import {Select} from '@/components/ui/Select';
 import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
-import {Screen} from '@/components/ui/Screen';
 import {useBuilding, useBuildingUnits} from '@/hooks/queries/useBuildings';
 import {
   useCreateExpense,
@@ -24,12 +19,17 @@ import {
   useUpdateExpense,
   useUpdateExpensePeriodStatus,
 } from '@/hooks/queries/useExpenses';
+import {errorMessage} from '@/lib/apiError';
 import {downloadExpensePeriodExport, type ExportFormat} from '@/lib/exportFile';
 import {formatCurrency, formatDate, formatDateTime} from '@/lib/format';
-import {errorMessage} from '@/lib/apiError';
 import {toast} from '@/store/toastStore';
-import type {Expense, ExpenseStatus} from '@/types/expense';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {Expense, ExpenseStatus} from '@/types/expense';
+import {Ionicons} from '@expo/vector-icons';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
 const EXPENSE_STATUS: Record<
   ExpenseStatus,
@@ -255,9 +255,7 @@ export default function ExpensePeriodScreen() {
             </View>
             <Badge
               label={
-                isOpen
-                  ? t('Expenses.statusOpen')
-                  : t('Expenses.statusClosed')
+                isOpen ? t('Expenses.statusOpen') : t('Expenses.statusClosed')
               }
               intent={isOpen ? 'success' : 'default'}
             />
@@ -290,7 +288,10 @@ export default function ExpensePeriodScreen() {
           </View>
           <View style={styles.progressTrack}>
             <View
-              style={[styles.progressFill, {width: `${Math.min(collectionRate, 100)}%`}]}
+              style={[
+                styles.progressFill,
+                {width: `${Math.min(collectionRate, 100)}%`},
+              ]}
             />
           </View>
           <Text style={styles.progressLabel}>
@@ -301,9 +302,7 @@ export default function ExpensePeriodScreen() {
           {canManage ? (
             <Button
               title={
-                isOpen
-                  ? t('Expenses.closePeriod')
-                  : t('Expenses.reopenPeriod')
+                isOpen ? t('Expenses.closePeriod') : t('Expenses.reopenPeriod')
               }
               variant={isOpen ? 'secondary' : 'primary'}
               size="sm"
@@ -316,7 +315,9 @@ export default function ExpensePeriodScreen() {
         <View style={styles.exportRow}>
           <Button
             title={t('Expenses.exportCsv')}
-            icon={<Ionicons name="download-outline" size={17} color={colors.text} />}
+            icon={
+              <Ionicons name="download-outline" size={17} color={colors.text} />
+            }
             variant="outline"
             size="sm"
             loading={exporting === 'csv'}
@@ -326,7 +327,9 @@ export default function ExpensePeriodScreen() {
           />
           <Button
             title={t('Expenses.exportPdf')}
-            icon={<Ionicons name="download-outline" size={17} color={colors.text} />}
+            icon={
+              <Ionicons name="download-outline" size={17} color={colors.text} />
+            }
             variant="outline"
             size="sm"
             loading={exporting === 'pdf'}
@@ -601,7 +604,11 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     fontWeight: '600',
   },
-  statValue: {color: colors.text, fontSize: typography.small, fontWeight: '800'},
+  statValue: {
+    color: colors.text,
+    fontSize: typography.small,
+    fontWeight: '800',
+  },
   progressTrack: {
     backgroundColor: colors.inputBackground,
     borderRadius: radius.full,
@@ -636,7 +643,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 32,
   },
-  expenseName: {color: colors.text, fontSize: typography.body, fontWeight: '700'},
+  expenseName: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: '700',
+  },
   expenseFloor: {color: colors.textMuted, fontSize: typography.caption},
   amounts: {
     backgroundColor: colors.inputBackground,
@@ -670,6 +681,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   auditText: {flex: 1, gap: 2},
-  auditAction: {color: colors.text, fontSize: typography.small, fontWeight: '600'},
+  auditAction: {
+    color: colors.text,
+    fontSize: typography.small,
+    fontWeight: '600',
+  },
   auditMeta: {color: colors.textMuted, fontSize: typography.caption},
 });

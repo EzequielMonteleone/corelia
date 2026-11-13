@@ -1,29 +1,29 @@
-import {useState} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {AppHeader, IconButton} from '@/components/layout/AppHeader';
-import {Section} from '@/components/layout/Section';
-import {RequireAccess} from '@/components/layout/RequireAccess';
 import {BuildingFormModal} from '@/components/buildings/BuildingFormModal';
+import {AppHeader, IconButton} from '@/components/layout/AppHeader';
+import {RequireAccess} from '@/components/layout/RequireAccess';
+import {Section} from '@/components/layout/Section';
 import {Badge} from '@/components/ui/Badge';
 import {Card} from '@/components/ui/Card';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
-import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {Screen} from '@/components/ui/Screen';
-import {useActiveBuilding} from '@/hooks/useActiveBuilding';
+import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {
   useCreateBuilding,
   useDeleteBuilding,
   useUpdateBuilding,
 } from '@/hooks/queries/useBuildings';
+import {useActiveBuilding} from '@/hooks/useActiveBuilding';
+import {errorMessage} from '@/lib/apiError';
+import type {BuildingFormValues} from '@/schemas/building';
 import {useAuthStore} from '@/store/authStore';
 import {toast} from '@/store/toastStore';
-import {errorMessage} from '@/lib/apiError';
-import type {Building} from '@/types/building';
-import type {BuildingFormValues} from '@/schemas/building';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {Building} from '@/types/building';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export default function BuildingsScreen() {
   const router = useRouter();
@@ -37,7 +37,9 @@ export default function BuildingsScreen() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Building | null>(null);
-  const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(null);
+  const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(
+    null,
+  );
 
   const isSuperAdmin = user?.globalRole === 'SUPERADMIN';
 

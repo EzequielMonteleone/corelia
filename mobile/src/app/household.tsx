@@ -1,25 +1,19 @@
-import {useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {AppHeader} from '@/components/layout/AppHeader';
-import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
-import {Section} from '@/components/layout/Section';
-import {RequireAccess} from '@/components/layout/RequireAccess';
-import {HouseholdRecordRow} from '@/components/household/HouseholdRecordRow';
 import {
   MemberForm,
   PetForm,
   VehicleForm,
 } from '@/components/household/HouseholdForms';
+import {HouseholdRecordRow} from '@/components/household/HouseholdRecordRow';
+import {AppHeader} from '@/components/layout/AppHeader';
+import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
+import {RequireAccess} from '@/components/layout/RequireAccess';
+import {Section} from '@/components/layout/Section';
 import {Button} from '@/components/ui/Button';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {ModalSheet} from '@/components/ui/ModalSheet';
+import {Screen} from '@/components/ui/Screen';
 import {Select} from '@/components/ui/Select';
 import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
-import {Screen} from '@/components/ui/Screen';
-import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {useBuildingUnits} from '@/hooks/queries/useBuildings';
 import {
   useCreateMember,
@@ -33,8 +27,10 @@ import {
   useUpdatePet,
   useUpdateVehicle,
 } from '@/hooks/queries/useHousehold';
+import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {errorMessage} from '@/lib/apiError';
 import {toast} from '@/store/toastStore';
+import {colors, spacing, typography} from '@/theme';
 import type {
   HouseholdDeleteTarget,
   HouseholdEditor,
@@ -42,7 +38,11 @@ import type {
   PetInput,
   VehicleInput,
 } from '@/types/household';
-import {colors, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
 const RELATION_KEYS = {
   SPOUSE: 'Household.relations.SPOUSE',

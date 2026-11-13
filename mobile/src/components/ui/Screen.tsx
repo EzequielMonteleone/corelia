@@ -1,3 +1,4 @@
+import {colors, spacing} from '@/theme';
 import type {ReactNode} from 'react';
 import {
   RefreshControl,
@@ -8,7 +9,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {colors, spacing} from '@/theme';
 
 export function Screen({
   children,
@@ -51,11 +51,7 @@ export function Screen({
         </ScrollView>
       ) : (
         <View
-          style={[
-            styles.flex,
-            padded && styles.padded,
-            contentContainerStyle,
-          ]}>
+          style={[styles.flex, padded && styles.padded, contentContainerStyle]}>
           {children}
         </View>
       )}

@@ -1,10 +1,10 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useTranslation} from 'react-i18next';
 import {Badge} from '@/components/ui/Badge';
 import {initials} from '@/lib/format';
-import type {UserData} from '@/types/user';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {UserData} from '@/types/user';
+import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 const ROLE_LABEL_KEYS = {
   Admin: 'Users.admin',
@@ -54,9 +54,7 @@ export function UserRow({
             {user.email}
           </Text>
           <View style={styles.badges}>
-            {roleLabel ? (
-              <Badge label={roleLabel} intent="primary" />
-            ) : null}
+            {roleLabel ? <Badge label={roleLabel} intent="primary" /> : null}
             {user.globalRole === 'SUPERADMIN' ? (
               <Badge label={t('Common.superadmin')} intent="purple" />
             ) : null}
@@ -78,7 +76,11 @@ export function UserRow({
             hitSlop={6}
             onPress={onEdit}
             style={styles.action}>
-            <Ionicons name="pencil-outline" size={18} color={colors.textSecondary} />
+            <Ionicons
+              name="pencil-outline"
+              size={18}
+              color={colors.textSecondary}
+            />
           </Pressable>
         ) : null}
         {canDelete ? (
@@ -132,7 +134,12 @@ const styles = StyleSheet.create({
   text: {flex: 1, gap: 2},
   name: {color: colors.text, fontSize: typography.body, fontWeight: '700'},
   email: {color: colors.textMuted, fontSize: typography.caption},
-  badges: {flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: 4},
+  badges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: 4,
+  },
   actions: {flexDirection: 'row', gap: spacing.xs, paddingRight: spacing.sm},
   action: {padding: spacing.xs},
 });

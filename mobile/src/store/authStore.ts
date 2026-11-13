@@ -1,8 +1,8 @@
-import {create} from 'zustand';
-import {createJSONStorage, persist} from 'zustand/middleware';
 import {queryClient} from '@/lib/queryClient';
 import {authPersistStorage} from '@/lib/secureStorage';
 import type {UserData} from '@/types/user';
+import {create} from 'zustand';
+import {createJSONStorage, persist} from 'zustand/middleware';
 
 interface AuthState {
   user: UserData | null;

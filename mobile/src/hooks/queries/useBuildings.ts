@@ -1,4 +1,3 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {
   createBuilding,
   createBuildingAmenity,
@@ -15,6 +14,7 @@ import {
   updateUnit,
 } from '@/api/buildings.api';
 import {queryKeys} from '@/api/queryKeys';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 export function useBuildings() {
   return useQuery({
@@ -44,7 +44,9 @@ export function useCreateBuilding() {
 export function useUpdateBuilding() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {id: string} & Parameters<typeof updateBuilding>[1]) => {
+    mutationFn: (
+      input: {id: string} & Parameters<typeof updateBuilding>[1],
+    ) => {
       const {id, ...values} = input;
       return updateBuilding(id, values);
     },

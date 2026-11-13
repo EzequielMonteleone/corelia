@@ -1,6 +1,6 @@
-import {useEffect, useMemo} from 'react';
 import {useBuildings} from '@/hooks/queries/useBuildings';
 import {useAppStore} from '@/store/appStore';
+import {useEffect, useMemo} from 'react';
 
 /**
  * Resolves the building shared by all building-scoped screens.

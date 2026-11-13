@@ -1,22 +1,20 @@
-import {useMemo, useState} from 'react';
-import {Pressable, StyleSheet, Switch, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
-import {AppHeader} from '@/components/layout/AppHeader';
-import {Section} from '@/components/layout/Section';
-import {RequireAccess} from '@/components/layout/RequireAccess';
-import {UnitFormModal, type UnitFormValues} from '@/components/buildings/UnitFormModal';
 import {
   AmenityCreateModal,
   AmenitySettingsModal,
 } from '@/components/buildings/AmenityModals';
+import {
+  UnitFormModal,
+  type UnitFormValues,
+} from '@/components/buildings/UnitFormModal';
+import {AppHeader} from '@/components/layout/AppHeader';
+import {RequireAccess} from '@/components/layout/RequireAccess';
+import {Section} from '@/components/layout/Section';
 import {Badge} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
-import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {Screen} from '@/components/ui/Screen';
+import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {
   useBuilding,
   useBuildingAmenities,
@@ -28,11 +26,16 @@ import {
   useUpdateBuildingAmenity,
   useUpdateUnit,
 } from '@/hooks/queries/useBuildings';
-import {toast} from '@/store/toastStore';
 import {errorMessage} from '@/lib/apiError';
+import {toast} from '@/store/toastStore';
+import {colors, radius, spacing, typography} from '@/theme';
 import type {BuildingAmenity} from '@/types/amenity';
 import type {Unit} from '@/types/unit';
-import {colors, radius, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useMemo, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Switch, Text, View} from 'react-native';
 
 export default function BuildingDetailScreen() {
   const router = useRouter();
@@ -54,7 +57,9 @@ export default function BuildingDetailScreen() {
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
   const [amenityCreateOpen, setAmenityCreateOpen] = useState(false);
-  const [settingsItem, setSettingsItem] = useState<BuildingAmenity | null>(null);
+  const [settingsItem, setSettingsItem] = useState<BuildingAmenity | null>(
+    null,
+  );
   const [amenityToDelete, setAmenityToDelete] =
     useState<BuildingAmenity | null>(null);
 
@@ -254,7 +259,11 @@ export default function BuildingDetailScreen() {
 
         <Card style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={18} color={colors.primary} />
+            <Ionicons
+              name="location-outline"
+              size={18}
+              color={colors.primary}
+            />
             <Text style={styles.infoText}>
               {building.city}, {building.country}
             </Text>
@@ -282,9 +291,7 @@ export default function BuildingDetailScreen() {
               label={canManage ? t('Users.admin') : t('Buildings.readOnly')}
               intent={canManage ? 'primary' : 'default'}
             />
-            <Badge
-              label={t('Buildings.unitsCount', {count: units.length})}
-            />
+            <Badge label={t('Buildings.unitsCount', {count: units.length})} />
           </View>
         </Card>
 
@@ -313,7 +320,11 @@ export default function BuildingDetailScreen() {
                 {units.map(unit => (
                   <View key={unit.id} style={styles.unitRow}>
                     <View style={styles.unitIcon}>
-                      <Ionicons name="home-outline" size={17} color={colors.indigo} />
+                      <Ionicons
+                        name="home-outline"
+                        size={17}
+                        color={colors.indigo}
+                      />
                     </View>
                     <View style={styles.unitText}>
                       <Text style={styles.unitName}>{unit.name}</Text>
@@ -586,12 +597,20 @@ const styles = StyleSheet.create({
     width: 34,
   },
   amenityText: {flex: 1, gap: 2},
-  amenityName: {color: colors.text, fontSize: typography.body, fontWeight: '600'},
+  amenityName: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: '600',
+  },
   amenityMeta: {color: colors.textMuted, fontSize: typography.caption},
   rules: {
     color: colors.textSecondary,
     fontSize: typography.caption,
     lineHeight: 17,
   },
-  amenityActions: {flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end'},
+  amenityActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'flex-end',
+  },
 });

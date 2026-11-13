@@ -1,12 +1,12 @@
 import {apiClient} from '@/api/client';
-import type {Building} from '@/types/building';
+import type {BuildingFormValues} from '@/schemas/building';
 import type {
   Amenity,
   BuildingAmenitiesResponse,
   BuildingAmenity,
 } from '@/types/amenity';
+import type {Building} from '@/types/building';
 import type {Unit} from '@/types/unit';
-import type {BuildingFormValues} from '@/schemas/building';
 
 export async function listBuildings(): Promise<Building[]> {
   const {data} = await apiClient.get<Building[]>('/buildings');
@@ -114,10 +114,7 @@ export async function updateBuildingAmenity(input: {
   rules?: string | null;
 }): Promise<BuildingAmenity> {
   const {id, buildingId: _buildingId, ...body} = input;
-  const {data} = await apiClient.put<BuildingAmenity>(
-    `/amenities/${id}`,
-    body,
-  );
+  const {data} = await apiClient.put<BuildingAmenity>(`/amenities/${id}`, body);
   return data;
 }
 

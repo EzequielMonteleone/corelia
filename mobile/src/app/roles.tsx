@@ -1,18 +1,13 @@
-import {useState} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
-import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
+import {Section} from '@/components/layout/Section';
 import {RoleFormModal} from '@/components/roles/RoleFormModal';
 import {Badge} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
-import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {Screen} from '@/components/ui/Screen';
+import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {
   useCreateRole,
   useDeleteRole,
@@ -21,10 +16,15 @@ import {
   useUpdateRole,
 } from '@/hooks/queries/useRoles';
 import {errorMessage} from '@/lib/apiError';
-import {toast} from '@/store/toastStore';
 import type {RoleFormValues} from '@/schemas/role';
-import type {Role} from '@/types/role';
+import {toast} from '@/store/toastStore';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {Role} from '@/types/role';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export default function RolesScreen() {
   const router = useRouter();
@@ -127,7 +127,11 @@ export default function RolesScreen() {
                 <Card key={role.id} style={styles.card}>
                   <View style={styles.header}>
                     <View style={styles.icon}>
-                      <Ionicons name="key-outline" size={18} color={colors.purple} />
+                      <Ionicons
+                        name="key-outline"
+                        size={18}
+                        color={colors.purple}
+                      />
                     </View>
                     <View style={styles.text}>
                       <Text style={styles.name}>{role.name}</Text>
@@ -168,15 +172,19 @@ export default function RolesScreen() {
                   </View>
                   <View style={styles.permissions}>
                     {role.rolePermissions.length === 0 ? (
-                      <Text style={styles.muted}>{t('Roles.noPermissions')}</Text>
+                      <Text style={styles.muted}>
+                        {t('Roles.noPermissions')}
+                      </Text>
                     ) : (
-                      role.rolePermissions.slice(0, 6).map(item => (
-                        <Badge
-                          key={item.permission.id}
-                          label={item.permission.name}
-                          intent="purple"
-                        />
-                      ))
+                      role.rolePermissions
+                        .slice(0, 6)
+                        .map(item => (
+                          <Badge
+                            key={item.permission.id}
+                            label={item.permission.name}
+                            intent="purple"
+                          />
+                        ))
                     )}
                     {role.rolePermissions.length > 6 ? (
                       <Badge

@@ -1,10 +1,10 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import type {ReactNode} from 'react';
-import {renderHook, waitFor} from '@testing-library/react-native';
 import {listBuildings} from '@/api/buildings.api';
 import {queryKeys} from '@/api/queryKeys';
 import {useBuildings} from '@/hooks/queries/useBuildings';
 import type {Building} from '@/types/building';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {renderHook, waitFor} from '@testing-library/react-native';
+import type {ReactNode} from 'react';
 
 jest.mock('@/api/buildings.api', () => ({
   listBuildings: jest.fn(),

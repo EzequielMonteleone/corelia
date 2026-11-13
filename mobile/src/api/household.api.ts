@@ -68,9 +68,7 @@ export async function createPet(
   return data;
 }
 
-export async function updatePet(
-  input: {id: string} & PetInput,
-): Promise<Pet> {
+export async function updatePet(input: {id: string} & PetInput): Promise<Pet> {
   const {id, ...body} = input;
   const {data} = await apiClient.put<Pet>(`/pets/${id}`, body);
   return data;

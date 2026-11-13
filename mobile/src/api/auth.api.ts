@@ -7,7 +7,9 @@ export interface AuthResponse {
   user: UserData;
 }
 
-export async function loginRequest(values: LoginFormValues): Promise<AuthResponse> {
+export async function loginRequest(
+  values: LoginFormValues,
+): Promise<AuthResponse> {
   const {data} = await apiClient.post<AuthResponse>('/auth/login', values);
   return data;
 }

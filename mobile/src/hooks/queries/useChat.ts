@@ -1,4 +1,3 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {
   confirmChatDraft,
   confirmClaimChatDraft,
@@ -10,6 +9,7 @@ import {
 } from '@/api/chat.api';
 import {queryKeys} from '@/api/queryKeys';
 import type {ChatMessage, ChatThread} from '@/types/chat';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 type SendResult = Awaited<ReturnType<typeof sendChatMessage>>;
 

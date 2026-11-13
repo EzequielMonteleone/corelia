@@ -1,10 +1,6 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {
-  createDocument,
-  getDocument,
-  listDocuments,
-} from '@/api/documents.api';
+import {createDocument, getDocument, listDocuments} from '@/api/documents.api';
 import {queryKeys} from '@/api/queryKeys';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 export function useDocuments(buildingId: string | null) {
   return useQuery({
@@ -20,8 +16,7 @@ export function useDocument(
 ) {
   return useQuery({
     queryKey: queryKeys.document(buildingId, documentId),
-    queryFn: () =>
-      getDocument(buildingId as string, documentId as string),
+    queryFn: () => getDocument(buildingId as string, documentId as string),
     enabled: !!buildingId && !!documentId,
   });
 }

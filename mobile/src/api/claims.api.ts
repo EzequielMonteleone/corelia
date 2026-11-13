@@ -25,11 +25,13 @@ export async function listClaims(input: {
   return data;
 }
 
-export async function createClaim(input: {
-  buildingId: string;
-  unitId?: string;
-  buildingAmenityId?: string;
-} & ClaimCreateInput): Promise<Claim> {
+export async function createClaim(
+  input: {
+    buildingId: string;
+    unitId?: string;
+    buildingAmenityId?: string;
+  } & ClaimCreateInput,
+): Promise<Claim> {
   const {buildingId, ...body} = input;
   const {data} = await apiClient.post<Claim>(
     `/buildings/${buildingId}/claims`,

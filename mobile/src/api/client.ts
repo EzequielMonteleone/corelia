@@ -1,6 +1,6 @@
-import {Platform} from 'react-native';
 import {useAuthStore} from '@/store/authStore';
 import {create} from 'axios';
+import {Platform} from 'react-native';
 
 const ANDROID_EMULATOR_HOST = '10.0.2.2';
 

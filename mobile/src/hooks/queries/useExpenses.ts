@@ -1,4 +1,3 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {
   createExpense,
   createExpensePeriod,
@@ -14,6 +13,7 @@ import {
   updatePaymentStatus,
 } from '@/api/expenses.api';
 import {queryKeys} from '@/api/queryKeys';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 function invalidateExpenseData(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -102,10 +102,8 @@ export function useExpensePeriodAuditLogs(periodId: string | null) {
 export function useUpdateExpensePeriodStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {
-      periodId: string;
-      status: 'OPEN' | 'CLOSED';
-    }) => updateExpensePeriodStatus(input.periodId, input.status),
+    mutationFn: (input: {periodId: string; status: 'OPEN' | 'CLOSED'}) =>
+      updateExpensePeriodStatus(input.periodId, input.status),
     onSuccess: (_period, input) => {
       invalidateExpenseData(queryClient, input.periodId);
     },
@@ -125,8 +123,11 @@ export function useCreateExpense() {
 export function useUpdateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {expenseId: string; periodId: string; amount: number}) =>
-      updateExpense({expenseId: input.expenseId, amount: input.amount}),
+    mutationFn: (input: {
+      expenseId: string;
+      periodId: string;
+      amount: number;
+    }) => updateExpense({expenseId: input.expenseId, amount: input.amount}),
     onSuccess: (_expense, input) => {
       invalidateExpenseData(queryClient, input.periodId);
     },

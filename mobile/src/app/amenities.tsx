@@ -1,21 +1,15 @@
-import {useMemo, useState} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
 import {AppHeader, IconButton} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
-import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
+import {Section} from '@/components/layout/Section';
 import {Badge} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {Input} from '@/components/ui/Input';
+import {Screen} from '@/components/ui/Screen';
 import {Select} from '@/components/ui/Select';
 import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
-import {Screen} from '@/components/ui/Screen';
-import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {
   useBuildingAmenities,
   useBuildingUnits,
@@ -25,6 +19,10 @@ import {
   useCreateReservation,
   useReservations,
 } from '@/hooks/queries/useReservations';
+import {useActiveBuilding} from '@/hooks/useActiveBuilding';
+import {currentLocaleTag} from '@/i18n';
+import {errorMessage} from '@/lib/apiError';
+import {formatLongDate} from '@/lib/format';
 import {
   APP_TIMEZONE,
   formatHm,
@@ -33,12 +31,14 @@ import {
   zonedClock,
   zonedDateTime,
 } from '@/lib/zonedTime';
-import {currentLocaleTag} from '@/i18n';
-import {formatLongDate} from '@/lib/format';
-import {errorMessage} from '@/lib/apiError';
 import {toast} from '@/store/toastStore';
-import type {AmenityReservation} from '@/types/amenity';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {AmenityReservation} from '@/types/amenity';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import {useMemo, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export default function AmenitiesScreen() {
   const router = useRouter();
@@ -236,7 +236,10 @@ export default function AmenitiesScreen() {
                     onPress={() => setSelectedAmenityId(item.id)}
                     style={[styles.chip, active && styles.chipActive]}>
                     <Text
-                      style={[styles.chipText, active && styles.chipTextActive]}>
+                      style={[
+                        styles.chipText,
+                        active && styles.chipTextActive,
+                      ]}>
                       {item.amenity.name}
                     </Text>
                   </Pressable>
@@ -246,7 +249,9 @@ export default function AmenitiesScreen() {
 
             {amenity?.rules ? (
               <Card style={styles.rulesCard}>
-                <Text style={styles.rulesLabel}>{t('Amenities.rulesLabel')}</Text>
+                <Text style={styles.rulesLabel}>
+                  {t('Amenities.rulesLabel')}
+                </Text>
                 <Text style={styles.rulesText}>{amenity.rules}</Text>
               </Card>
             ) : null}
@@ -261,7 +266,8 @@ export default function AmenitiesScreen() {
                 <View style={styles.dayText}>
                   <Text style={styles.dayLabel}>{dayLabel}</Text>
                   <Text style={styles.dayMeta}>
-                    {amenity.slotMinutes} min · {amenity.openTime}–{amenity.closeTime}
+                    {amenity.slotMinutes} min · {amenity.openTime}–
+                    {amenity.closeTime}
                   </Text>
                 </View>
                 <IconButton
@@ -416,7 +422,8 @@ export default function AmenitiesScreen() {
                       </View>
                       <View style={styles.reservationText}>
                         <Text style={styles.reservationTitle}>
-                          {reservationClock(reservation)} · {reservation.unit.name}
+                          {reservationClock(reservation)} ·{' '}
+                          {reservation.unit.name}
                         </Text>
                         {reservation.user ? (
                           <Text style={styles.reservationMeta}>

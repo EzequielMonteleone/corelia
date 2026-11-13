@@ -1,6 +1,6 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
 import {colors, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export function MenuRow({
   icon,
@@ -31,7 +31,9 @@ export function MenuRow({
         />
       </View>
       <View style={styles.text}>
-        <Text style={[styles.label, danger && styles.labelDanger]}>{label}</Text>
+        <Text style={[styles.label, danger && styles.labelDanger]}>
+          {label}
+        </Text>
         {description ? (
           <Text style={styles.description}>{description}</Text>
         ) : null}

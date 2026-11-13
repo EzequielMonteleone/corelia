@@ -1,30 +1,30 @@
-import {useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
+import {PeriodCard} from '@/components/expenses/PeriodCard';
 import {AppHeader, IconButton} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {Section} from '@/components/layout/Section';
-import {PeriodCard} from '@/components/expenses/PeriodCard';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {Input} from '@/components/ui/Input';
 import {ModalSheet} from '@/components/ui/ModalSheet';
-import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {Screen} from '@/components/ui/Screen';
-import {useActiveBuilding} from '@/hooks/useActiveBuilding';
+import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {
   useCollectionSummary,
   useCreateExpensePeriod,
   useDeleteExpensePeriod,
   useExpensePeriods,
 } from '@/hooks/queries/useExpenses';
+import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {errorMessage} from '@/lib/apiError';
 import {formatCurrency} from '@/lib/format';
 import {toast} from '@/store/toastStore';
-import type {ExpensePeriod} from '@/types/expense';
 import {colors, spacing, typography} from '@/theme';
+import type {ExpensePeriod} from '@/types/expense';
+import {useRouter} from 'expo-router';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
 export default function ExpensesScreen() {
   const router = useRouter();
@@ -49,7 +49,9 @@ export default function ExpensesScreen() {
   const [createOpen, setCreateOpen] = useState(false);
   const [period, setPeriod] = useState('');
   const [periodError, setPeriodError] = useState<string | null>(null);
-  const [periodToDelete, setPeriodToDelete] = useState<ExpensePeriod | null>(null);
+  const [periodToDelete, setPeriodToDelete] = useState<ExpensePeriod | null>(
+    null,
+  );
 
   const canManage = !!activeBuilding?.canManage;
   const periods = periodsQuery.data ?? [];

@@ -1,6 +1,6 @@
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
-import {useTranslation} from 'react-i18next';
 import {colors, spacing, typography} from '@/theme';
+import {useTranslation} from 'react-i18next';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 
 export function BootScreen() {
   const {t} = useTranslation();

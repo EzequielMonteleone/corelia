@@ -1,4 +1,4 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {queryKeys} from '@/api/queryKeys';
 import {
   createRole,
   deleteRole,
@@ -6,7 +6,7 @@ import {
   listRoles,
   updateRole,
 } from '@/api/roles.api';
-import {queryKeys} from '@/api/queryKeys';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 export function useRoles() {
   return useQuery({

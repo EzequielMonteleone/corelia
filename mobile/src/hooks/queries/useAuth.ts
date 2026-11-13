@@ -1,7 +1,7 @@
-import {useMutation} from '@tanstack/react-query';
-import {useRouter} from 'expo-router';
 import {loginRequest} from '@/api/auth.api';
 import {useAuthStore} from '@/store/authStore';
+import {useMutation} from '@tanstack/react-query';
+import {useRouter} from 'expo-router';
 
 export function useLoginMutation() {
   const router = useRouter();

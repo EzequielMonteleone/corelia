@@ -1,10 +1,6 @@
-import {useMemo, useState} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useTranslation} from 'react-i18next';
-import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Select} from '@/components/ui/Select';
 import {useBuildingUnits} from '@/hooks/queries/useBuildings';
 import {validationMessage} from '@/lib/validation';
@@ -14,9 +10,13 @@ import {
   type UserCreateFormValues,
   type UserEditFormValues,
 } from '@/schemas/user';
+import {colors, radius, spacing, typography} from '@/theme';
 import type {Building} from '@/types/building';
 import type {UserData} from '@/types/user';
-import {colors, radius, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useMemo, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 type RoleName = 'Admin' | 'Owner' | 'Roomer';
 
@@ -68,15 +68,18 @@ export function UserFormModal({
   const editingSelf = !!editingUser && editingUser.id === actor.id;
 
   const scope = useMemo(
-    () => buildings.filter(building => (building.assignableRoles?.length ?? 0) > 0),
+    () =>
+      buildings.filter(building => (building.assignableRoles?.length ?? 0) > 0),
     [buildings],
   );
 
   const editBuildingId = editingUser?.buildingUsers?.[0]?.buildingId ?? '';
-  const editRoleName = (editingUser?.buildingUsers?.[0]?.role?.name ??
-    '') as RoleName | '';
+  const editRoleName = (editingUser?.buildingUsers?.[0]?.role?.name ?? '') as
+    | RoleName
+    | '';
 
-  const effectiveBuildingId = buildingId || editBuildingId || scope[0]?.id || '';
+  const effectiveBuildingId =
+    buildingId || editBuildingId || scope[0]?.id || '';
   const effectiveRoleName = isEdit ? roleName || editRoleName : roleName;
 
   const selectedBuilding = buildings.find(
@@ -91,7 +94,9 @@ export function UserFormModal({
   const showUnitsSingle = roleDefinition?.unitSelection === 'one';
 
   const availableRoles = useMemo(() => {
-    const roles = (selectedBuilding?.assignableRoles ?? []).map(role => role.name);
+    const roles = (selectedBuilding?.assignableRoles ?? []).map(
+      role => role.name,
+    );
     if (isEdit && editRoleName && !roles.includes(editRoleName)) {
       return [editRoleName, ...roles];
     }
@@ -151,7 +156,8 @@ export function UserFormModal({
     for (const issue of issues) {
       const field = String(issue.path[0] ?? 'form');
       if (!nextErrors[field]) {
-        nextErrors[field] = validationMessage(t, issue.message) ?? issue.message;
+        nextErrors[field] =
+          validationMessage(t, issue.message) ?? issue.message;
       }
     }
     return nextErrors;
@@ -168,7 +174,9 @@ export function UserFormModal({
       roleName: globalSuperAdmin
         ? undefined
         : ((effectiveRoleName || undefined) as RoleName | undefined),
-      buildingId: globalSuperAdmin ? undefined : effectiveBuildingId || undefined,
+      buildingId: globalSuperAdmin
+        ? undefined
+        : effectiveBuildingId || undefined,
       unitIds: globalSuperAdmin ? [] : effectiveSelectedUnitIds,
     };
     const result = userCreateSchema.safeParse(payload);
@@ -260,9 +268,7 @@ export function UserFormModal({
           error={errors.phone}
         />
         <Input
-          label={
-            isEdit ? t('Users.newPasswordOptional') : t('Users.password')
-          }
+          label={isEdit ? t('Users.newPasswordOptional') : t('Users.password')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -319,10 +325,9 @@ export function UserFormModal({
               placeholder={t('Users.selectRole')}
               options={availableRoles.map(name => ({
                 value: name,
-                label:
-                  ROLE_LABEL_KEYS[name as keyof typeof ROLE_LABEL_KEYS]
-                    ? t(ROLE_LABEL_KEYS[name as keyof typeof ROLE_LABEL_KEYS])
-                    : name,
+                label: ROLE_LABEL_KEYS[name as keyof typeof ROLE_LABEL_KEYS]
+                  ? t(ROLE_LABEL_KEYS[name as keyof typeof ROLE_LABEL_KEYS])
+                  : name,
               }))}
               error={errors.roleName}
             />
@@ -359,7 +364,9 @@ export function UserFormModal({
                           color={checked ? colors.primary : colors.textMuted}
                         />
                         <Text style={styles.unitLabel}>
-                          {unit.floor ? `${unit.floor} - ${unit.name}` : unit.name}
+                          {unit.floor
+                            ? `${unit.floor} - ${unit.name}`
+                            : unit.name}
                         </Text>
                       </Pressable>
                     );
@@ -373,7 +380,9 @@ export function UserFormModal({
           </>
         ) : null}
 
-        {errors.form ? <Text style={styles.errorText}>{errors.form}</Text> : null}
+        {errors.form ? (
+          <Text style={styles.errorText}>{errors.form}</Text>
+        ) : null}
 
         <Button
           title={isEdit ? t('Users.saveChanges') : t('Users.createUser')}

@@ -1,5 +1,11 @@
-import {Pressable, StyleSheet, View, type StyleProp, type ViewStyle} from 'react-native';
 import {colors, radius, spacing} from '@/theme';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 export function Card({
   children,
@@ -18,11 +24,7 @@ export function Card({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         onPress={onPress}
-        style={({pressed}) => [
-          styles.card,
-          pressed && styles.pressed,
-          style,
-        ]}>
+        style={({pressed}) => [styles.card, pressed && styles.pressed, style]}>
         {children}
       </Pressable>
     );

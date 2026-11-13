@@ -1,34 +1,41 @@
-import {useEffect, useMemo, useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
+import {ClaimCard} from '@/components/claims/ClaimCard';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {RequireAccess} from '@/components/layout/RequireAccess';
-import {ClaimCard} from '@/components/claims/ClaimCard';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {ModalSheet} from '@/components/ui/ModalSheet';
+import {Screen} from '@/components/ui/Screen';
 import {Select} from '@/components/ui/Select';
 import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
-import {Screen} from '@/components/ui/Screen';
-import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {
   useBuildingAmenities,
   useBuildingUnits,
 } from '@/hooks/queries/useBuildings';
-import {useClaims, useCreateClaim, useUpdateClaim} from '@/hooks/queries/useClaims';
+import {
+  useClaims,
+  useCreateClaim,
+  useUpdateClaim,
+} from '@/hooks/queries/useClaims';
+import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {errorMessage} from '@/lib/apiError';
 import {toast} from '@/store/toastStore';
-import type {ClaimUpdateInput} from '@/types/claims';
 import {colors, spacing, typography} from '@/theme';
+import type {ClaimUpdateInput} from '@/types/claims';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useEffect, useMemo, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
 type TargetOption = {value: string; label: string};
 
 export default function ClaimsScreen() {
   const router = useRouter();
   const {t} = useTranslation();
-  const params = useLocalSearchParams<{buildingId?: string; claimId?: string}>();
+  const params = useLocalSearchParams<{
+    buildingId?: string;
+    claimId?: string;
+  }>();
   const {
     buildings,
     activeBuildingId,
@@ -66,7 +73,9 @@ export default function ClaimsScreen() {
   const unitsQuery = useBuildingUnits(activeBuildingId);
   const amenitiesQuery = useBuildingAmenities(activeBuildingId);
   const filterUnitId = filter.startsWith('unit:') ? filter.slice(5) : null;
-  const filterAmenityId = filter.startsWith('amenity:') ? filter.slice(8) : null;
+  const filterAmenityId = filter.startsWith('amenity:')
+    ? filter.slice(8)
+    : null;
   const claimsQuery = useClaims(activeBuildingId, {
     unitId: filterUnitId,
     buildingAmenityId: filterAmenityId,
@@ -76,8 +85,7 @@ export default function ClaimsScreen() {
 
   const units = useMemo(() => unitsQuery.data ?? [], [unitsQuery.data]);
   const amenities = useMemo(
-    () =>
-      (amenitiesQuery.data?.amenities ?? []).filter(item => item.isEnabled),
+    () => (amenitiesQuery.data?.amenities ?? []).filter(item => item.isEnabled),
     [amenitiesQuery.data],
   );
   const claims = claimsQuery.data?.claims ?? [];

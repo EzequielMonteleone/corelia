@@ -1,3 +1,5 @@
+import {haptics} from '@/lib/haptics';
+import {colors, radius, spacing, typography} from '@/theme';
 import type {ReactNode} from 'react';
 import {
   ActivityIndicator,
@@ -8,8 +10,6 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import {haptics} from '@/lib/haptics';
-import {colors, radius, spacing, typography} from '@/theme';
 
 export type ButtonVariant =
   | 'primary'
@@ -105,7 +105,11 @@ const styles = StyleSheet.create({
   fullWidth: {width: '100%'},
   pressed: {opacity: 0.78, transform: [{scale: 0.99}]},
   disabled: {opacity: 0.45},
-  content: {flexDirection: 'row', alignItems: 'center', justifyContent: 'center'},
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   label: {fontWeight: '600'},
   labelWithIcon: {marginLeft: spacing.sm},
 });

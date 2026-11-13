@@ -1,8 +1,15 @@
-import {Modal, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {colors, radius, spacing, typography} from '@/theme';
 import {Ionicons} from '@expo/vector-icons';
 import {useTranslation} from 'react-i18next';
-import {colors, radius, spacing, typography} from '@/theme';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 export interface ModalSheetProps {
   visible: boolean;
@@ -35,7 +42,8 @@ export function ModalSheet({
           style={styles.backdrop}
           onPress={onClose}
         />
-        <View style={[styles.sheet, {paddingBottom: Math.max(insets.bottom, 16)}]}>
+        <View
+          style={[styles.sheet, {paddingBottom: Math.max(insets.bottom, 16)}]}>
           <View style={styles.grabber} />
           <View style={styles.header}>
             <Text style={styles.title}>{title ?? ''}</Text>

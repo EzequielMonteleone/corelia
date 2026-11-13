@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {apiClient} from '@/api/client';
 import {errorCode} from '@/lib/apiError';
 import type {
@@ -7,6 +6,7 @@ import type {
   PendingClaimDraft,
   PendingDraft,
 } from '@/types/chat';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const THREAD_STORAGE_KEY = 'corelia-chat-thread';
 

@@ -1,28 +1,28 @@
-import {useMemo} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
+import {KpiCard} from '@/components/dashboard/KpiCard';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {Section} from '@/components/layout/Section';
-import {KpiCard} from '@/components/dashboard/KpiCard';
-import {Card} from '@/components/ui/Card';
-import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
-import {Screen} from '@/components/ui/Screen';
 import {Badge} from '@/components/ui/Badge';
-import {useActiveBuilding} from '@/hooks/useActiveBuilding';
+import {Card} from '@/components/ui/Card';
+import {Screen} from '@/components/ui/Screen';
+import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {useCollectionSummary} from '@/hooks/queries/useExpenses';
 import {useNotifications} from '@/hooks/queries/useNotifications';
-import {canAccessPath} from '@/lib/navAccess';
-import {formatCurrency, formatDateTime, formatLongDate} from '@/lib/format';
+import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {currentLocaleTag} from '@/i18n';
-import {notificationPhrase} from '@/lib/notificationText';
+import {formatCurrency, formatDateTime, formatLongDate} from '@/lib/format';
+import {canAccessPath} from '@/lib/navAccess';
 import {notificationTarget} from '@/lib/notificationLink';
-import {useAuthStore} from '@/store/authStore';
-import {useAppStore} from '@/store/appStore';
+import {notificationPhrase} from '@/lib/notificationText';
 import {APP_TIMEZONE} from '@/lib/zonedTime';
+import {useAppStore} from '@/store/appStore';
+import {useAuthStore} from '@/store/authStore';
 import {colors, radius, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import {useMemo} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 type QuickLink = {
   href: '/buildings' | '/expenses' | '/users' | '/claims' | '/amenities';
@@ -101,7 +101,8 @@ export default function DashboardScreen() {
     return links;
   }, [t, user]);
 
-  const recentNotifications = notificationsQuery.data?.notifications.slice(0, 3) ?? [];
+  const recentNotifications =
+    notificationsQuery.data?.notifications.slice(0, 3) ?? [];
 
   if (isLoading) {
     return (
@@ -223,11 +224,17 @@ export default function DashboardScreen() {
                   style={styles.quickCard}
                   accessibilityLabel={link.title}
                   onPress={() => router.push(link.href)}>
-                  <View style={[styles.quickIcon, {backgroundColor: `${link.tint}22`}]}>
+                  <View
+                    style={[
+                      styles.quickIcon,
+                      {backgroundColor: `${link.tint}22`},
+                    ]}>
                     <Ionicons name={link.icon} size={20} color={link.tint} />
                   </View>
                   <Text style={styles.quickTitle}>{link.title}</Text>
-                  <Text style={styles.quickDescription}>{link.description}</Text>
+                  <Text style={styles.quickDescription}>
+                    {link.description}
+                  </Text>
                 </Card>
               ))}
             </View>

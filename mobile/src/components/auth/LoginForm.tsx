@@ -1,12 +1,12 @@
-import {useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {useTranslation} from 'react-i18next';
-import {flattenError} from 'zod';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {validationMessage} from '@/lib/validation';
 import {loginSchema, type LoginFormValues} from '@/schemas/auth';
 import {colors, radius, spacing, typography} from '@/theme';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
+import {flattenError} from 'zod';
 
 export interface LoginFormProps {
   pending: boolean;
@@ -55,7 +55,8 @@ export function LoginForm({pending, error, onSubmit}: LoginFormProps) {
           value={email}
           onChangeText={value => {
             setEmail(value);
-            if (errors.email) setErrors(current => ({...current, email: undefined}));
+            if (errors.email)
+              setErrors(current => ({...current, email: undefined}));
           }}
           autoCapitalize="none"
           autoCorrect={false}

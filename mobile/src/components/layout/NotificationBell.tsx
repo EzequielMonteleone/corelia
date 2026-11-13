@@ -1,8 +1,8 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useTranslation} from 'react-i18next';
 import {useNotifications} from '@/hooks/queries/useNotifications';
 import {colors, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export function NotificationBell({onPress}: {onPress: () => void}) {
   const {t} = useTranslation();
@@ -19,7 +19,11 @@ export function NotificationBell({onPress}: {onPress: () => void}) {
       }
       onPress={onPress}
       style={styles.button}>
-      <Ionicons name="notifications-outline" size={20} color={colors.textSecondary} />
+      <Ionicons
+        name="notifications-outline"
+        size={20}
+        color={colors.textSecondary}
+      />
       {unread > 0 ? (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>

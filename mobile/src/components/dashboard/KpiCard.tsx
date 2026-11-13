@@ -1,7 +1,7 @@
-import {StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
 import {Card} from '@/components/ui/Card';
 import {colors, radius, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {StyleSheet, Text, View} from 'react-native';
 
 export function KpiCard({
   icon,

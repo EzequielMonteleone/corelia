@@ -1,11 +1,3 @@
-import {useEffect} from 'react';
-import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {QueryClientProvider} from '@tanstack/react-query';
-import {StatusBar} from 'expo-status-bar';
-import {Stack} from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import {I18nextProvider} from 'react-i18next';
 import {LocaleSync} from '@/components/i18n/LocaleSync';
 import {BootScreen} from '@/components/layout/BootScreen';
 import {ToastHost} from '@/components/layout/ToastHost';
@@ -13,6 +5,14 @@ import i18n from '@/i18n';
 import {queryClient, startAppStateFocusManager} from '@/lib/queryClient';
 import {useAuthStore} from '@/store/authStore';
 import {colors} from '@/theme';
+import {QueryClientProvider} from '@tanstack/react-query';
+import {Stack} from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import {StatusBar} from 'expo-status-bar';
+import {useEffect} from 'react';
+import {I18nextProvider} from 'react-i18next';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 if (__DEV__) {
   // Initializes Reactotron before the app renders.

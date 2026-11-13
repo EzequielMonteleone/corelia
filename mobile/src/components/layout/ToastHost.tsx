@@ -1,9 +1,9 @@
+import {useToastStore, type ToastItem} from '@/store/toastStore';
+import {colors, radius, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
 import {useEffect} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {Ionicons} from '@expo/vector-icons';
-import {useToastStore, type ToastItem} from '@/store/toastStore';
-import {colors, radius, spacing, typography} from '@/theme';
 
 export function ToastHost() {
   const toasts = useToastStore(state => state.toasts);

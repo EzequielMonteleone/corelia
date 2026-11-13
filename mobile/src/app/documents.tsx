@@ -1,8 +1,3 @@
-import {useEffect, useMemo, useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {RequireAccess} from '@/components/layout/RequireAccess';
@@ -11,20 +6,25 @@ import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {Input} from '@/components/ui/Input';
 import {ModalSheet} from '@/components/ui/ModalSheet';
+import {Screen} from '@/components/ui/Screen';
 import {Select} from '@/components/ui/Select';
 import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
-import {Screen} from '@/components/ui/Screen';
-import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {
   useCreateDocument,
   useDocument,
   useDocuments,
 } from '@/hooks/queries/useDocuments';
+import {useActiveBuilding} from '@/hooks/useActiveBuilding';
 import {errorMessage} from '@/lib/apiError';
 import {formatDate} from '@/lib/format';
 import {toast} from '@/store/toastStore';
-import type {DocumentKind} from '@/types/document';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {DocumentKind} from '@/types/document';
+import {Ionicons} from '@expo/vector-icons';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useEffect, useMemo, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
 const KIND_LABEL_KEYS = {
   BYLAW: 'Documents.kind.BYLAW',

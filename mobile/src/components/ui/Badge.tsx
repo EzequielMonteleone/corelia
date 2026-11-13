@@ -1,5 +1,11 @@
-import {StyleSheet, Text, View, type StyleProp, type ViewStyle} from 'react-native';
 import {colors, radius, spacing, typography} from '@/theme';
+import {
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 export type BadgeIntent =
   | 'success'

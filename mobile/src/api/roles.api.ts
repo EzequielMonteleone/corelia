@@ -1,6 +1,6 @@
 import {apiClient} from '@/api/client';
-import type {Permission, Role} from '@/types/role';
 import type {RoleFormValues} from '@/schemas/role';
+import type {Permission, Role} from '@/types/role';
 
 export async function listRoles(): Promise<Role[]> {
   const {data} = await apiClient.get<Role[]>('/roles');

@@ -1,17 +1,17 @@
-import {useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {useTranslation} from 'react-i18next';
 import {Badge, type BadgeIntent} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {Select} from '@/components/ui/Select';
+import {colors, radius, spacing, typography} from '@/theme';
 import {
   CLAIM_STATUSES,
   type Claim,
   type ClaimStatus,
   type ClaimUpdateInput,
 } from '@/types/claims';
-import {colors, radius, spacing, typography} from '@/theme';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
 const STATUS_LABEL_KEYS = {
   OPEN: 'Claims.status.OPEN',

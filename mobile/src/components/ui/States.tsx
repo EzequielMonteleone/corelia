@@ -1,8 +1,8 @@
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useTranslation} from 'react-i18next';
 import {Button} from '@/components/ui/Button';
 import {colors, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 
 export function LoadingState({message}: {message?: string}) {
   const {t} = useTranslation();

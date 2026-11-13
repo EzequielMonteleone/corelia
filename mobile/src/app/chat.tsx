@@ -1,18 +1,3 @@
-import {useEffect, useRef, useState} from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {RequireAccess} from '@/components/layout/RequireAccess';
 import {Card} from '@/components/ui/Card';
@@ -26,8 +11,23 @@ import {
 import {errorMessage} from '@/lib/apiError';
 import {formatDateTime} from '@/lib/format';
 import {toast} from '@/store/toastStore';
-import type {ChatMessage} from '@/types/chat';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {ChatMessage} from '@/types/chat';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import {useEffect, useRef, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 const SUGGESTION_KEYS = [
   'Chat.suggestionBook',
@@ -120,11 +120,7 @@ export default function ChatScreen() {
               ListEmptyComponent={
                 <View style={styles.empty}>
                   <View style={styles.emptyIcon}>
-                    <Ionicons
-                      name="sparkles"
-                      size={26}
-                      color={colors.indigo}
-                    />
+                    <Ionicons name="sparkles" size={26} color={colors.indigo} />
                   </View>
                   <Text style={styles.emptyTitle}>{t('Chat.emptyTitle')}</Text>
                   <Text style={styles.emptyText}>
@@ -269,7 +265,11 @@ function MessageBubble({
         </View>
       ) : null}
       <View style={styles.messageContent}>
-        <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+        <View
+          style={[
+            styles.bubble,
+            mine ? styles.bubbleMine : styles.bubbleTheirs,
+          ]}>
           <Text style={styles.messageText}>{message.content}</Text>
         </View>
         {message.choices && message.choices.length > 0 ? (
@@ -396,7 +396,11 @@ const styles = StyleSheet.create({
     width: 30,
   },
   messageContent: {flexShrink: 1, gap: spacing.sm, maxWidth: '82%'},
-  bubble: {borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.md},
+  bubble: {
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
   bubbleMine: {
     backgroundColor: colors.primaryDark,
     borderBottomRightRadius: radius.sm,
@@ -422,11 +426,19 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   choiceDisabled: {opacity: 0.5},
-  choiceText: {color: colors.primary, fontSize: typography.small, fontWeight: '600'},
+  choiceText: {
+    color: colors.primary,
+    fontSize: typography.small,
+    fontWeight: '600',
+  },
   footer: {gap: spacing.md, paddingTop: spacing.md},
   draftCard: {gap: spacing.xs, padding: spacing.md},
   draftHeader: {alignItems: 'center', flexDirection: 'row', gap: spacing.sm},
-  draftTitle: {color: colors.text, fontSize: typography.small, fontWeight: '700'},
+  draftTitle: {
+    color: colors.text,
+    fontSize: typography.small,
+    fontWeight: '700',
+  },
   draftLine: {color: colors.text, fontSize: typography.body, fontWeight: '600'},
   draftMeta: {
     color: colors.textSecondary,
@@ -440,7 +452,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingVertical: spacing.sm,
   },
-  confirmText: {color: colors.white, fontSize: typography.small, fontWeight: '700'},
+  confirmText: {
+    color: colors.white,
+    fontSize: typography.small,
+    fontWeight: '700',
+  },
   pressed: {opacity: 0.8},
   typing: {alignItems: 'center', flexDirection: 'row', gap: spacing.sm},
   typingText: {color: colors.textMuted, fontSize: typography.caption},

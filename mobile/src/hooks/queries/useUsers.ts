@@ -1,4 +1,4 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {queryKeys} from '@/api/queryKeys';
 import {
   createBuildingUser,
   createGlobalUser,
@@ -9,7 +9,7 @@ import {
   listUsers,
   updateUser,
 } from '@/api/users.api';
-import {queryKeys} from '@/api/queryKeys';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 export function useProfile() {
   return useQuery({

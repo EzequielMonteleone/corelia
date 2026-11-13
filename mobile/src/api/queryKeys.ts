@@ -39,8 +39,7 @@ export const queryKeys = {
     amenityId: string | null,
   ) => ['claims', buildingId, unitId, amenityId] as const,
   documentsRoot: ['documents'] as const,
-  documents: (buildingId: string | null) =>
-    ['documents', buildingId] as const,
+  documents: (buildingId: string | null) => ['documents', buildingId] as const,
   documentRoot: ['document'] as const,
   document: (buildingId: string | null, documentId: string | null) =>
     ['document', buildingId, documentId] as const,

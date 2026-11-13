@@ -1,18 +1,13 @@
-import {useState} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
-import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
-import {UserFormModal} from '@/components/users/UserFormModal';
+import {Section} from '@/components/layout/Section';
 import {Badge} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
-import {ErrorState, LoadingState} from '@/components/ui/States';
 import {Screen} from '@/components/ui/Screen';
+import {ErrorState, LoadingState} from '@/components/ui/States';
+import {UserFormModal} from '@/components/users/UserFormModal';
 import {useBuildings} from '@/hooks/queries/useBuildings';
 import {
   useDeleteUser,
@@ -21,14 +16,19 @@ import {
   useUserAuditLogs,
   useUsers,
 } from '@/hooks/queries/useUsers';
-import {isUserAuditAction} from '@/types/user';
 import {errorMessage} from '@/lib/apiError';
 import {formatDateTime, initials} from '@/lib/format';
-import {toast} from '@/store/toastStore';
-import {useAuthStore} from '@/store/authStore';
-import type {UserAuditMetadata} from '@/types/user';
 import type {UserEditFormValues} from '@/schemas/user';
+import {useAuthStore} from '@/store/authStore';
+import {toast} from '@/store/toastStore';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {UserAuditMetadata} from '@/types/user';
+import {isUserAuditAction} from '@/types/user';
+import {Ionicons} from '@expo/vector-icons';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 const ACTION_KEYS = {
   USER_PASSWORD_CHANGED: 'Users.USER_PASSWORD_CHANGED',
@@ -213,7 +213,8 @@ export default function UserDetailScreen() {
                   user.buildingUsers[0].role.name in ROLE_KEYS
                     ? t(
                         ROLE_KEYS[
-                          user.buildingUsers[0].role.name as keyof typeof ROLE_KEYS
+                          user.buildingUsers[0].role
+                            .name as keyof typeof ROLE_KEYS
                         ],
                       )
                     : user.buildingUsers[0].role.name
@@ -246,7 +247,11 @@ export default function UserDetailScreen() {
                       <Text style={styles.rowMeta}>
                         {link.role
                           ? link.role.name in ROLE_KEYS
-                            ? t(ROLE_KEYS[link.role.name as keyof typeof ROLE_KEYS])
+                            ? t(
+                                ROLE_KEYS[
+                                  link.role.name as keyof typeof ROLE_KEYS
+                                ],
+                              )
                             : link.role.name
                           : t('Users.noRole')}
                       </Text>
@@ -339,7 +344,10 @@ export default function UserDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel={t('Users.deleteUser')}
               onPress={() => setDeleteOpen(true)}
-              style={({pressed}) => [styles.deleteButton, pressed && styles.pressed]}>
+              style={({pressed}) => [
+                styles.deleteButton,
+                pressed && styles.pressed,
+              ]}>
               <Ionicons name="trash-outline" size={18} color={colors.danger} />
               <Text style={styles.deleteText}>{t('Users.deleteUser')}</Text>
             </Pressable>
@@ -377,7 +385,11 @@ export default function UserDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  identity: {alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.xl},
+  identity: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xl,
+  },
   avatar: {
     alignItems: 'center',
     backgroundColor: colors.indigoSoft,
@@ -387,7 +399,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     width: 64,
   },
-  avatarText: {color: colors.indigo, fontSize: typography.h1, fontWeight: '800'},
+  avatarText: {
+    color: colors.indigo,
+    fontSize: typography.h1,
+    fontWeight: '800',
+  },
   name: {
     color: colors.text,
     fontSize: typography.h2,
@@ -433,7 +449,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.xs,
   },
-  auditTitle: {color: colors.text, fontSize: typography.small, fontWeight: '600'},
+  auditTitle: {
+    color: colors.text,
+    fontSize: typography.small,
+    fontWeight: '600',
+  },
   deleteButton: {
     alignItems: 'center',
     backgroundColor: colors.dangerSoft,
@@ -445,6 +465,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.md,
   },
-  deleteText: {color: colors.danger, fontSize: typography.body, fontWeight: '600'},
+  deleteText: {
+    color: colors.danger,
+    fontSize: typography.body,
+    fontWeight: '600',
+  },
   pressed: {opacity: 0.8},
 });

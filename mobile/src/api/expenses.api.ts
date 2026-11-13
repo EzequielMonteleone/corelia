@@ -88,10 +88,9 @@ export async function updateExpense(input: {
   expenseId: string;
   amount: number;
 }): Promise<Expense> {
-  const {data} = await apiClient.put<Expense>(
-    `/expenses/${input.expenseId}`,
-    {amount: input.amount},
-  );
+  const {data} = await apiClient.put<Expense>(`/expenses/${input.expenseId}`, {
+    amount: input.amount,
+  });
   return data;
 }
 
@@ -122,9 +121,8 @@ export async function updatePaymentStatus(input: {
   paymentId: string;
   status: Extract<PaymentStatus, 'COMPLETED' | 'REJECTED'>;
 }): Promise<Payment> {
-  const {data} = await apiClient.put<Payment>(
-    `/payments/${input.paymentId}`,
-    {status: input.status},
-  );
+  const {data} = await apiClient.put<Payment>(`/payments/${input.paymentId}`, {
+    status: input.status,
+  });
   return data;
 }

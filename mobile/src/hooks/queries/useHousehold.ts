@@ -1,4 +1,3 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {
   createMember,
   createPet,
@@ -12,6 +11,7 @@ import {
   updateVehicle,
 } from '@/api/household.api';
 import {queryKeys} from '@/api/queryKeys';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 export function useHousehold(unitId: string | null) {
   return useQuery({
@@ -47,8 +47,7 @@ export function useUpdateMember() {
 export function useDeleteMember() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {id: string; unitId: string}) =>
-      deleteMember(input.id),
+    mutationFn: (input: {id: string; unitId: string}) => deleteMember(input.id),
     onSuccess: (_result, input) =>
       invalidateHousehold(queryClient, input.unitId),
   });
