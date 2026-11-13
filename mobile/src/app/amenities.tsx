@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader, IconButton} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {Section} from '@/components/layout/Section';
@@ -32,6 +33,7 @@ import {
   zonedClock,
   zonedDateTime,
 } from '@/lib/zonedTime';
+import {currentLocaleTag} from '@/i18n';
 import {formatLongDate} from '@/lib/format';
 import {errorMessage} from '@/lib/apiError';
 import {toast} from '@/store/toastStore';
@@ -40,6 +42,7 @@ import {colors, radius, spacing, typography} from '@/theme';
 
 export default function AmenitiesScreen() {
   const router = useRouter();
+  const {t, i18n} = useTranslation();
   const {
     buildings,
     activeBuilding,
@@ -91,16 +94,18 @@ export default function AmenitiesScreen() {
   const dayLabel = useMemo(() => {
     const label = formatLongDate(
       zonedDateTime(day, '12:00'),
-      'es-AR',
+      currentLocaleTag(),
       APP_TIMEZONE,
     );
     return label.charAt(0).toUpperCase() + label.slice(1);
-  }, [day]);
+    // Recompute when the active language changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day, i18n.language]);
 
   const reserve = (hm: string) => {
     if (!activeBuildingId || !amenity) return;
     if (!unitId) {
-      toast.error('Seleccioná la unidad para la reserva.');
+      toast.error(t('Amenities.selectUnitError'));
       return;
     }
     createReservation.mutate(
@@ -113,7 +118,7 @@ export default function AmenitiesScreen() {
       },
       {
         onSuccess: () => {
-          toast.success('Reserva confirmada.');
+          toast.success(t('Amenities.reserveSuccess'));
           setNotes('');
         },
         onError: error => toast.error(errorMessage(error)),
@@ -125,7 +130,7 @@ export default function AmenitiesScreen() {
     if (!cancelId) return;
     cancelReservation.mutate(cancelId, {
       onSuccess: () => {
-        toast.success('Reserva cancelada.');
+        toast.success(t('Amenities.cancelSuccess'));
         setCancelId(null);
       },
       onError: error => toast.error(errorMessage(error)),
@@ -149,11 +154,11 @@ export default function AmenitiesScreen() {
       <RequireAccess path="/amenities">
         <Screen>
           <AppHeader
-            title="Amenities"
+            title={t('Amenities.title')}
             showBell={false}
             onBack={() => router.back()}
           />
-          <LoadingState message="Cargando amenities..." />
+          <LoadingState message={t('Amenities.loading')} />
         </Screen>
       </RequireAccess>
     );
@@ -164,12 +169,12 @@ export default function AmenitiesScreen() {
       <RequireAccess path="/amenities">
         <Screen>
           <AppHeader
-            title="Amenities"
+            title={t('Amenities.title')}
             showBell={false}
             onBack={() => router.back()}
           />
           <ErrorState
-            message="No pudimos cargar tus edificios."
+            message={t('Amenities.buildingsError')}
             onRetry={() => refetchBuildings()}
           />
         </Screen>
@@ -187,8 +192,8 @@ export default function AmenitiesScreen() {
           reservationsQuery.refetch();
         }}>
         <AppHeader
-          title="Amenities"
-          subtitle="Reservá los espacios comunes del edificio."
+          title={t('Amenities.title')}
+          subtitle={t('Amenities.subtitle')}
           showBell={false}
           onBack={() => router.back()}
         />
@@ -202,21 +207,21 @@ export default function AmenitiesScreen() {
         {!activeBuildingId ? (
           <EmptyState
             icon="calendar-outline"
-            title="Elegí un edificio"
-            description="Seleccioná un edificio para ver sus amenities disponibles."
+            title={t('Amenities.selectBuilding')}
+            description={t('Amenities.chooseBuildingDesc')}
           />
         ) : amenitiesQuery.isLoading ? (
-          <LoadingState message="Cargando amenities..." />
+          <LoadingState message={t('Amenities.loading')} />
         ) : amenitiesQuery.isError ? (
           <ErrorState
-            message="No pudimos cargar los amenities."
+            message={t('Amenities.loadError')}
             onRetry={() => amenitiesQuery.refetch()}
           />
         ) : enabledAmenities.length === 0 ? (
           <EmptyState
             icon="sparkles-outline"
-            title="Sin amenities habilitados"
-            description="Un administrador del edificio todavía no habilitó espacios para reservar."
+            title={t('Amenities.emptyTitle')}
+            description={t('Amenities.emptyDescription')}
           />
         ) : (
           <View style={styles.content}>
@@ -241,7 +246,7 @@ export default function AmenitiesScreen() {
 
             {amenity?.rules ? (
               <Card style={styles.rulesCard}>
-                <Text style={styles.rulesLabel}>Reglas de uso</Text>
+                <Text style={styles.rulesLabel}>{t('Amenities.rulesLabel')}</Text>
                 <Text style={styles.rulesText}>{amenity.rules}</Text>
               </Card>
             ) : null}
@@ -250,7 +255,7 @@ export default function AmenitiesScreen() {
               <View style={styles.dayRow}>
                 <IconButton
                   icon="chevron-back"
-                  label="Día anterior"
+                  label={t('Amenities.previousDay')}
                   onPress={() => setDay(value => shiftDateKey(value, -1))}
                 />
                 <View style={styles.dayText}>
@@ -261,14 +266,14 @@ export default function AmenitiesScreen() {
                 </View>
                 <IconButton
                   icon="chevron-forward"
-                  label="Día siguiente"
+                  label={t('Amenities.nextDay')}
                   onPress={() => setDay(value => shiftDateKey(value, 1))}
                 />
               </View>
 
               {day !== todayKey() ? (
                 <Button
-                  title="Volver a hoy"
+                  title={t('Amenities.backToToday')}
                   variant="ghost"
                   size="sm"
                   onPress={() => setDay(todayKey())}
@@ -278,13 +283,16 @@ export default function AmenitiesScreen() {
 
               {units.length > 1 ? (
                 <Select
-                  label="Unidad"
+                  label={t('Amenities.unitLabel')}
                   value={unitId}
                   onChange={setSelectedUnitId}
-                  placeholder="Seleccionar unidad"
+                  placeholder={t('Amenities.selectUnit')}
                   options={units.map(unit => ({
                     label: unit.floor
-                      ? `${unit.name} · Piso ${unit.floor}`
+                      ? t('Amenities.unitWithFloor', {
+                          unit: unit.name,
+                          floor: unit.floor,
+                        })
                       : unit.name,
                     value: unit.id,
                   }))}
@@ -297,30 +305,28 @@ export default function AmenitiesScreen() {
                     color={colors.textSecondary}
                   />
                   <Text style={styles.singleUnitText}>
-                    Reservás para {units[0].name}
+                    {t('Amenities.bookingForUnit', {unit: units[0].name})}
                   </Text>
                 </View>
               ) : (
                 <Text style={styles.muted}>
-                  No hay unidades disponibles para reservar.
+                  {t('Amenities.noUnitsAvailable')}
                 </Text>
               )}
 
               <Input
-                label="Notas (opcional)"
+                label={t('Amenities.notesOptional')}
                 value={notes}
                 onChangeText={setNotes}
                 multiline
                 maxLength={500}
-                placeholder="Ej: cumpleaños, cantidad de invitados..."
+                placeholder={t('Amenities.notesPlaceholderLong')}
               />
 
               {reservationsQuery.isLoading ? (
-                <LoadingState message="Cargando horarios..." />
+                <LoadingState message={t('Amenities.loadingSlots')} />
               ) : slots.length === 0 ? (
-                <Text style={styles.muted}>
-                  No hay turnos configurados para este amenity.
-                </Text>
+                <Text style={styles.muted}>{t('Amenities.noSlots')}</Text>
               ) : (
                 <View style={styles.slots}>
                   {slots.map(slot => {
@@ -347,7 +353,9 @@ export default function AmenitiesScreen() {
                       <Pressable
                         key={slot.time}
                         accessibilityRole="button"
-                        accessibilityLabel={`Turno ${slot.time}`}
+                        accessibilityLabel={t('Amenities.slotAccessibility', {
+                          time: slot.time,
+                        })}
                         accessibilityState={{disabled}}
                         disabled={disabled}
                         onPress={() => {
@@ -371,12 +379,15 @@ export default function AmenitiesScreen() {
                         </Text>
                         <Text style={styles.slotMeta} numberOfLines={1}>
                           {mine
-                            ? 'Tu reserva'
+                            ? t('Amenities.yourReservation')
                             : slot.past
-                              ? 'Pasado'
+                              ? t('Amenities.past')
                               : slot.full
-                                ? 'Completo'
-                                : `${matches.length}/${amenity.maxConcurrent}`}
+                                ? t('Amenities.full')
+                                : t('Amenities.available', {
+                                    taken: matches.length,
+                                    capacity: amenity.maxConcurrent,
+                                  })}
                         </Text>
                       </Pressable>
                     );
@@ -385,10 +396,12 @@ export default function AmenitiesScreen() {
               )}
             </Card>
 
-            <Section title="Reservas del día">
+            <Section title={t('Amenities.dayReservations')}>
               {reservations.length === 0 ? (
                 <Text style={styles.muted}>
-                  No hay reservas para {dayLabel.toLowerCase()}.
+                  {t('Amenities.noReservationsForDay', {
+                    date: dayLabel.toLowerCase(),
+                  })}
                 </Text>
               ) : (
                 <View style={styles.list}>
@@ -418,11 +431,11 @@ export default function AmenitiesScreen() {
                         ) : null}
                       </View>
                       {reservation.mine ? (
-                        <Badge label="Tuya" intent="primary" />
+                        <Badge label={t('Amenities.yours')} intent="primary" />
                       ) : null}
                       {reservation.mine || canManage ? (
                         <Button
-                          title="Cancelar"
+                          title={t('Amenities.cancel')}
                           size="sm"
                           variant="ghost"
                           disabled={cancelReservation.isPending}
@@ -439,10 +452,10 @@ export default function AmenitiesScreen() {
 
         <ConfirmDialog
           visible={!!cancelId}
-          title="Cancelar reserva"
-          description="¿Seguro que querés cancelar esta reserva?"
-          confirmLabel="Cancelar reserva"
-          cancelLabel="Volver"
+          title={t('Amenities.cancelConfirmTitle')}
+          description={t('Amenities.cancelConfirmDescription')}
+          confirmLabel={t('Amenities.cancelReservation')}
+          cancelLabel={t('Common.back')}
           pending={cancelReservation.isPending}
           onCancel={() => setCancelId(null)}
           onConfirm={confirmCancel}

@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import {ModalSheet} from '@/components/ui/ModalSheet';
 import {colors, radius, spacing, typography} from '@/theme';
 
@@ -27,20 +28,22 @@ export function Select({
   value,
   options,
   onChange,
-  placeholder = 'Seleccionar',
+  placeholder,
   disabled = false,
   error,
   testID,
 }: SelectProps) {
+  const {t} = useTranslation();
   const [open, setOpen] = useState(false);
   const selected = options.find(option => option.value === value);
+  const placeholderText = placeholder ?? t('Common.select');
 
   return (
     <View style={styles.container}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={selected?.label ?? placeholder}
+        accessibilityLabel={selected?.label ?? placeholderText}
         disabled={disabled}
         onPress={() => setOpen(true)}
         style={({pressed}) => [
@@ -52,7 +55,7 @@ export function Select({
         <Text
           numberOfLines={1}
           style={[styles.value, !selected && styles.placeholder]}>
-          {selected?.label ?? placeholder}
+          {selected?.label ?? placeholderText}
         </Text>
         <Ionicons
           name="chevron-down"
@@ -65,7 +68,7 @@ export function Select({
       <ModalSheet
         visible={open}
         onClose={() => setOpen(false)}
-        title={label ?? 'Seleccionar'}
+        title={label ?? t('Common.select')}
         testID={testID}>
         <View style={styles.options}>
           {options.map(option => {

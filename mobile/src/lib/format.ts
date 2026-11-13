@@ -1,6 +1,6 @@
-const DEFAULT_LOCALE = 'es-AR';
+import {currentLocaleTag} from '@/i18n';
 
-export function formatCurrency(value: number, locale = DEFAULT_LOCALE) {
+export function formatCurrency(value: number, locale = currentLocaleTag()) {
   const formatted = new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -10,7 +10,7 @@ export function formatCurrency(value: number, locale = DEFAULT_LOCALE) {
 
 export function formatDate(
   value: string | number | Date,
-  locale = DEFAULT_LOCALE,
+  locale = currentLocaleTag(),
 ) {
   return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
@@ -21,7 +21,7 @@ export function formatDate(
 
 export function formatDateTime(
   value: string | number | Date,
-  locale = DEFAULT_LOCALE,
+  locale = currentLocaleTag(),
 ) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: 'short',
@@ -31,7 +31,7 @@ export function formatDateTime(
 
 export function formatLongDate(
   value: Date,
-  locale = DEFAULT_LOCALE,
+  locale = currentLocaleTag(),
   timeZone?: string,
 ) {
   return new Intl.DateTimeFormat(locale, {
@@ -44,12 +44,4 @@ export function formatLongDate(
 
 export function initials(firstName?: string, lastName?: string) {
   return `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.toUpperCase() || '?';
-}
-
-export function pluralize(
-  count: number,
-  singular: string,
-  plural: string,
-): string {
-  return count === 1 ? singular : plural;
 }

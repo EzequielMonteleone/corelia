@@ -1,4 +1,7 @@
+import {colors, radius, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
 import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
 import {
   Pressable,
   StyleSheet,
@@ -9,8 +12,6 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {colors, radius, spacing, typography} from '@/theme';
 
 export interface InputProps extends TextInputProps {
   label?: string;
@@ -31,6 +32,7 @@ export function Input({
   onBlur,
   ...props
 }: InputProps) {
+  const {t} = useTranslation();
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const isPassword = !!secureTextEntry;
@@ -68,7 +70,9 @@ export function Input({
         {isPassword ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={revealed ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            accessibilityLabel={
+              revealed ? t('Common.hidePassword') : t('Common.showPassword')
+            }
             hitSlop={8}
             onPress={() => setRevealed(value => !value)}
             style={styles.eye}>

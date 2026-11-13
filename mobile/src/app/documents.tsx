@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {RequireAccess} from '@/components/layout/RequireAccess';
@@ -25,19 +26,14 @@ import {toast} from '@/store/toastStore';
 import type {DocumentKind} from '@/types/document';
 import {colors, radius, spacing, typography} from '@/theme';
 
-const KIND_LABELS: Record<DocumentKind, string> = {
-  BYLAW: 'Reglamento',
-  NOTICE: 'Aviso',
-};
-
-const KIND_FILTERS = [
-  {value: 'ALL', label: 'Todos'},
-  {value: 'BYLAW', label: 'Reglamentos'},
-  {value: 'NOTICE', label: 'Avisos'},
-];
+const KIND_LABEL_KEYS = {
+  BYLAW: 'Documents.kind.BYLAW',
+  NOTICE: 'Documents.kind.NOTICE',
+} as const;
 
 export default function DocumentsScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const params = useLocalSearchParams<{
     buildingId?: string;
     documentId?: string;
@@ -88,6 +84,15 @@ export default function DocumentsScreen() {
     [documents, kindFilter],
   );
 
+  const kindFilters = useMemo(
+    () => [
+      {value: 'ALL', label: t('Documents.all')},
+      {value: 'BYLAW', label: t('Documents.allBylaws')},
+      {value: 'NOTICE', label: t('Documents.allNotices')},
+    ],
+    [t],
+  );
+
   const openCreate = () => {
     setTitle('');
     setBody('');
@@ -99,8 +104,8 @@ export default function DocumentsScreen() {
   const submit = () => {
     if (!activeBuildingId) return;
     const nextErrors: Record<string, string> = {};
-    if (!title.trim()) nextErrors.title = 'Ingresá un título.';
-    if (!body.trim()) nextErrors.body = 'Ingresá el contenido.';
+    if (!title.trim()) nextErrors.title = t('Documents.titleRequired');
+    if (!body.trim()) nextErrors.body = t('Documents.bodyRequired');
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -114,7 +119,7 @@ export default function DocumentsScreen() {
       },
       {
         onSuccess: () => {
-          toast.success('Documento publicado correctamente.');
+          toast.success(t('Documents.createSuccess'));
           setCreateOpen(false);
         },
         onError: error => setErrors({form: errorMessage(error)}),
@@ -127,11 +132,11 @@ export default function DocumentsScreen() {
       <RequireAccess path="/documents">
         <Screen>
           <AppHeader
-            title="Documentos"
+            title={t('Documents.title')}
             showBell={false}
             onBack={() => router.back()}
           />
-          <LoadingState message="Cargando documentos..." />
+          <LoadingState message={t('Documents.loading')} />
         </Screen>
       </RequireAccess>
     );
@@ -142,12 +147,12 @@ export default function DocumentsScreen() {
       <RequireAccess path="/documents">
         <Screen>
           <AppHeader
-            title="Documentos"
+            title={t('Documents.title')}
             showBell={false}
             onBack={() => router.back()}
           />
           <ErrorState
-            message="No pudimos cargar tus edificios."
+            message={t('Documents.buildingsError')}
             onRetry={() => refetchBuildings()}
           />
         </Screen>
@@ -164,13 +169,17 @@ export default function DocumentsScreen() {
           documentsQuery.refetch();
         }}>
         <AppHeader
-          title="Documentos"
-          subtitle="Reglamentos y avisos del edificio."
+          title={t('Documents.title')}
+          subtitle={t('Documents.subtitle')}
           showBell={false}
           onBack={() => router.back()}
           right={
             canManage ? (
-              <Button title="Publicar" size="sm" onPress={openCreate} />
+              <Button
+                title={t('Documents.submit')}
+                size="sm"
+                onPress={openCreate}
+              />
             ) : undefined
           }
         />
@@ -188,26 +197,26 @@ export default function DocumentsScreen() {
         {!activeBuildingId ? (
           <EmptyState
             icon="document-text-outline"
-            title="Elegí un edificio"
-            description="Seleccioná un edificio para ver sus documentos."
+            title={t('Documents.selectBuilding')}
+            description={t('Documents.chooseBuildingDesc')}
           />
         ) : documentsQuery.isLoading ? (
-          <LoadingState message="Cargando documentos..." />
+          <LoadingState message={t('Documents.loading')} />
         ) : documentsQuery.isError ? (
           <ErrorState
-            message="No pudimos cargar los documentos."
+            message={t('Documents.loadError')}
             onRetry={() => documentsQuery.refetch()}
           />
         ) : documents.length === 0 ? (
           <EmptyState
             icon="document-text-outline"
-            title="Sin documentos"
+            title={t('Documents.emptyTitle')}
             description={
               canManage
-                ? 'Publicá el primer reglamento o aviso del edificio.'
-                : 'El administrador todavía no publicó documentos.'
+                ? t('Documents.emptyCanManage')
+                : t('Documents.emptyCannotManage')
             }
-            actionLabel={canManage ? 'Publicar documento' : undefined}
+            actionLabel={canManage ? t('Documents.publishTitle') : undefined}
             onAction={canManage ? openCreate : undefined}
           />
         ) : (
@@ -215,14 +224,14 @@ export default function DocumentsScreen() {
             <Select
               value={kindFilter}
               onChange={setKindFilter}
-              options={KIND_FILTERS}
+              options={kindFilters}
             />
 
             {filtered.length === 0 ? (
               <EmptyState
                 icon="filter-outline"
-                title="Sin resultados"
-                description="No hay documentos de este tipo."
+                title={t('Documents.noResults')}
+                description={t('Documents.noResultsDescription')}
               />
             ) : (
               <View style={styles.list}>
@@ -252,7 +261,7 @@ export default function DocumentsScreen() {
                         {document.title}
                       </Text>
                       <Text style={styles.meta}>
-                        {KIND_LABELS[document.kind]} ·{' '}
+                        {t(KIND_LABEL_KEYS[document.kind])} ·{' '}
                         {formatDate(document.createdAt)}
                       </Text>
                     </View>
@@ -271,19 +280,19 @@ export default function DocumentsScreen() {
         <ModalSheet
           visible={!!openDocumentId}
           onClose={() => setOpenDocumentId(null)}
-          title={documentQuery.data?.title ?? 'Documento'}>
+          title={documentQuery.data?.title ?? t('Documents.document')}>
           {documentQuery.isLoading ? (
-            <LoadingState message="Cargando documento..." />
+            <LoadingState message={t('Documents.loadingDocument')} />
           ) : documentQuery.isError ? (
             <ErrorState
-              message="No pudimos cargar el documento."
+              message={t('Documents.loadDocumentError')}
               onRetry={() => documentQuery.refetch()}
             />
           ) : documentQuery.data ? (
             <View style={styles.detail}>
               <View style={styles.detailMeta}>
                 <Badge
-                  label={KIND_LABELS[documentQuery.data.kind]}
+                  label={t(KIND_LABEL_KEYS[documentQuery.data.kind])}
                   intent={
                     documentQuery.data.kind === 'BYLAW' ? 'primary' : 'warning'
                   }
@@ -300,19 +309,19 @@ export default function DocumentsScreen() {
         <ModalSheet
           visible={createOpen}
           onClose={() => setCreateOpen(false)}
-          title="Publicar documento">
+          title={t('Documents.publishTitle')}>
           <View style={styles.form}>
             <Select
-              label="Tipo"
+              label={t('Documents.kindLabel')}
               value={kind}
               onChange={value => setKind(value as DocumentKind)}
               options={[
-                {value: 'NOTICE', label: 'Aviso'},
-                {value: 'BYLAW', label: 'Reglamento'},
+                {value: 'NOTICE', label: t('Documents.kind.NOTICE')},
+                {value: 'BYLAW', label: t('Documents.kind.BYLAW')},
               ]}
             />
             <Input
-              label="Título"
+              label={t('Documents.titleLabel')}
               value={title}
               onChangeText={value => {
                 setTitle(value);
@@ -320,11 +329,11 @@ export default function DocumentsScreen() {
                   setErrors(current => ({...current, title: ''}));
                 }
               }}
-              placeholder="Título del documento"
+              placeholder={t('Documents.titlePlaceholder')}
               error={errors.title || undefined}
             />
             <Input
-              label="Contenido"
+              label={t('Documents.bodyLabel')}
               value={body}
               onChangeText={value => {
                 setBody(value);
@@ -332,7 +341,7 @@ export default function DocumentsScreen() {
                   setErrors(current => ({...current, body: ''}));
                 }
               }}
-              placeholder="Escribí el contenido..."
+              placeholder={t('Documents.bodyPlaceholder')}
               multiline
               error={errors.body || undefined}
             />
@@ -340,7 +349,7 @@ export default function DocumentsScreen() {
               <Text style={styles.formError}>{errors.form}</Text>
             ) : null}
             <Button
-              title="Publicar"
+              title={t('Documents.submit')}
               loading={createDocument.isPending}
               fullWidth
               onPress={submit}

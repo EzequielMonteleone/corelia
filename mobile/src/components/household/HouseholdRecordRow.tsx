@@ -1,6 +1,7 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
 import {colors, radius, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export function HouseholdRecordRow({
   icon,
@@ -15,6 +16,8 @@ export function HouseholdRecordRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const {t} = useTranslation();
+
   return (
     <View style={styles.row}>
       <View style={styles.icon}>
@@ -26,15 +29,23 @@ export function HouseholdRecordRow({
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Editar ${title}`}
+        accessibilityLabel={t('Household.editRecordAccessibility', {
+          name: title,
+        })}
         hitSlop={6}
         onPress={onEdit}
         style={styles.action}>
-        <Ionicons name="pencil-outline" size={18} color={colors.textSecondary} />
+        <Ionicons
+          name="pencil-outline"
+          size={18}
+          color={colors.textSecondary}
+        />
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Eliminar ${title}`}
+        accessibilityLabel={t('Household.deleteRecordAccessibility', {
+          name: title,
+        })}
         hitSlop={6}
         onPress={onDelete}
         style={styles.action}>

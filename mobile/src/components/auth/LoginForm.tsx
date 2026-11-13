@@ -1,8 +1,10 @@
 import {useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
 import {flattenError} from 'zod';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {validationMessage} from '@/lib/validation';
 import {loginSchema, type LoginFormValues} from '@/schemas/auth';
 import {colors, radius, spacing, typography} from '@/theme';
 
@@ -15,6 +17,7 @@ export interface LoginFormProps {
 type FieldErrors = Partial<Record<keyof LoginFormValues, string>>;
 
 export function LoginForm({pending, error, onSubmit}: LoginFormProps) {
+  const {t} = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -24,8 +27,8 @@ export function LoginForm({pending, error, onSubmit}: LoginFormProps) {
     if (!result.success) {
       const flattened = flattenError(result.error).fieldErrors;
       setErrors({
-        email: flattened.email?.[0],
-        password: flattened.password?.[0],
+        email: validationMessage(t, flattened.email?.[0]),
+        password: validationMessage(t, flattened.password?.[0]),
       });
       return;
     }
@@ -36,19 +39,19 @@ export function LoginForm({pending, error, onSubmit}: LoginFormProps) {
   return (
     <View style={styles.card}>
       <View style={styles.brand}>
-        <Text style={styles.logo}>Corelia</Text>
-        <Text style={styles.brandTag}>Gestión de edificios</Text>
+        <Text style={styles.logo}>{t('Common.title')}</Text>
+        <Text style={styles.brandTag}>{t('Login.brand')}</Text>
       </View>
 
       <View style={styles.heading}>
-        <Text style={styles.title}>Bienvenido a Corelia</Text>
-        <Text style={styles.subtitle}>Iniciá sesión en tu cuenta</Text>
+        <Text style={styles.title}>{t('Login.welcome')}</Text>
+        <Text style={styles.subtitle}>{t('Login.subtitle')}</Text>
       </View>
 
       <View style={styles.fields}>
         <Input
-          label="Email"
-          placeholder="tu@email.com"
+          label={t('Login.email')}
+          placeholder={t('Login.emailPlaceholder')}
           value={email}
           onChangeText={value => {
             setEmail(value);
@@ -62,8 +65,8 @@ export function LoginForm({pending, error, onSubmit}: LoginFormProps) {
           testID="login-email"
         />
         <Input
-          label="Contraseña"
-          placeholder="••••••••"
+          label={t('Login.password')}
+          placeholder={t('Login.passwordPlaceholder')}
           value={password}
           onChangeText={value => {
             setPassword(value);
@@ -85,7 +88,7 @@ export function LoginForm({pending, error, onSubmit}: LoginFormProps) {
       ) : null}
 
       <Button
-        title={pending ? 'Ingresando...' : 'Iniciar sesión'}
+        title={pending ? t('Login.submitting') : t('Login.submit')}
         loading={pending}
         fullWidth
         size="lg"

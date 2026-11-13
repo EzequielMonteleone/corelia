@@ -1,23 +1,37 @@
-import {useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {ModalSheet} from '@/components/ui/ModalSheet';
 import {
   useCreatePayment,
   useUpdatePaymentStatus,
 } from '@/hooks/queries/useExpenses';
-import {toast} from '@/store/toastStore';
 import {formatCurrency} from '@/lib/format';
-import type {Expense, PaymentStatus} from '@/types/expense';
+import {toast} from '@/store/toastStore';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {Expense, PaymentStatus} from '@/types/expense';
+import {Ionicons} from '@expo/vector-icons';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
-const PAYMENT_STATUS: Record<PaymentStatus, {label: string; color: string}> = {
-  COMPLETED: {label: 'Aprobado', color: colors.success},
-  PENDING: {label: 'Pendiente de aprobación', color: colors.warning},
-  REJECTED: {label: 'Rechazado', color: colors.danger},
-  FAILED: {label: 'Fallido', color: colors.danger},
+const PAYMENT_STATUS: Record<
+  PaymentStatus,
+  {
+    labelKey:
+      | 'Expenses.paymentApproved'
+      | 'Expenses.paymentAwaitingApproval'
+      | 'Expenses.paymentRejected'
+      | 'Expenses.paymentFailed';
+    color: string;
+  }
+> = {
+  COMPLETED: {labelKey: 'Expenses.paymentApproved', color: colors.success},
+  PENDING: {
+    labelKey: 'Expenses.paymentAwaitingApproval',
+    color: colors.warning,
+  },
+  REJECTED: {labelKey: 'Expenses.paymentRejected', color: colors.danger},
+  FAILED: {labelKey: 'Expenses.paymentFailed', color: colors.danger},
 };
 
 export function PaymentModal({
@@ -33,6 +47,7 @@ export function PaymentModal({
   canManagePeriods: boolean;
   onClose: () => void;
 }) {
+  const {t} = useTranslation();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('');
   const [externalId, setExternalId] = useState('');
@@ -44,7 +59,8 @@ export function PaymentModal({
   const completed = expense.payments
     .filter(payment => payment.status === 'COMPLETED')
     .reduce((sum, payment) => sum + payment.amount, 0);
-  const remaining = expense.remaining ?? Math.max(expense.amount - completed, 0);
+  const remaining =
+    expense.remaining ?? Math.max(expense.amount - completed, 0);
   const parsedAmount = Number(amount);
   const canSubmit =
     !canManagePeriods &&
@@ -64,25 +80,37 @@ export function PaymentModal({
       },
       {
         onSuccess: () => {
-          toast.success('Pago registrado correctamente.');
+          toast.success(t('Expenses.paymentCreateSuccess'));
           onClose();
         },
-        onError: () => toast.error('No se pudo registrar el pago.'),
+        onError: () => toast.error(t('Expenses.paymentCreateError')),
       },
     );
   };
 
-  const updateStatus = (paymentId: string, status: 'COMPLETED' | 'REJECTED') => {
+  const updateStatus = (
+    paymentId: string,
+    status: 'COMPLETED' | 'REJECTED',
+  ) => {
     updatePayment.mutate(
       {paymentId, periodId, status},
       {
         onSuccess: () =>
           toast.success(
-            status === 'COMPLETED'
-              ? 'Pago aprobado correctamente.'
-              : 'Pago rechazado.',
+            t(
+              status === 'COMPLETED'
+                ? 'Expenses.paymentApproveSuccess'
+                : 'Expenses.paymentRejectSuccess',
+            ),
           ),
-        onError: () => toast.error('No se pudo actualizar el pago.'),
+        onError: () =>
+          toast.error(
+            t(
+              status === 'COMPLETED'
+                ? 'Expenses.paymentApproveError'
+                : 'Expenses.paymentRejectError',
+            ),
+          ),
       },
     );
   };
@@ -91,28 +119,34 @@ export function PaymentModal({
     <ModalSheet
       visible={visible}
       onClose={onClose}
-      title={canManagePeriods ? 'Registrar pago' : 'Notificar que pagué'}>
+      title={
+        canManagePeriods
+          ? t('Expenses.registerPayment')
+          : t('Expenses.notifyPaid')
+      }>
       <View style={styles.content}>
         <View style={styles.summary}>
           <Text style={styles.unit}>
             {expense.unit.name}
-            {expense.unit.floor ? ` · Piso ${expense.unit.floor}` : ''}
+            {expense.unit.floor
+              ? ` · ${t('Expenses.floor')} ${expense.unit.floor}`
+              : ''}
           </Text>
           <View style={styles.summaryGrid}>
             <View style={styles.summaryCell}>
-              <Text style={styles.summaryLabel}>Monto</Text>
+              <Text style={styles.summaryLabel}>{t('Expenses.amount')}</Text>
               <Text style={styles.summaryValue}>
                 {formatCurrency(expense.amount)}
               </Text>
             </View>
             <View style={styles.summaryCell}>
-              <Text style={styles.summaryLabel}>Pagado</Text>
+              <Text style={styles.summaryLabel}>{t('Expenses.totalPaid')}</Text>
               <Text style={[styles.summaryValue, styles.paid]}>
                 {formatCurrency(completed)}
               </Text>
             </View>
             <View style={styles.summaryCell}>
-              <Text style={styles.summaryLabel}>Saldo</Text>
+              <Text style={styles.summaryLabel}>{t('Expenses.remaining')}</Text>
               <Text
                 style={[
                   styles.summaryValue,
@@ -125,9 +159,9 @@ export function PaymentModal({
         </View>
 
         <View style={styles.payments}>
-          <Text style={styles.sectionLabel}>Pagos</Text>
+          <Text style={styles.sectionLabel}>{t('Expenses.payments')}</Text>
           {expense.payments.length === 0 ? (
-            <Text style={styles.empty}>Sin pagos registrados.</Text>
+            <Text style={styles.empty}>{t('Expenses.noPayments')}</Text>
           ) : (
             expense.payments.map(payment => {
               const status = PAYMENT_STATUS[payment.status];
@@ -141,7 +175,7 @@ export function PaymentModal({
                         : ''}
                     </Text>
                     <Text style={[styles.paymentStatus, {color: status.color}]}>
-                      {status.label}
+                      {t(status.labelKey)}
                     </Text>
                   </View>
                   <Text style={styles.paymentAmount}>
@@ -150,13 +184,13 @@ export function PaymentModal({
                   {canManagePeriods && payment.status === 'PENDING' ? (
                     <View style={styles.paymentActions}>
                       <Button
-                        title="Aprobar"
+                        title={t('Expenses.approveShort')}
                         size="sm"
                         onPress={() => updateStatus(payment.id, 'COMPLETED')}
                         loading={updatePayment.isPending}
                       />
                       <Button
-                        title="Rechazar"
+                        title={t('Expenses.rejectShort')}
                         size="sm"
                         variant="destructive"
                         onPress={() => updateStatus(payment.id, 'REJECTED')}
@@ -173,27 +207,29 @@ export function PaymentModal({
         {!canManagePeriods ? (
           <View style={styles.form}>
             <Input
-              label="Monto del pago"
+              label={t('Expenses.paymentAmount')}
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
               placeholder="0.00"
             />
             <Input
-              label="Método de pago (opcional)"
+              label={t('Expenses.paymentMethod')}
               value={method}
               onChangeText={setMethod}
-              placeholder="Efectivo, transferencia..."
+              placeholder={t('Expenses.paymentMethodPlaceholder')}
             />
             <Input
-              label="ID externo (opcional)"
+              label={t('Expenses.externalPaymentId')}
               value={externalId}
               onChangeText={setExternalId}
-              placeholder="Referencia de pago"
+              placeholder={t('Expenses.externalPaymentIdPlaceholder')}
             />
             <Button
-              title="Notificar pago"
-              icon={<Ionicons name="card-outline" size={18} color={colors.white} />}
+              title={t('Expenses.notifyPayment')}
+              icon={
+                <Ionicons name="card-outline" size={18} color={colors.white} />
+              }
               onPress={submitPayment}
               loading={createPayment.isPending}
               disabled={!canSubmit || remaining <= 0}
@@ -252,7 +288,11 @@ const styles = StyleSheet.create({
   paymentInfo: {flex: 1, gap: 2, minWidth: 120},
   paymentMethod: {color: colors.text, fontSize: typography.small},
   paymentStatus: {fontSize: typography.caption, fontWeight: '600'},
-  paymentAmount: {color: colors.text, fontSize: typography.small, fontWeight: '700'},
+  paymentAmount: {
+    color: colors.text,
+    fontSize: typography.small,
+    fontWeight: '700',
+  },
   paymentActions: {flexDirection: 'row', gap: spacing.sm, width: '100%'},
   form: {gap: spacing.lg},
 });

@@ -1,3 +1,16 @@
+import i18n from '@/i18n';
+
+jest.mock('expo-localization', () => ({
+  getLocales: () => [
+    {languageCode: 'es', languageTag: 'es-AR', regionCode: 'AR'},
+  ],
+}));
+
+beforeAll(async () => {
+  // Pin the language used by legacy assertions.
+  await i18n.changeLanguage('es');
+});
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual(
     '@react-native-async-storage/async-storage/jest/async-storage-mock',

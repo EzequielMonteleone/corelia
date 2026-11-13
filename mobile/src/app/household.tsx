@@ -2,13 +2,12 @@ import {useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
-import {
-  HouseholdRecordRow,
-} from '@/components/household/HouseholdRecordRow';
+import {HouseholdRecordRow} from '@/components/household/HouseholdRecordRow';
 import {
   MemberForm,
   PetForm,
@@ -40,25 +39,23 @@ import type {
   HouseholdDeleteTarget,
   HouseholdEditor,
   HouseholdMemberInput,
-  HouseholdRelation,
   PetInput,
-  PetSpecies,
   VehicleInput,
 } from '@/types/household';
 import {colors, spacing, typography} from '@/theme';
 
-const RELATION_LABELS: Record<HouseholdRelation, string> = {
-  SPOUSE: 'Cónyuge',
-  CHILD: 'Hijo/a',
-  PARENT: 'Padre/madre',
-  OTHER: 'Otro',
-};
+const RELATION_KEYS = {
+  SPOUSE: 'Household.relations.SPOUSE',
+  CHILD: 'Household.relations.CHILD',
+  PARENT: 'Household.relations.PARENT',
+  OTHER: 'Household.relations.OTHER',
+} as const;
 
-const SPECIES_LABELS: Record<PetSpecies, string> = {
-  DOG: 'Perro',
-  CAT: 'Gato',
-  OTHER: 'Otro',
-};
+const SPECIES_KEYS = {
+  DOG: 'Household.species.DOG',
+  CAT: 'Household.species.CAT',
+  OTHER: 'Household.species.OTHER',
+} as const;
 
 function vehicleLabel(vehicle: {
   plate: string;
@@ -73,6 +70,7 @@ function vehicleLabel(vehicle: {
 
 export default function HouseholdScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const {
     buildings,
     activeBuildingId,
@@ -121,7 +119,7 @@ export default function HouseholdScreen() {
       } else {
         await createMember.mutateAsync({unitId, ...input});
       }
-      toast.success('Integrante guardado correctamente.');
+      toast.success(t('Household.memberSaveSuccess'));
       setEditor(null);
     } catch (error) {
       toast.error(errorMessage(error));
@@ -136,7 +134,7 @@ export default function HouseholdScreen() {
       } else {
         await createVehicle.mutateAsync({unitId, ...input});
       }
-      toast.success('Vehículo guardado correctamente.');
+      toast.success(t('Household.vehicleSaveSuccess'));
       setEditor(null);
     } catch (error) {
       toast.error(errorMessage(error));
@@ -151,7 +149,7 @@ export default function HouseholdScreen() {
       } else {
         await createPet.mutateAsync({unitId, ...input});
       }
-      toast.success('Mascota guardada correctamente.');
+      toast.success(t('Household.petSaveSuccess'));
       setEditor(null);
     } catch (error) {
       toast.error(errorMessage(error));
@@ -168,7 +166,7 @@ export default function HouseholdScreen() {
       } else {
         await deletePet.mutateAsync({id: pendingDelete.id, unitId});
       }
-      toast.success('Registro eliminado correctamente.');
+      toast.success(t('Household.deleteSuccess'));
       setPendingDelete(null);
       setEditor(current =>
         current?.record?.id === pendingDelete.id ? null : current,
@@ -181,15 +179,15 @@ export default function HouseholdScreen() {
   const editorTitle = editor
     ? editor.record
       ? editor.kind === 'member'
-        ? 'Editar integrante'
+        ? t('Household.editMember')
         : editor.kind === 'vehicle'
-          ? 'Editar vehículo'
-          : 'Editar mascota'
+          ? t('Household.editVehicle')
+          : t('Household.editPet')
       : editor.kind === 'member'
-        ? 'Nuevo integrante'
+        ? t('Household.newMember')
         : editor.kind === 'vehicle'
-          ? 'Nuevo vehículo'
-          : 'Nueva mascota'
+          ? t('Household.newVehicle')
+          : t('Household.newPet')
     : '';
 
   if (loadingBuildings) {
@@ -197,11 +195,11 @@ export default function HouseholdScreen() {
       <RequireAccess path="/household">
         <Screen>
           <AppHeader
-            title="Grupo familiar"
+            title={t('Household.title')}
             showBell={false}
             onBack={() => router.back()}
           />
-          <LoadingState message="Cargando grupo familiar..." />
+          <LoadingState message={t('Household.loading')} />
         </Screen>
       </RequireAccess>
     );
@@ -212,12 +210,12 @@ export default function HouseholdScreen() {
       <RequireAccess path="/household">
         <Screen>
           <AppHeader
-            title="Grupo familiar"
+            title={t('Household.title')}
             showBell={false}
             onBack={() => router.back()}
           />
           <ErrorState
-            message="No pudimos cargar tus edificios."
+            message={t('Household.buildingsError')}
             onRetry={() => refetchBuildings()}
           />
         </Screen>
@@ -235,8 +233,8 @@ export default function HouseholdScreen() {
           householdQuery.refetch();
         }}>
         <AppHeader
-          title="Grupo familiar"
-          subtitle="Integrantes, vehículos y mascotas de tu unidad."
+          title={t('Household.title')}
+          subtitle={t('Household.subtitle')}
           showBell={false}
           onBack={() => router.back()}
         />
@@ -254,31 +252,34 @@ export default function HouseholdScreen() {
         {!activeBuildingId ? (
           <EmptyState
             icon="people-outline"
-            title="Elegí un edificio"
-            description="Seleccioná un edificio para ver el grupo familiar."
+            title={t('Household.selectBuilding')}
+            description={t('Household.chooseBuildingDesc')}
           />
         ) : unitsQuery.isLoading ? (
-          <LoadingState message="Cargando unidades..." />
+          <LoadingState message={t('Household.loadingUnits')} />
         ) : units.length === 0 ? (
           <EmptyState
             icon="home-outline"
-            title="Sin unidades disponibles"
-            description="No tenés unidades vinculadas en este edificio."
+            title={t('Household.noUnits')}
+            description={t('Household.noUnitsDescription')}
           />
         ) : (
           <View style={styles.content}>
             {units.length > 1 ? (
               <Select
-                label="Unidad"
+                label={t('Household.unitLabel')}
                 value={unitId}
                 onChange={value => {
                   setSelectedUnitId(value);
                   setEditor(null);
                 }}
-                placeholder="Seleccionar unidad"
+                placeholder={t('Household.selectUnit')}
                 options={units.map(unit => ({
                   label: unit.floor
-                    ? `${unit.name} · Piso ${unit.floor}`
+                    ? t('Household.unitWithFloor', {
+                        unit: unit.name,
+                        floor: unit.floor,
+                      })
                     : unit.name,
                   value: unit.id,
                 }))}
@@ -291,7 +292,7 @@ export default function HouseholdScreen() {
                   color={colors.textSecondary}
                 />
                 <Text style={styles.singleUnitText}>
-                  Unidad {units[0].name}
+                  {t('Household.unitDisplay', {name: units[0].name})}
                 </Text>
               </View>
             )}
@@ -299,30 +300,30 @@ export default function HouseholdScreen() {
             {!unitId ? (
               <EmptyState
                 icon="home-outline"
-                title="Elegí una unidad"
-                description="Seleccioná la unidad para ver su grupo familiar."
+                title={t('Household.chooseUnit')}
+                description={t('Household.chooseUnitDescription')}
               />
             ) : householdQuery.isLoading ? (
-              <LoadingState message="Cargando grupo familiar..." />
+              <LoadingState message={t('Household.loading')} />
             ) : householdQuery.isError ? (
               <ErrorState
-                message="No pudimos cargar el grupo familiar."
+                message={t('Household.loadError')}
                 onRetry={() => householdQuery.refetch()}
               />
             ) : household ? (
               <>
                 <Section
-                  title="Integrantes"
+                  title={t('Household.membersTitle')}
                   action={
                     <Button
-                      title="Agregar"
+                      title={t('Common.add')}
                       size="sm"
                       onPress={() => setEditor({kind: 'member', record: null})}
                     />
                   }>
                   {household.members.length === 0 ? (
                     <Text style={styles.muted}>
-                      Todavía no cargaste integrantes.
+                      {t('Household.membersEmpty')}
                     </Text>
                   ) : (
                     <View style={styles.list}>
@@ -332,9 +333,11 @@ export default function HouseholdScreen() {
                           icon="person-outline"
                           title={`${member.firstName} ${member.lastName}`}
                           subtitle={[
-                            RELATION_LABELS[member.relation],
+                            t(RELATION_KEYS[member.relation]),
                             member.documentNumber
-                              ? `DNI ${member.documentNumber}`
+                              ? t('Household.documentShort', {
+                                  number: member.documentNumber,
+                                })
                               : null,
                             member.phone,
                           ]
@@ -357,17 +360,17 @@ export default function HouseholdScreen() {
                 </Section>
 
                 <Section
-                  title="Vehículos"
+                  title={t('Household.vehicles')}
                   action={
                     <Button
-                      title="Agregar"
+                      title={t('Common.add')}
                       size="sm"
                       onPress={() => setEditor({kind: 'vehicle', record: null})}
                     />
                   }>
                   {household.vehicles.length === 0 ? (
                     <Text style={styles.muted}>
-                      No hay vehículos registrados.
+                      {t('Household.vehiclesEmpty')}
                     </Text>
                   ) : (
                     <View style={styles.list}>
@@ -394,16 +397,16 @@ export default function HouseholdScreen() {
                 </Section>
 
                 <Section
-                  title="Mascotas"
+                  title={t('Household.pets')}
                   action={
                     <Button
-                      title="Agregar"
+                      title={t('Common.add')}
                       size="sm"
                       onPress={() => setEditor({kind: 'pet', record: null})}
                     />
                   }>
                   {household.pets.length === 0 ? (
-                    <Text style={styles.muted}>No hay mascotas registradas.</Text>
+                    <Text style={styles.muted}>{t('Household.petsEmpty')}</Text>
                   ) : (
                     <View style={styles.list}>
                       {household.pets.map(pet => (
@@ -411,7 +414,7 @@ export default function HouseholdScreen() {
                           key={pet.id}
                           icon="paw-outline"
                           title={pet.name}
-                          subtitle={[SPECIES_LABELS[pet.species], pet.notes]
+                          subtitle={[t(SPECIES_KEYS[pet.species]), pet.notes]
                             .filter(Boolean)
                             .join(' · ')}
                           onEdit={() => setEditor({kind: 'pet', record: pet})}
@@ -467,9 +470,11 @@ export default function HouseholdScreen() {
 
         <ConfirmDialog
           visible={!!pendingDelete}
-          title="Eliminar registro"
-          description={`¿Seguro que querés eliminar ${pendingDelete?.label ?? 'este registro'}?`}
-          confirmLabel="Eliminar"
+          title={t('Household.deleteConfirmTitle')}
+          description={t('Household.deleteConfirmDescription', {
+            name: pendingDelete?.label ?? '',
+          })}
+          confirmLabel={t('Common.delete')}
           pending={deleting}
           onCancel={() => setPendingDelete(null)}
           onConfirm={confirmDelete}

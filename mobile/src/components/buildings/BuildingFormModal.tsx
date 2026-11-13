@@ -1,11 +1,13 @@
-import {useState} from 'react';
-import {StyleSheet, View} from 'react-native';
-import {flattenError} from 'zod';
-import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {ModalSheet} from '@/components/ui/ModalSheet';
+import {validationMessage} from '@/lib/validation';
 import {buildingSchema, type BuildingFormValues} from '@/schemas/building';
 import {spacing} from '@/theme';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, View} from 'react-native';
+import {flattenError} from 'zod';
 
 const emptyValues: BuildingFormValues = {
   name: '',
@@ -24,11 +26,12 @@ export function BuildingFormModal({
   onSubmit,
 }: {
   visible: boolean;
-  editing: {id: string} & BuildingFormValues | null;
+  editing: ({id: string} & BuildingFormValues) | null;
   pending: boolean;
   onClose: () => void;
   onSubmit: (values: BuildingFormValues) => void;
 }) {
+  const {t} = useTranslation();
   const [values, setValues] = useState<BuildingFormValues>(() =>
     editing
       ? {
@@ -46,10 +49,10 @@ export function BuildingFormModal({
     if (!result.success) {
       const flattened = flattenError(result.error).fieldErrors;
       setErrors({
-        name: flattened.name?.[0],
-        address: flattened.address?.[0],
-        city: flattened.city?.[0],
-        country: flattened.country?.[0],
+        name: validationMessage(t, flattened.name?.[0]),
+        address: validationMessage(t, flattened.address?.[0]),
+        city: validationMessage(t, flattened.city?.[0]),
+        country: validationMessage(t, flattened.country?.[0]),
       });
       return;
     }
@@ -66,38 +69,44 @@ export function BuildingFormModal({
     <ModalSheet
       visible={visible}
       onClose={onClose}
-      title={editing ? 'Editar edificio' : 'Nuevo edificio'}>
+      title={
+        editing ? t('Buildings.modalEditTitle') : t('Buildings.modalTitle')
+      }>
       <View style={styles.form}>
         <Input
-          label="Nombre"
-          placeholder="Nombre del edificio"
+          label={t('Buildings.name')}
+          placeholder={t('Buildings.namePlaceholder')}
           value={values.name}
           onChangeText={value => update('name', value)}
           error={errors.name}
         />
         <Input
-          label="Dirección"
-          placeholder="Dirección completa"
+          label={t('Buildings.address')}
+          placeholder={t('Buildings.addressPlaceholder')}
           value={values.address}
           onChangeText={value => update('address', value)}
           error={errors.address}
         />
         <Input
-          label="Ciudad"
-          placeholder="Ciudad"
+          label={t('Buildings.city')}
+          placeholder={t('Buildings.cityPlaceholder')}
           value={values.city}
           onChangeText={value => update('city', value)}
           error={errors.city}
         />
         <Input
-          label="País"
-          placeholder="País"
+          label={t('Buildings.country')}
+          placeholder={t('Buildings.countryPlaceholder')}
           value={values.country}
           onChangeText={value => update('country', value)}
           error={errors.country}
         />
         <Button
-          title={editing ? 'Guardar cambios' : 'Registrar edificio'}
+          title={
+            editing
+              ? t('Buildings.saveChanges')
+              : t('Buildings.registerBuilding')
+          }
           loading={pending}
           fullWidth
           onPress={submit}

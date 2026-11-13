@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {RequireAccess} from '@/components/layout/RequireAccess';
@@ -26,6 +27,7 @@ type TargetOption = {value: string; label: string};
 
 export default function ClaimsScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const params = useLocalSearchParams<{buildingId?: string; claimId?: string}>();
   const {
     buildings,
@@ -84,38 +86,46 @@ export default function ClaimsScreen() {
   const canViewAmenityClaims = !!claimsQuery.data?.canViewAmenityClaims;
 
   const filterOptions = useMemo<TargetOption[]>(() => {
-    const options: TargetOption[] = [{value: 'all', label: 'Todos los reclamos'}];
+    const options: TargetOption[] = [
+      {value: 'all', label: t('Claims.allClaims')},
+    ];
     units.forEach(unit => {
-      options.push({value: `unit:${unit.id}`, label: `Unidad ${unit.name}`});
+      options.push({
+        value: `unit:${unit.id}`,
+        label: t('Claims.unitOption', {name: unit.name}),
+      });
     });
     if (canViewAmenityClaims) {
       amenities.forEach(item => {
         options.push({
           value: `amenity:${item.id}`,
-          label: `Amenity ${item.amenity.name}`,
+          label: t('Claims.amenityOption', {name: item.amenity.name}),
         });
       });
     }
     return options;
-  }, [units, amenities, canViewAmenityClaims]);
+  }, [units, amenities, canViewAmenityClaims, t]);
 
   const createTargetOptions = useMemo<TargetOption[]>(() => {
     const options: TargetOption[] = [];
     if (canCreate) {
       units.forEach(unit => {
-        options.push({value: `unit:${unit.id}`, label: `Unidad ${unit.name}`});
+        options.push({
+          value: `unit:${unit.id}`,
+          label: t('Claims.unitOption', {name: unit.name}),
+        });
       });
     }
     if (canCreateAmenity) {
       amenities.forEach(item => {
         options.push({
           value: `amenity:${item.id}`,
-          label: `Amenity ${item.amenity.name}`,
+          label: t('Claims.amenityOption', {name: item.amenity.name}),
         });
       });
     }
     return options;
-  }, [units, amenities, canCreate, canCreateAmenity]);
+  }, [units, amenities, canCreate, canCreateAmenity, t]);
 
   const openCreate = () => {
     setCreateTarget(createTargetOptions[0]?.value ?? '');
@@ -128,9 +138,9 @@ export default function ClaimsScreen() {
   const submit = () => {
     if (!activeBuildingId) return;
     const nextErrors: Record<string, string> = {};
-    if (!createTarget) nextErrors.target = 'Seleccioná una unidad o amenity.';
-    if (!title.trim()) nextErrors.title = 'Ingresá un título.';
-    if (!body.trim()) nextErrors.body = 'Ingresá una descripción.';
+    if (!createTarget) nextErrors.target = t('Claims.targetRequired');
+    if (!title.trim()) nextErrors.title = t('Claims.titleRequired');
+    if (!body.trim()) nextErrors.body = t('Claims.bodyRequired');
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -147,7 +157,7 @@ export default function ClaimsScreen() {
       },
       {
         onSuccess: () => {
-          toast.success('Reclamo creado correctamente.');
+          toast.success(t('Claims.createSuccess'));
           setCreateOpen(false);
         },
         onError: error => setErrors({form: errorMessage(error)}),
@@ -159,7 +169,7 @@ export default function ClaimsScreen() {
     updateClaim.mutate(
       {id: claimId, ...input},
       {
-        onSuccess: () => toast.success('Reclamo actualizado correctamente.'),
+        onSuccess: () => toast.success(t('Claims.saveSuccess')),
         onError: error => toast.error(errorMessage(error)),
       },
     );
@@ -176,8 +186,12 @@ export default function ClaimsScreen() {
     return (
       <RequireAccess path="/claims">
         <Screen>
-          <AppHeader title="Reclamos" showBell={false} onBack={() => router.back()} />
-          <LoadingState message="Cargando reclamos..." />
+          <AppHeader
+            title={t('Claims.title')}
+            showBell={false}
+            onBack={() => router.back()}
+          />
+          <LoadingState message={t('Claims.loadingList')} />
         </Screen>
       </RequireAccess>
     );
@@ -187,9 +201,13 @@ export default function ClaimsScreen() {
     return (
       <RequireAccess path="/claims">
         <Screen>
-          <AppHeader title="Reclamos" showBell={false} onBack={() => router.back()} />
+          <AppHeader
+            title={t('Claims.title')}
+            showBell={false}
+            onBack={() => router.back()}
+          />
           <ErrorState
-            message="No pudimos cargar tus edificios."
+            message={t('Claims.buildingsError')}
             onRetry={() => refetchBuildings()}
           />
         </Screen>
@@ -205,13 +223,13 @@ export default function ClaimsScreen() {
         refreshing={buildingsRefetching || claimsQuery.isRefetching}
         onRefresh={refreshAll}>
         <AppHeader
-          title="Reclamos"
-          subtitle="Reportá y seguí incidencias del edificio."
+          title={t('Claims.title')}
+          subtitle={t('Claims.subtitle')}
           showBell={false}
           onBack={() => router.back()}
           right={
             showCreate ? (
-              <Button title="Nuevo" size="sm" onPress={openCreate} />
+              <Button title={t('Claims.new')} size="sm" onPress={openCreate} />
             ) : undefined
           }
         />
@@ -225,21 +243,21 @@ export default function ClaimsScreen() {
         {!activeBuildingId ? (
           <EmptyState
             icon="chatbox-ellipses-outline"
-            title="Elegí un edificio"
-            description="Seleccioná un edificio para ver sus reclamos."
+            title={t('Claims.chooseBuilding')}
+            description={t('Claims.chooseBuildingDescription')}
           />
         ) : claimsQuery.isLoading ? (
-          <LoadingState message="Cargando reclamos..." />
+          <LoadingState message={t('Claims.loadingList')} />
         ) : claimsQuery.isError ? (
           <ErrorState
-            message="No pudimos cargar los reclamos."
+            message={t('Claims.loadError')}
             onRetry={() => claimsQuery.refetch()}
           />
         ) : (
           <View style={styles.content}>
             {filterOptions.length > 1 ? (
               <Select
-                label="Filtrar por"
+                label={t('Claims.filterBy')}
                 value={filter}
                 onChange={setFilter}
                 options={filterOptions}
@@ -249,13 +267,13 @@ export default function ClaimsScreen() {
             {claims.length === 0 ? (
               <EmptyState
                 icon="chatbox-ellipses-outline"
-                title="Sin reclamos"
+                title={t('Claims.emptyTitle')}
                 description={
                   showCreate
-                    ? 'Creá el primer reclamo del edificio.'
-                    : 'No hay reclamos para el filtro seleccionado.'
+                    ? t('Claims.emptyCreate')
+                    : t('Claims.emptyFiltered')
                 }
-                actionLabel={showCreate ? 'Crear reclamo' : undefined}
+                actionLabel={showCreate ? t('Claims.create') : undefined}
                 onAction={showCreate ? openCreate : undefined}
               />
             ) : (
@@ -277,10 +295,10 @@ export default function ClaimsScreen() {
         <ModalSheet
           visible={createOpen}
           onClose={() => setCreateOpen(false)}
-          title="Nuevo reclamo">
+          title={t('Claims.newTitle')}>
           <View style={styles.form}>
             <Select
-              label="Sobre"
+              label={t('Claims.subject')}
               value={createTarget}
               onChange={value => {
                 setCreateTarget(value);
@@ -288,12 +306,12 @@ export default function ClaimsScreen() {
                   setErrors(current => ({...current, target: ''}));
                 }
               }}
-              placeholder="Seleccionar unidad o amenity"
+              placeholder={t('Claims.selectSubject')}
               options={createTargetOptions}
               error={errors.target || undefined}
             />
             <Input
-              label="Título"
+              label={t('Claims.titleLabel')}
               value={title}
               onChangeText={value => {
                 setTitle(value);
@@ -301,11 +319,11 @@ export default function ClaimsScreen() {
                   setErrors(current => ({...current, title: ''}));
                 }
               }}
-              placeholder="Resumen del reclamo"
+              placeholder={t('Claims.summary')}
               error={errors.title || undefined}
             />
             <Input
-              label="Descripción"
+              label={t('Claims.description')}
               value={body}
               onChangeText={value => {
                 setBody(value);
@@ -313,7 +331,7 @@ export default function ClaimsScreen() {
                   setErrors(current => ({...current, body: ''}));
                 }
               }}
-              placeholder="Contanos qué pasó..."
+              placeholder={t('Claims.descriptionPlaceholder')}
               multiline
               error={errors.body || undefined}
             />
@@ -321,7 +339,7 @@ export default function ClaimsScreen() {
               <Text style={styles.formError}>{errors.form}</Text>
             ) : null}
             <Button
-              title="Crear reclamo"
+              title={t('Claims.create')}
               loading={createClaim.isPending}
               fullWidth
               onPress={submit}

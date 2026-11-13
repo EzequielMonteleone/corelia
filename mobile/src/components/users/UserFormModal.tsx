@@ -1,11 +1,13 @@
 import {useMemo, useState} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {Select} from '@/components/ui/Select';
 import {useBuildingUnits} from '@/hooks/queries/useBuildings';
+import {validationMessage} from '@/lib/validation';
 import {
   userCreateSchema,
   userEditSchema,
@@ -18,21 +20,11 @@ import {colors, radius, spacing, typography} from '@/theme';
 
 type RoleName = 'Admin' | 'Owner' | 'Roomer';
 
-const ROLE_LABELS: Record<string, string> = {
-  Admin: 'Administrador',
-  Owner: 'Propietario',
-  Roomer: 'Inquilino',
-};
-
-const FIELD_LABELS: Record<string, string> = {
-  email: 'Email',
-  firstName: 'Nombre',
-  lastName: 'Apellido',
-  password: 'Contraseña',
-  roleName: 'Rol',
-  buildingId: 'Edificio',
-  currentPassword: 'Contraseña actual',
-};
+const ROLE_LABEL_KEYS = {
+  Admin: 'Users.admin',
+  Owner: 'Users.owner',
+  Roomer: 'Users.roomer',
+} as const;
 
 export function UserFormModal({
   visible,
@@ -55,6 +47,7 @@ export function UserFormModal({
   onCreate: (values: UserCreateFormValues) => void;
   onEdit: (values: UserEditFormValues) => void;
 }) {
+  const {t} = useTranslation();
   const [email, setEmail] = useState(editingUser?.email ?? '');
   const [firstName, setFirstName] = useState(editingUser?.firstName ?? '');
   const [lastName, setLastName] = useState(editingUser?.lastName ?? '');
@@ -84,9 +77,7 @@ export function UserFormModal({
     '') as RoleName | '';
 
   const effectiveBuildingId = buildingId || editBuildingId || scope[0]?.id || '';
-  const effectiveRoleName = isEdit
-    ? roleName || editRoleName
-    : roleName;
+  const effectiveRoleName = isEdit ? roleName || editRoleName : roleName;
 
   const selectedBuilding = buildings.find(
     building => building.id === effectiveBuildingId,
@@ -101,11 +92,7 @@ export function UserFormModal({
 
   const availableRoles = useMemo(() => {
     const roles = (selectedBuilding?.assignableRoles ?? []).map(role => role.name);
-    if (
-      isEdit &&
-      editRoleName &&
-      !roles.includes(editRoleName)
-    ) {
+    if (isEdit && editRoleName && !roles.includes(editRoleName)) {
       return [editRoleName, ...roles];
     }
     return roles;
@@ -151,12 +138,23 @@ export function UserFormModal({
   const validateUnits = (): string | undefined => {
     if (globalSuperAdmin) return;
     if (showUnitsMulti && effectiveSelectedUnitIds.length === 0) {
-      return 'Seleccioná al menos una unidad.';
+      return t('Users.selectAtLeastOneUnit');
     }
     if (showUnitsSingle && effectiveSelectedUnitIds.length !== 1) {
-      return 'Seleccioná una unidad.';
+      return t('Users.selectOneUnit');
     }
     return undefined;
+  };
+
+  const collectErrors = (issues: {path: PropertyKey[]; message: string}[]) => {
+    const nextErrors: Record<string, string> = {};
+    for (const issue of issues) {
+      const field = String(issue.path[0] ?? 'form');
+      if (!nextErrors[field]) {
+        nextErrors[field] = validationMessage(t, issue.message) ?? issue.message;
+      }
+    }
+    return nextErrors;
   };
 
   const submitCreate = () => {
@@ -174,13 +172,7 @@ export function UserFormModal({
       unitIds: globalSuperAdmin ? [] : effectiveSelectedUnitIds,
     };
     const result = userCreateSchema.safeParse(payload);
-    const nextErrors: Record<string, string> = {};
-    if (!result.success) {
-      for (const issue of result.error.issues) {
-        const field = String(issue.path[0] ?? 'form');
-        if (!nextErrors[field]) nextErrors[field] = issue.message;
-      }
-    }
+    const nextErrors = result.success ? {} : collectErrors(result.error.issues);
     const unitError = validateUnits();
     if (unitError) nextErrors.unitIds = unitError;
     if (Object.keys(nextErrors).length > 0) {
@@ -194,7 +186,7 @@ export function UserFormModal({
   const submitEdit = () => {
     if (!editingUser) return;
     if (editingSelf && password && !currentPassword.trim()) {
-      setErrors({currentPassword: 'Ingresá tu contraseña actual.'});
+      setErrors({currentPassword: t('Users.currentPasswordRequired')});
       return;
     }
     const payload: UserEditFormValues = {
@@ -212,13 +204,7 @@ export function UserFormModal({
         }),
     };
     const result = userEditSchema.safeParse(payload);
-    const nextErrors: Record<string, string> = {};
-    if (!result.success) {
-      for (const issue of result.error.issues) {
-        const field = String(issue.path[0] ?? 'form');
-        if (!nextErrors[field]) nextErrors[field] = issue.message;
-      }
-    }
+    const nextErrors = result.success ? {} : collectErrors(result.error.issues);
     if (
       !editingSelf &&
       editingUser.globalRole !== 'SUPERADMIN' &&
@@ -239,27 +225,27 @@ export function UserFormModal({
     <ModalSheet
       visible={visible}
       onClose={onClose}
-      title={isEdit ? 'Editar usuario' : 'Nuevo usuario'}>
+      title={isEdit ? t('Users.modalEditTitle') : t('Users.modalTitle')}>
       <View style={styles.form}>
         <Input
-          label="Email"
+          label={t('Login.email')}
           value={email}
           onChangeText={setEmail}
-          placeholder="usuario@ejemplo.com"
+          placeholder={t('Users.emailPlaceholder')}
           autoCapitalize="none"
           keyboardType="email-address"
           error={errors.email}
         />
         <View style={styles.row}>
           <Input
-            label="Nombre"
+            label={t('Users.firstName')}
             value={firstName}
             onChangeText={setFirstName}
             error={errors.firstName}
             containerStyle={styles.rowField}
           />
           <Input
-            label="Apellido"
+            label={t('Users.lastName')}
             value={lastName}
             onChangeText={setLastName}
             error={errors.lastName}
@@ -267,14 +253,16 @@ export function UserFormModal({
           />
         </View>
         <Input
-          label="Teléfono"
+          label={t('Users.phone')}
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
           error={errors.phone}
         />
         <Input
-          label={isEdit ? 'Nueva contraseña (opcional)' : 'Contraseña'}
+          label={
+            isEdit ? t('Users.newPasswordOptional') : t('Users.password')
+          }
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -282,7 +270,7 @@ export function UserFormModal({
         />
         {editingSelf ? (
           <Input
-            label="Contraseña actual"
+            label={t('Users.currentPassword')}
             value={currentPassword}
             onChangeText={setCurrentPassword}
             secureTextEntry
@@ -293,7 +281,7 @@ export function UserFormModal({
         {!isEdit && actor.globalRole === 'SUPERADMIN' ? (
           <CheckRow
             checked={globalSuperAdmin}
-            label="Crear SUPERADMIN global (sin edificio)"
+            label={t('Users.createGlobalSuperadmin')}
             onPress={() => {
               setGlobalSuperAdmin(value => !value);
               setUnitIds([]);
@@ -307,7 +295,7 @@ export function UserFormModal({
           (editingUser?.globalRole !== 'SUPERADMIN' && scope.length > 0)) ? (
           <>
             <Select
-              label="Edificio"
+              label={t('Common.building')}
               value={effectiveBuildingId}
               onChange={value => {
                 setBuildingId(value);
@@ -321,17 +309,20 @@ export function UserFormModal({
               error={errors.buildingId}
             />
             <Select
-              label="Rol"
+              label={t('Users.buildingRole')}
               value={effectiveRoleName}
               onChange={value => {
                 setRoleName(value as RoleName);
                 setUnitIds([]);
                 setErrors(current => ({...current, roleName: ''}));
               }}
-              placeholder="Seleccionar rol"
+              placeholder={t('Users.selectRole')}
               options={availableRoles.map(name => ({
                 value: name,
-                label: ROLE_LABELS[name] ?? name,
+                label:
+                  ROLE_LABEL_KEYS[name as keyof typeof ROLE_LABEL_KEYS]
+                    ? t(ROLE_LABEL_KEYS[name as keyof typeof ROLE_LABEL_KEYS])
+                    : name,
               }))}
               error={errors.roleName}
             />
@@ -339,11 +330,11 @@ export function UserFormModal({
               <View style={styles.unitsBox}>
                 <Text style={styles.unitsLabel}>
                   {showUnitsMulti
-                    ? 'Seleccionar una o más unidades para el propietario'
-                    : 'Seleccionar una unidad para el inquilino'}
+                    ? t('Users.selectOwnerUnitsFor')
+                    : t('Users.selectRoomerUnitFor')}
                 </Text>
                 {availableUnits.length === 0 ? (
-                  <Text style={styles.muted}>No hay unidades disponibles.</Text>
+                  <Text style={styles.muted}>{t('Users.noUnits')}</Text>
                 ) : (
                   availableUnits.map(unit => {
                     const checked = effectiveSelectedUnitIds.includes(unit.id);
@@ -385,7 +376,7 @@ export function UserFormModal({
         {errors.form ? <Text style={styles.errorText}>{errors.form}</Text> : null}
 
         <Button
-          title={isEdit ? 'Guardar cambios' : 'Crear usuario'}
+          title={isEdit ? t('Users.saveChanges') : t('Users.createUser')}
           loading={pending}
           fullWidth
           onPress={isEdit ? submitEdit : submitCreate}
@@ -458,5 +449,3 @@ const styles = StyleSheet.create({
   unitLabel: {color: colors.text, fontSize: typography.small},
   errorText: {color: colors.danger, fontSize: typography.caption},
 });
-
-export {FIELD_LABELS};

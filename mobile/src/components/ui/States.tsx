@@ -1,13 +1,16 @@
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import {Button} from '@/components/ui/Button';
 import {colors, spacing, typography} from '@/theme';
 
-export function LoadingState({message = 'Cargando...'}: {message?: string}) {
+export function LoadingState({message}: {message?: string}) {
+  const {t} = useTranslation();
+
   return (
     <View style={styles.container}>
       <ActivityIndicator color={colors.primary} size="large" />
-      <Text style={styles.text}>{message}</Text>
+      <Text style={styles.text}>{message ?? t('States.loading')}</Text>
     </View>
   );
 }
@@ -46,22 +49,24 @@ export function EmptyState({
 }
 
 export function ErrorState({
-  message = 'Ocurrió un error inesperado.',
+  message,
   onRetry,
 }: {
   message?: string;
   onRetry?: () => void;
 }) {
+  const {t} = useTranslation();
+
   return (
     <View style={styles.container}>
       <View style={[styles.iconWrap, styles.errorIcon]}>
         <Ionicons name="alert-circle-outline" size={28} color={colors.danger} />
       </View>
-      <Text style={styles.title}>Algo salió mal</Text>
-      <Text style={styles.text}>{message}</Text>
+      <Text style={styles.title}>{t('States.errorTitle')}</Text>
+      <Text style={styles.text}>{message ?? t('States.errorMessage')}</Text>
       {onRetry ? (
         <Button
-          title="Reintentar"
+          title={t('States.retry')}
           variant="outline"
           size="sm"
           onPress={onRetry}

@@ -4,10 +4,10 @@ Expo/React Native client for Corelia, the building-management platform. It mirro
 
 ## Features
 
-- **Inicio** — role-aware dashboard with building KPIs, recent periods, claims, and documents.
-- **Expensas** — expense periods, detail breakdown, payments, and CSV/PDF exports.
-- **Edificios** — building list/detail, units, amenity catalog, and amenity settings.
-- **Menú** — every remaining option: users, roles, household records, claims, documents, chat, notifications, amenities, and profile.
+- **Dashboard** — role-aware dashboard with building KPIs, recent periods, claims, and documents.
+- **Expenses** — expense periods, detail breakdown, payments, and CSV/PDF exports.
+- **Buildings** — building list/detail, units, amenity catalog, and amenity settings.
+- **Menu** — every remaining option: users, roles, household records, claims, documents, chat, notifications, amenities, and profile.
 - **Auth** — JWT persisted in `expo-secure-store`, profile in AsyncStorage, guarded routes via Expo Router.
 - **Data layer** — TanStack Query with a 60s stale time, AppState focus refetch, and typed Axios APIs.
 - **Notifications** — polling, unread badge, and deep links into the related building screen.
@@ -58,12 +58,32 @@ src/
     layout/      App shell pieces (Screen, AppHeader, BuildingSwitcher)
     domain/      Feature components (claims, expenses, buildings, users)
   lib/           Formatting, API errors, timezone math, exports, access rules
+  i18n/          i18next setup, locale detection, and en/es message catalogs
   schemas/       Zod validation for forms and payloads
   theme/         Dark color palette, spacing, radii, typography
   types/         Shared API types
 ```
 
 Responsibilities stay separated: screens compose domain components, components never call Axios directly, and all network access goes through `api/` + query hooks. Forms validate locally with Zod before invoking mutations.
+
+## Localization
+
+The app ships in English and Spanish (`src/i18n/messages/{en,es}.json`). There is no in-app language selector and no persisted preference: the active language follows the operating system and updates when it changes.
+
+- **Default/fallback** — English. Any OS language other than Spanish resolves to English.
+- **Detection** — `expo-localization` reads the OS locale; `LocaleSync` keeps i18next in sync while the app runs.
+- **Formatting** — dates, numbers, and currency use the active locale (`es` → `es-AR`, `en` → `en-US`) through the helpers in `src/lib/format.ts`.
+- **Out of scope** — the app name, backend/LLM-generated content, user-generated content, and internal route URLs are not translated.
+
+When adding a user-facing string, add the key to both catalogs and read it with `useTranslation()` (components/screens) or `i18n.t()` (non-React code such as toasts, API errors, and notification text). Keys are typed from the English catalog, and a Jest test enforces key parity between languages.
+
+Validation schemas store translation keys (for example `Validation.emailInvalid`); `validationMessage` resolves them at render time.
+
+Adding or changing `supportedLocales` requires regenerating the native projects:
+
+```bash
+npx expo prebuild --clean
+```
 
 ## Access rules
 

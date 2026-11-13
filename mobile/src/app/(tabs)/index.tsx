@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {Section} from '@/components/layout/Section';
@@ -15,6 +16,7 @@ import {useCollectionSummary} from '@/hooks/queries/useExpenses';
 import {useNotifications} from '@/hooks/queries/useNotifications';
 import {canAccessPath} from '@/lib/navAccess';
 import {formatCurrency, formatDateTime, formatLongDate} from '@/lib/format';
+import {currentLocaleTag} from '@/i18n';
 import {notificationPhrase} from '@/lib/notificationText';
 import {notificationTarget} from '@/lib/notificationLink';
 import {useAuthStore} from '@/store/authStore';
@@ -32,6 +34,7 @@ type QuickLink = {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const user = useAuthStore(state => state.user);
   const {
     buildings,
@@ -55,15 +58,15 @@ export default function DashboardScreen() {
     const links: QuickLink[] = [
       {
         href: '/expenses',
-        title: 'Expensas',
-        description: 'Períodos, pagos y exportaciones.',
+        title: t('Dashboard.quickExpensesTitle'),
+        description: t('Dashboard.quickExpensesDescription'),
         icon: 'receipt-outline',
         tint: colors.primary,
       },
       {
         href: '/amenities',
-        title: 'Amenities',
-        description: 'Reservá espacios comunes.',
+        title: t('Amenities.title'),
+        description: t('Dashboard.quickAmenitiesDescription'),
         icon: 'sparkles-outline',
         tint: colors.purple,
       },
@@ -71,8 +74,8 @@ export default function DashboardScreen() {
     if (canAccessPath(user, '/buildings')) {
       links.unshift({
         href: '/buildings',
-        title: 'Edificios',
-        description: 'Unidades y amenities.',
+        title: t('Dashboard.quickBuildingsTitle'),
+        description: t('Dashboard.quickBuildingsDescription'),
         icon: 'business-outline',
         tint: colors.indigo,
       });
@@ -80,8 +83,8 @@ export default function DashboardScreen() {
     if (canAccessPath(user, '/users')) {
       links.push({
         href: '/users',
-        title: 'Usuarios',
-        description: 'Accesos y roles del edificio.',
+        title: t('Dashboard.quickUsersTitle'),
+        description: t('Dashboard.quickUsersDescription'),
         icon: 'people-outline',
         tint: colors.success,
       });
@@ -89,22 +92,22 @@ export default function DashboardScreen() {
     if (canAccessPath(user, '/claims')) {
       links.push({
         href: '/claims',
-        title: 'Reclamos',
-        description: 'Seguimiento de incidencias.',
+        title: t('Dashboard.quickClaimsTitle'),
+        description: t('Dashboard.quickClaimsDescription'),
         icon: 'chatbox-ellipses-outline',
         tint: colors.warning,
       });
     }
     return links;
-  }, [user]);
+  }, [t, user]);
 
   const recentNotifications = notificationsQuery.data?.notifications.slice(0, 3) ?? [];
 
   if (isLoading) {
     return (
       <Screen>
-        <AppHeader title="Inicio" />
-        <LoadingState message="Cargando tu panel..." />
+        <AppHeader title={t('Tabs.home')} />
+        <LoadingState message={t('Dashboard.loading')} />
       </Screen>
     );
   }
@@ -112,9 +115,9 @@ export default function DashboardScreen() {
   if (isError) {
     return (
       <Screen>
-        <AppHeader title="Inicio" />
+        <AppHeader title={t('Tabs.home')} />
         <ErrorState
-          message="No pudimos cargar tus edificios."
+          message={t('Dashboard.buildingsError')}
           onRetry={() => refetch()}
         />
       </Screen>
@@ -130,8 +133,10 @@ export default function DashboardScreen() {
         notificationsQuery.refetch();
       }}>
       <AppHeader
-        title={`Hola, ${user?.firstName ?? 'vecino'}`}
-        subtitle={formatLongDate(new Date(), 'es-AR', APP_TIMEZONE)}
+        title={t('Dashboard.greeting', {
+          name: user?.firstName ?? t('Dashboard.defaultName'),
+        })}
+        subtitle={formatLongDate(new Date(), currentLocaleTag(), APP_TIMEZONE)}
       />
 
       <BuildingSwitcher
@@ -143,11 +148,11 @@ export default function DashboardScreen() {
       {!activeBuilding ? (
         <EmptyState
           icon="business-outline"
-          title="Sin edificios asignados"
+          title={t('Dashboard.noBuildingsTitle')}
           description={
             buildings.length > 1
-              ? 'Elegí un edificio para ver su información.'
-              : 'Cuando te asignen un edificio vas a ver acá el resumen de expensas.'
+              ? t('Dashboard.noBuildingsChoose')
+              : t('Dashboard.noBuildingsSingle')
           }
         />
       ) : (
@@ -167,24 +172,28 @@ export default function DashboardScreen() {
                 </Text>
               </View>
               <Badge
-                label={activeBuilding.active ? 'Activo' : 'Inactivo'}
+                label={
+                  activeBuilding.active
+                    ? t('Common.active')
+                    : t('Common.inactive')
+                }
                 intent={activeBuilding.active ? 'success' : 'danger'}
               />
             </View>
           </Card>
 
           {summary ? (
-            <Section title="Resumen de cobranza">
+            <Section title={t('Dashboard.collectionSummary')}>
               <View style={styles.kpiRow}>
                 <KpiCard
                   icon="alert-circle-outline"
-                  label="Deuda total"
+                  label={t('Dashboard.kpiDebt')}
                   value={formatCurrency(summary.debtTotal)}
                   tint={colors.danger}
                 />
                 <KpiCard
                   icon="checkmark-circle-outline"
-                  label="Cobrado"
+                  label={t('Dashboard.kpiCollected')}
                   value={formatCurrency(summary.totalPaid)}
                   tint={colors.success}
                 />
@@ -192,13 +201,13 @@ export default function DashboardScreen() {
               <View style={styles.kpiRow}>
                 <KpiCard
                   icon="trending-up-outline"
-                  label="Cobranza"
+                  label={t('Dashboard.kpiCollectionRate')}
                   value={`${summary.collectionRate.toFixed(1)}%`}
                   tint={colors.primary}
                 />
                 <KpiCard
                   icon="home-outline"
-                  label="Unidades con deuda"
+                  label={t('Dashboard.kpiUnitsWithDebt')}
                   value={String(summary.unitsWithDebtCount)}
                   tint={colors.warning}
                 />
@@ -206,7 +215,7 @@ export default function DashboardScreen() {
             </Section>
           ) : null}
 
-          <Section title="Accesos rápidos">
+          <Section title={t('Dashboard.quickAccess')}>
             <View style={styles.quickGrid}>
               {quickLinks.map(link => (
                 <Card
@@ -226,13 +235,13 @@ export default function DashboardScreen() {
 
           {recentNotifications.length > 0 ? (
             <Section
-              title="Avisos recientes"
+              title={t('Dashboard.recentNotices')}
               action={
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Ver todos los avisos"
+                  accessibilityLabel={t('Dashboard.viewAllAria')}
                   onPress={() => router.push('/notifications')}>
-                  <Text style={styles.link}>Ver todos</Text>
+                  <Text style={styles.link}>{t('Dashboard.viewAll')}</Text>
                 </Pressable>
               }>
               <Card style={styles.notificationList}>

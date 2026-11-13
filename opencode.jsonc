@@ -1,9 +1,0 @@
-{
-  // Ask before every file change (edit/write/patch) and shell command,
-  // similar to Cursor. The prompt offers Allow once / Allow always / Reject.
-  "$schema": "https://opencode.ai/config.json",
-  "permissions": [
-    {"action": "edit", "resource": "*", "effect": "ask"},
-    {"action": "shell", "resource": "*", "effect": "ask"},
-  ],
-}

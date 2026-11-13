@@ -1,12 +1,13 @@
-import {useMemo, useState} from 'react';
-import {Pressable, StyleSheet, Switch, Text, View} from 'react-native';
-import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Select} from '@/components/ui/Select';
 import {parseHm} from '@/lib/zonedTime';
-import type {Amenity, BuildingAmenity} from '@/types/amenity';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {Amenity, BuildingAmenity} from '@/types/amenity';
+import {useMemo, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Switch, Text, View} from 'react-native';
 
 type CreateMode = 'catalog' | 'custom';
 
@@ -25,6 +26,7 @@ export function AmenityCreateModal({
   onClose: () => void;
   onSubmit: (input: {amenityId?: string; customAmenityName?: string}) => void;
 }) {
+  const {t} = useTranslation();
   const [mode, setMode] = useState<CreateMode>('catalog');
   const [catalogId, setCatalogId] = useState('');
   const [customName, setCustomName] = useState('');
@@ -52,16 +54,19 @@ export function AmenityCreateModal({
     mode === 'catalog' ? !!effectiveCatalogId : !!customName.trim();
 
   return (
-    <ModalSheet visible={visible} onClose={onClose} title="Agregar amenity">
+    <ModalSheet
+      visible={visible}
+      onClose={onClose}
+      title={t('Buildings.addAmenity')}>
       <View style={styles.form}>
         <View style={styles.segment}>
           <Segment
-            label="Del catálogo"
+            label={t('Buildings.amenityTypeCatalog')}
             active={mode === 'catalog'}
             onPress={() => setMode('catalog')}
           />
           <Segment
-            label="Personalizado"
+            label={t('Buildings.amenityTypeCustom')}
             active={mode === 'custom'}
             onPress={() => setMode('custom')}
           />
@@ -69,12 +74,10 @@ export function AmenityCreateModal({
 
         {mode === 'catalog' ? (
           available.length === 0 ? (
-            <Text style={styles.muted}>
-              Todos los amenities del catálogo ya están agregados.
-            </Text>
+            <Text style={styles.muted}>{t('Buildings.catalogEmpty')}</Text>
           ) : (
             <Select
-              label="Amenity"
+              label={t('Buildings.amenityLabel')}
               value={effectiveCatalogId}
               onChange={setCatalogId}
               options={available.map(item => ({
@@ -85,15 +88,15 @@ export function AmenityCreateModal({
           )
         ) : (
           <Input
-            label="Nombre"
-            placeholder="Ej: SUM, Parrilla, Gimnasio"
+            label={t('Buildings.unitName')}
+            placeholder={t('Buildings.amenityNamePlaceholder')}
             value={customName}
             onChangeText={setCustomName}
           />
         )}
 
         <Button
-          title="Agregar amenity"
+          title={t('Buildings.addAmenity')}
           loading={pending}
           disabled={!canSubmit}
           fullWidth
@@ -147,6 +150,7 @@ export function AmenitySettingsModal({
     rules?: string | null;
   }) => void;
 }) {
+  const {t} = useTranslation();
   const [name, setName] = useState(item?.amenity.name ?? '');
   const [enabled, setEnabled] = useState(item?.isEnabled ?? true);
   const [slotMinutes, setSlotMinutes] = useState(
@@ -164,17 +168,17 @@ export function AmenitySettingsModal({
     const open = parseHm(openTime);
     const close = parseHm(closeTime);
     if (open === null || close === null || open >= close) {
-      setError('El horario debe ser válido y la apertura anterior al cierre.');
+      setError(t('Buildings.timeRangeError'));
       return;
     }
     const slot = Number(slotMinutes);
     const max = Number(maxConcurrent);
     if (!Number.isFinite(slot) || slot <= 0) {
-      setError('La duración del turno debe ser mayor a cero.');
+      setError(t('Buildings.slotDurationError'));
       return;
     }
     if (!Number.isFinite(max) || max <= 0) {
-      setError('La capacidad debe ser mayor a cero.');
+      setError(t('Buildings.capacityError'));
       return;
     }
     setError(null);
@@ -185,7 +189,9 @@ export function AmenitySettingsModal({
       openTime,
       closeTime,
       rules: rules.trim() || null,
-      ...(!item?.amenity.isSystem && name.trim() ? {customName: name.trim()} : {}),
+      ...(!item?.amenity.isSystem && name.trim()
+        ? {customName: name.trim()}
+        : {}),
     });
   };
 
@@ -193,17 +199,21 @@ export function AmenitySettingsModal({
     <ModalSheet
       visible={visible}
       onClose={onClose}
-      title={item ? item.amenity.name : 'Configuración'}>
+      title={item ? item.amenity.name : t('Buildings.settings')}>
       <View style={styles.form}>
         {!item?.amenity.isSystem ? (
-          <Input label="Nombre" value={name} onChangeText={setName} />
+          <Input
+            label={t('Buildings.unitName')}
+            value={name}
+            onChangeText={setName}
+          />
         ) : null}
 
         <View style={styles.switchRow}>
           <View style={styles.switchText}>
-            <Text style={styles.switchLabel}>Habilitado</Text>
+            <Text style={styles.switchLabel}>{t('Buildings.enabled')}</Text>
             <Text style={styles.muted}>
-              Los vecinos solo pueden reservar amenities habilitados.
+              {t('Buildings.enabledDescription')}
             </Text>
           </View>
           <Switch
@@ -216,14 +226,14 @@ export function AmenitySettingsModal({
 
         <View style={styles.row}>
           <Input
-            label="Duración (min)"
+            label={t('Buildings.slotMinutesShort')}
             value={slotMinutes}
             onChangeText={setSlotMinutes}
             keyboardType="number-pad"
             containerStyle={styles.half}
           />
           <Input
-            label="Capacidad"
+            label={t('Buildings.capacity')}
             value={maxConcurrent}
             onChangeText={setMaxConcurrent}
             keyboardType="number-pad"
@@ -232,14 +242,14 @@ export function AmenitySettingsModal({
         </View>
         <View style={styles.row}>
           <Input
-            label="Apertura"
+            label={t('Buildings.openLabel')}
             value={openTime}
             onChangeText={setOpenTime}
             placeholder="08:00"
             containerStyle={styles.half}
           />
           <Input
-            label="Cierre"
+            label={t('Buildings.closeLabel')}
             value={closeTime}
             onChangeText={setCloseTime}
             placeholder="22:00"
@@ -247,15 +257,15 @@ export function AmenitySettingsModal({
           />
         </View>
         <Input
-          label="Reglas de uso"
+          label={t('Buildings.rules')}
           value={rules}
           onChangeText={setRules}
           multiline
-          placeholder="Instrucciones para los vecinos..."
+          placeholder={t('Buildings.rulesPlaceholderMobile')}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Button
-          title="Guardar configuración"
+          title={t('Buildings.saveSettings')}
           loading={pending}
           fullWidth
           onPress={submit}
@@ -290,7 +300,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   switchText: {flex: 1, gap: 2},
-  switchLabel: {color: colors.text, fontSize: typography.body, fontWeight: '600'},
+  switchLabel: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: '600',
+  },
   row: {flexDirection: 'row', gap: spacing.md},
   half: {flex: 1},
   error: {color: colors.danger, fontSize: typography.caption},

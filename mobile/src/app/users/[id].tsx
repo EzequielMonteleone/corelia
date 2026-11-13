@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
@@ -29,39 +30,27 @@ import type {UserAuditMetadata} from '@/types/user';
 import type {UserEditFormValues} from '@/schemas/user';
 import {colors, radius, spacing, typography} from '@/theme';
 
-const ACTION_LABELS: Record<string, string> = {
-  USER_PASSWORD_CHANGED: 'Cambió su contraseña',
-  USER_PASSWORD_RESET: 'Se restableció la contraseña',
-  USER_ROLE_CHANGED: 'Cambió el rol o las unidades',
-  USER_ACTIVE_CHANGED: 'Cambió el estado de la cuenta',
-};
+const ACTION_KEYS = {
+  USER_PASSWORD_CHANGED: 'Users.USER_PASSWORD_CHANGED',
+  USER_PASSWORD_RESET: 'Users.USER_PASSWORD_RESET',
+  USER_ROLE_CHANGED: 'Users.USER_ROLE_CHANGED',
+  USER_ACTIVE_CHANGED: 'Users.USER_ACTIVE_CHANGED',
+} as const;
 
-const ROLE_LABELS: Record<string, string> = {
-  Admin: 'Administrador',
-  Owner: 'Propietario',
-  Roomer: 'Inquilino',
-};
+const ROLE_KEYS = {
+  Admin: 'Users.admin',
+  Owner: 'Users.owner',
+  Roomer: 'Users.roomer',
+} as const;
 
-const RELATION_LABELS: Record<string, string> = {
-  OWNER: 'Propietario',
-  ROOMER: 'Inquilino',
-};
-
-function auditDescription(metadata: UserAuditMetadata | null) {
-  if (!metadata) return null;
-  if (metadata.previousRole !== undefined || metadata.nextRole) {
-    return [metadata.previousRole ?? 'Sin rol', metadata.nextRole]
-      .filter(Boolean)
-      .join(' → ');
-  }
-  if (metadata.isActive !== undefined) {
-    return metadata.isActive ? 'Cuenta activada' : 'Cuenta desactivada';
-  }
-  return null;
-}
+const RELATION_KEYS = {
+  OWNER: 'Users.owner',
+  ROOMER: 'Users.roomer',
+} as const;
 
 export default function UserDetailScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const {id} = useLocalSearchParams<{id: string}>();
   const userId = id ?? null;
   const actor = useAuthStore(state => state.user);
@@ -76,6 +65,21 @@ export default function UserDetailScreen() {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const user = userQuery.data;
+
+  const auditDescription = (metadata: UserAuditMetadata | null) => {
+    if (!metadata) return null;
+    if (metadata.previousRole !== undefined || metadata.nextRole) {
+      return [metadata.previousRole ?? t('Users.noRole'), metadata.nextRole]
+        .filter(Boolean)
+        .join(' → ');
+    }
+    if (metadata.isActive !== undefined) {
+      return metadata.isActive
+        ? t('Users.accountActivated')
+        : t('Users.accountDeactivated');
+    }
+    return null;
+  };
 
   const editUser = (values: UserEditFormValues) => {
     if (!user) return;
@@ -100,7 +104,7 @@ export default function UserDetailScreen() {
       },
       {
         onSuccess: () => {
-          toast.success('Usuario actualizado correctamente.');
+          toast.success(t('Users.updateSuccess'));
           setFormOpen(false);
         },
         onError: error => toast.error(errorMessage(error)),
@@ -112,7 +116,7 @@ export default function UserDetailScreen() {
     if (!user) return;
     deleteUser.mutate(user.id, {
       onSuccess: () => {
-        toast.success('Usuario eliminado correctamente.');
+        toast.success(t('Users.deleteSuccess'));
         setDeleteOpen(false);
         router.back();
       },
@@ -125,11 +129,11 @@ export default function UserDetailScreen() {
       <RequireAccess path="/users">
         <Screen>
           <AppHeader
-            title="Detalle de usuario"
+            title={t('Users.detailTitle')}
             showBell={false}
             onBack={() => router.back()}
           />
-          <LoadingState message="Cargando usuario..." />
+          <LoadingState message={t('Users.loadingDetail')} />
         </Screen>
       </RequireAccess>
     );
@@ -140,12 +144,12 @@ export default function UserDetailScreen() {
       <RequireAccess path="/users">
         <Screen>
           <AppHeader
-            title="Detalle de usuario"
+            title={t('Users.detailTitle')}
             showBell={false}
             onBack={() => router.back()}
           />
           <ErrorState
-            message="No pudimos cargar el usuario."
+            message={t('Users.loadDetailError')}
             onRetry={() => userQuery.refetch()}
           />
         </Screen>
@@ -164,13 +168,17 @@ export default function UserDetailScreen() {
           auditQuery.refetch();
         }}>
         <AppHeader
-          title="Detalle de usuario"
+          title={t('Users.detailTitle')}
           subtitle={user.email}
           showBell={false}
           onBack={() => router.back()}
           right={
             user.canEdit ? (
-              <Button title="Editar" size="sm" onPress={() => setFormOpen(true)} />
+              <Button
+                title={t('Users.edit')}
+                size="sm"
+                onPress={() => setFormOpen(true)}
+              />
             ) : undefined
           }
         />
@@ -188,18 +196,27 @@ export default function UserDetailScreen() {
           {user.phone ? <Text style={styles.phone}>{user.phone}</Text> : null}
           <View style={styles.badges}>
             <Badge
-              label={user.isActive ? 'Activo' : 'Inactivo'}
+              label={user.isActive ? t('Common.active') : t('Common.inactive')}
               intent={user.isActive ? 'success' : 'danger'}
             />
             <Badge
-              label={user.globalRole === 'SUPERADMIN' ? 'Superadmin' : 'Usuario'}
+              label={
+                user.globalRole === 'SUPERADMIN'
+                  ? t('Common.superadmin')
+                  : t('Users.user')
+              }
               intent={user.globalRole === 'SUPERADMIN' ? 'purple' : 'default'}
             />
             {user.buildingUsers?.[0]?.role?.name ? (
               <Badge
                 label={
-                  ROLE_LABELS[user.buildingUsers[0].role.name] ??
-                  user.buildingUsers[0].role.name
+                  user.buildingUsers[0].role.name in ROLE_KEYS
+                    ? t(
+                        ROLE_KEYS[
+                          user.buildingUsers[0].role.name as keyof typeof ROLE_KEYS
+                        ],
+                      )
+                    : user.buildingUsers[0].role.name
                 }
                 intent="primary"
               />
@@ -208,11 +225,9 @@ export default function UserDetailScreen() {
         </Card>
 
         <View style={styles.content}>
-          <Section title="Edificios y roles">
+          <Section title={t('Users.buildingsAndRoles')}>
             {(user.buildingUsers ?? []).length === 0 ? (
-              <Text style={styles.muted}>
-                Este usuario no tiene edificios asignados.
-              </Text>
+              <Text style={styles.muted}>{t('Users.noBuildingsAssigned')}</Text>
             ) : (
               <View style={styles.list}>
                 {user.buildingUsers.map(link => (
@@ -226,12 +241,14 @@ export default function UserDetailScreen() {
                     </View>
                     <View style={styles.rowText}>
                       <Text style={styles.rowTitle}>
-                        {link.building?.name ?? 'Edificio'}
+                        {link.building?.name ?? t('Common.building')}
                       </Text>
                       <Text style={styles.rowMeta}>
                         {link.role
-                          ? (ROLE_LABELS[link.role.name] ?? link.role.name)
-                          : 'Sin rol'}
+                          ? link.role.name in ROLE_KEYS
+                            ? t(ROLE_KEYS[link.role.name as keyof typeof ROLE_KEYS])
+                            : link.role.name
+                          : t('Users.noRole')}
                       </Text>
                     </View>
                   </View>
@@ -240,9 +257,9 @@ export default function UserDetailScreen() {
             )}
           </Section>
 
-          <Section title="Unidades">
+          <Section title={t('Users.units')}>
             {(user.userUnits ?? []).length === 0 ? (
-              <Text style={styles.muted}>Sin unidades asignadas.</Text>
+              <Text style={styles.muted}>{t('Users.noUnitsAssigned')}</Text>
             ) : (
               <View style={styles.list}>
                 {user.userUnits?.map(link => (
@@ -256,11 +273,23 @@ export default function UserDetailScreen() {
                     </View>
                     <View style={styles.rowText}>
                       <Text style={styles.rowTitle}>
-                        {link.unit?.name ?? 'Unidad'}
-                        {link.unit?.floor ? ` · Piso ${link.unit.floor}` : ''}
+                        {link.unit
+                          ? link.unit.floor
+                            ? t('Users.unitWithFloor', {
+                                unit: link.unit.name,
+                                floor: link.unit.floor,
+                              })
+                            : link.unit.name
+                          : t('Users.unit')}
                       </Text>
                       <Text style={styles.rowMeta}>
-                        {RELATION_LABELS[link.relationType] ?? link.relationType}
+                        {link.relationType in RELATION_KEYS
+                          ? t(
+                              RELATION_KEYS[
+                                link.relationType as keyof typeof RELATION_KEYS
+                              ],
+                            )
+                          : link.relationType}
                       </Text>
                     </View>
                   </View>
@@ -269,18 +298,16 @@ export default function UserDetailScreen() {
             )}
           </Section>
 
-          <Section title="Actividad">
+          <Section title={t('Users.auditTitle')}>
             {auditQuery.isLoading ? (
-              <LoadingState message="Cargando actividad..." />
+              <LoadingState message={t('Users.auditLoading')} />
             ) : auditLogs.length === 0 ? (
-              <Text style={styles.muted}>
-                Todavía no hay cambios de acceso.
-              </Text>
+              <Text style={styles.muted}>{t('Users.auditEmpty')}</Text>
             ) : (
               <View style={styles.list}>
                 {auditLogs.map(log => {
                   const label = isUserAuditAction(log.action)
-                    ? ACTION_LABELS[log.action]
+                    ? t(ACTION_KEYS[log.action])
                     : log.action;
                   const detail = auditDescription(log.metadata);
                   return (
@@ -310,11 +337,11 @@ export default function UserDetailScreen() {
           {user.canDelete ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Eliminar usuario"
+              accessibilityLabel={t('Users.deleteUser')}
               onPress={() => setDeleteOpen(true)}
               style={({pressed}) => [styles.deleteButton, pressed && styles.pressed]}>
               <Ionicons name="trash-outline" size={18} color={colors.danger} />
-              <Text style={styles.deleteText}>Eliminar usuario</Text>
+              <Text style={styles.deleteText}>{t('Users.deleteUser')}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -335,9 +362,11 @@ export default function UserDetailScreen() {
 
         <ConfirmDialog
           visible={deleteOpen}
-          title="Eliminar usuario"
-          description={`¿Seguro que querés eliminar a ${user.firstName} ${user.lastName}? Se revocarán todos sus accesos.`}
-          confirmLabel="Eliminar"
+          title={t('Users.deleteTitle')}
+          description={t('Users.deleteConfirmNamed', {
+            name: `${user.firstName} ${user.lastName}`.trim(),
+          })}
+          confirmLabel={t('Common.delete')}
           pending={deleteUser.isPending}
           onCancel={() => setDeleteOpen(false)}
           onConfirm={confirmDelete}

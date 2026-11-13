@@ -1,9 +1,11 @@
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import {useNotifications} from '@/hooks/queries/useNotifications';
 import {colors, typography} from '@/theme';
 
 export function NotificationBell({onPress}: {onPress: () => void}) {
+  const {t} = useTranslation();
   const {data} = useNotifications();
   const unread = data?.unreadCount ?? 0;
 
@@ -11,7 +13,9 @@ export function NotificationBell({onPress}: {onPress: () => void}) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={
-        unread > 0 ? `Avisos, ${unread} sin leer` : 'Avisos'
+        unread > 0
+          ? t('Notifications.bellUnread', {unread})
+          : t('Notifications.bell')
       }
       onPress={onPress}
       style={styles.button}>

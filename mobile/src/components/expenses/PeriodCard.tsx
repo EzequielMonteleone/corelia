@@ -1,10 +1,11 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {Badge} from '@/components/ui/Badge';
 import {IconButton} from '@/components/layout/AppHeader';
-import {formatDate, pluralize} from '@/lib/format';
-import type {ExpensePeriod} from '@/types/expense';
+import {Badge} from '@/components/ui/Badge';
+import {formatDate} from '@/lib/format';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {ExpensePeriod} from '@/types/expense';
+import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export function PeriodCard({
   period,
@@ -17,13 +18,16 @@ export function PeriodCard({
   onPress: () => void;
   onDelete: () => void;
 }) {
+  const {t} = useTranslation();
   const count = period._count?.expenses;
 
   return (
     <View style={styles.card}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Período ${period.period}`}
+        accessibilityLabel={t('Expenses.periodAccessibility', {
+          period: period.period,
+        })}
         onPress={onPress}
         style={({pressed}) => [styles.main, pressed && styles.pressed]}>
         <View style={styles.icon}>
@@ -32,14 +36,18 @@ export function PeriodCard({
         <View style={styles.text}>
           <Text style={styles.title}>{period.period}</Text>
           <Text style={styles.meta}>
-            Generado el {formatDate(period.generatedAt)}
+            {t('Expenses.generatedOn', {date: formatDate(period.generatedAt)})}
             {count !== undefined
-              ? ` · ${count} ${pluralize(count, 'expensa', 'expensas')}`
+              ? ` · ${t('Expenses.periodCount', {count})}`
               : ''}
           </Text>
         </View>
         <Badge
-          label={period.status === 'OPEN' ? 'Abierto' : 'Cerrado'}
+          label={
+            period.status === 'OPEN'
+              ? t('Expenses.statusOpen')
+              : t('Expenses.statusClosed')
+          }
           intent={period.status === 'OPEN' ? 'success' : 'default'}
         />
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -48,7 +56,9 @@ export function PeriodCard({
         <View style={styles.actions}>
           <IconButton
             icon="trash-outline"
-            label={`Eliminar período ${period.period}`}
+            label={t('Expenses.deletePeriodAccessibility', {
+              period: period.period,
+            })}
             onPress={onDelete}
             tint={colors.danger}
           />

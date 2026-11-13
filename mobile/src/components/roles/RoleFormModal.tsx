@@ -1,12 +1,14 @@
-import {useState} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
+import {ModalSheet} from '@/components/ui/ModalSheet';
+import {validationMessage} from '@/lib/validation';
 import {roleSchema, type RoleFormValues} from '@/schemas/role';
-import type {Permission, Role} from '@/types/role';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {Permission, Role} from '@/types/role';
+import {Ionicons} from '@expo/vector-icons';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export function RoleFormModal({
   visible,
@@ -23,6 +25,7 @@ export function RoleFormModal({
   onClose: () => void;
   onSubmit: (values: RoleFormValues) => void;
 }) {
+  const {t} = useTranslation();
   const [name, setName] = useState(role?.name ?? '');
   const [description, setDescription] = useState(role?.description ?? '');
   const [permissionIds, setPermissionIds] = useState<string[]>(
@@ -48,7 +51,9 @@ export function RoleFormModal({
       const next: Record<string, string> = {};
       for (const issue of result.error.issues) {
         const field = String(issue.path[0] ?? 'form');
-        if (!next[field]) next[field] = issue.message;
+        if (!next[field]) {
+          next[field] = validationMessage(t, issue.message) ?? issue.message;
+        }
       }
       setErrors(next);
       return;
@@ -61,25 +66,27 @@ export function RoleFormModal({
     <ModalSheet
       visible={visible}
       onClose={onClose}
-      title={role ? 'Editar rol' : 'Nuevo rol'}>
+      title={role ? t('Roles.modalEditTitle') : t('Roles.modalNewTitle')}>
       <View style={styles.form}>
         <Input
-          label="Nombre del rol"
+          label={t('Roles.roleName')}
           value={name}
           onChangeText={setName}
-          placeholder="Ej: Administrador Jr"
+          placeholder={t('Roles.roleNamePlaceholder')}
           error={errors.name}
         />
         <Input
-          label="Descripción"
+          label={t('Roles.description')}
           value={description}
           onChangeText={setDescription}
-          placeholder="Describe brevemente el propósito de este rol..."
+          placeholder={t('Roles.descriptionPlaceholder')}
           multiline
           error={errors.description}
         />
         <View style={styles.permissions}>
-          <Text style={styles.permissionsTitle}>Permisos por defecto</Text>
+          <Text style={styles.permissionsTitle}>
+            {t('Roles.defaultPermissions')}
+          </Text>
           {permissions.map(permission => {
             const checked = permissionIds.includes(permission.id);
             return (
@@ -88,7 +95,10 @@ export function RoleFormModal({
                 accessibilityRole="checkbox"
                 accessibilityState={{checked}}
                 onPress={() => togglePermission(permission.id)}
-                style={[styles.permission, checked && styles.permissionChecked]}>
+                style={[
+                  styles.permission,
+                  checked && styles.permissionChecked,
+                ]}>
                 <Ionicons
                   name={checked ? 'checkbox' : 'square-outline'}
                   size={20}
@@ -106,7 +116,7 @@ export function RoleFormModal({
           })}
         </View>
         <Button
-          title={role ? 'Guardar cambios' : 'Crear rol'}
+          title={role ? t('Roles.saveChanges') : t('Roles.createRoleButton')}
           loading={pending}
           fullWidth
           onPress={submit}

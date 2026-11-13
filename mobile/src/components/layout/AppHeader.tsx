@@ -1,9 +1,10 @@
-import type {ReactNode} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
 import {NotificationBell} from '@/components/layout/NotificationBell';
 import {colors, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import type {ReactNode} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export function AppHeader({
   title,
@@ -19,6 +20,7 @@ export function AppHeader({
   right?: ReactNode;
 }) {
   const router = useRouter();
+  const {t} = useTranslation();
 
   return (
     <View style={styles.header}>
@@ -26,7 +28,7 @@ export function AppHeader({
         {onBack ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Volver"
+            accessibilityLabel={t('Common.back')}
             hitSlop={8}
             onPress={onBack}
             style={styles.backButton}>

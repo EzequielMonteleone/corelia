@@ -2,11 +2,11 @@ import {z} from 'zod';
 
 export const userCreateSchema = z
   .object({
-    email: z.email('Email inválido'),
-    firstName: z.string().min(2, 'Mínimo 2 caracteres'),
-    lastName: z.string().min(2, 'Mínimo 2 caracteres'),
+    email: z.email('Validation.emailInvalid'),
+    firstName: z.string().min(2, 'Validation.min2'),
+    lastName: z.string().min(2, 'Validation.min2'),
     phone: z.string().optional(),
-    password: z.string().min(8, 'Mínimo 8 caracteres'),
+    password: z.string().min(8, 'Validation.min8'),
     globalRole: z.enum(['SUPERADMIN']).optional(),
     roleName: z.enum(['Admin', 'Owner', 'Roomer']).optional(),
     buildingId: z.string().optional(),
@@ -18,7 +18,7 @@ export const userCreateSchema = z
         ctx.addIssue({
           path: ['globalRole'],
           code: 'custom',
-          message: 'Un superadmin global no debe tener edificio ni roleName.',
+          message: 'Validation.superadminNoBuilding',
         });
       }
       return;
@@ -28,27 +28,27 @@ export const userCreateSchema = z
       ctx.addIssue({
         path: ['roleName'],
         code: 'custom',
-        message: 'El rol es obligatorio.',
+        message: 'Validation.roleRequired',
       });
     }
     if (!value.buildingId) {
       ctx.addIssue({
         path: ['buildingId'],
         code: 'custom',
-        message: 'El edificio es obligatorio.',
+        message: 'Validation.buildingRequired',
       });
     }
   });
 
 export const userEditSchema = z.object({
-  email: z.email('Email inválido'),
-  firstName: z.string().min(2, 'Mínimo 2 caracteres'),
-  lastName: z.string().min(2, 'Mínimo 2 caracteres'),
+  email: z.email('Validation.emailInvalid'),
+  firstName: z.string().min(2, 'Validation.min2'),
+  lastName: z.string().min(2, 'Validation.min2'),
   phone: z.string().optional(),
   password: z
     .string()
     .refine(value => value.length === 0 || value.length >= 8, {
-      message: 'Mínimo 8 caracteres',
+      message: 'Validation.min8',
     }),
   currentPassword: z.string().optional(),
   isActive: z.boolean().optional(),
@@ -61,14 +61,14 @@ export type UserCreateFormValues = z.infer<typeof userCreateSchema>;
 export type UserEditFormValues = z.infer<typeof userEditSchema>;
 
 export const profileSchema = z.object({
-  email: z.email('Email inválido'),
-  firstName: z.string().min(2, 'Mínimo 2 caracteres'),
-  lastName: z.string().min(2, 'Mínimo 2 caracteres'),
+  email: z.email('Validation.emailInvalid'),
+  firstName: z.string().min(2, 'Validation.min2'),
+  lastName: z.string().min(2, 'Validation.min2'),
   phone: z.string().optional(),
   password: z
     .string()
     .refine(value => value.length === 0 || value.length >= 8, {
-      message: 'Mínimo 8 caracteres',
+      message: 'Validation.min8',
     }),
   currentPassword: z.string().optional(),
 });

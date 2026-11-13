@@ -1,14 +1,15 @@
-import {StyleSheet, Text, View} from 'react-native';
-import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Button} from '@/components/ui/Button';
+import {ModalSheet} from '@/components/ui/ModalSheet';
 import {colors, spacing, typography} from '@/theme';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
 export function ConfirmDialog({
   visible,
   title,
   description,
-  confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar',
+  confirmLabel,
+  cancelLabel,
   pending = false,
   destructive = true,
   onCancel,
@@ -24,20 +25,22 @@ export function ConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const {t} = useTranslation();
+
   return (
     <ModalSheet visible={visible} onClose={onCancel} title={title}>
       <View style={styles.body}>
         <Text style={styles.description}>{description}</Text>
         <View style={styles.actions}>
           <Button
-            title={cancelLabel}
+            title={cancelLabel ?? t('Common.cancel')}
             variant="ghost"
             onPress={onCancel}
             disabled={pending}
             style={styles.action}
           />
           <Button
-            title={confirmLabel}
+            title={confirmLabel ?? t('Common.confirm')}
             variant={destructive ? 'destructive' : 'primary'}
             onPress={onConfirm}
             loading={pending}

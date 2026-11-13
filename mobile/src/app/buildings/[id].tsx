@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import {Pressable, StyleSheet, Switch, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
@@ -35,6 +36,7 @@ import {colors, radius, spacing, typography} from '@/theme';
 
 export default function BuildingDetailScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const {id} = useLocalSearchParams<{id: string}>();
   const buildingId = id ?? null;
 
@@ -92,7 +94,7 @@ export default function BuildingDetailScreen() {
         },
         {
           onSuccess: () => {
-            toast.success('Unidad actualizada correctamente.');
+            toast.success(t('Buildings.unitUpdateSuccess'));
             setUnitFormOpen(false);
             setEditingUnit(null);
           },
@@ -105,7 +107,7 @@ export default function BuildingDetailScreen() {
       {buildingId, ...values},
       {
         onSuccess: () => {
-          toast.success('Unidad agregada correctamente.');
+          toast.success(t('Buildings.unitCreateSuccess'));
           setUnitFormOpen(false);
         },
         onError: error => toast.error(errorMessage(error)),
@@ -119,7 +121,7 @@ export default function BuildingDetailScreen() {
       {id: unitToDelete.id, buildingId},
       {
         onSuccess: () => {
-          toast.success('Unidad eliminada correctamente.');
+          toast.success(t('Buildings.unitDeleteSuccess'));
           setUnitToDelete(null);
         },
         onError: error => toast.error(errorMessage(error)),
@@ -136,7 +138,7 @@ export default function BuildingDetailScreen() {
       {buildingId, ...input},
       {
         onSuccess: () => {
-          toast.success('Amenity agregado correctamente.');
+          toast.success(t('Buildings.amenityCreateSuccess'));
           setAmenityCreateOpen(false);
         },
         onError: error => toast.error(errorMessage(error)),
@@ -158,7 +160,7 @@ export default function BuildingDetailScreen() {
       {id: settingsItem.id, buildingId, ...input},
       {
         onSuccess: () => {
-          toast.success('Configuración guardada.');
+          toast.success(t('Buildings.amenitySettingsSaved'));
           setSettingsItem(null);
         },
         onError: error => toast.error(errorMessage(error)),
@@ -173,7 +175,11 @@ export default function BuildingDetailScreen() {
       {
         onSuccess: () => {
           toast.success(
-            item.isEnabled ? 'Amenity deshabilitado.' : 'Amenity habilitado.',
+            t(
+              item.isEnabled
+                ? 'Buildings.amenityDisabled'
+                : 'Buildings.amenityEnabled',
+            ),
           );
         },
         onError: error => toast.error(errorMessage(error)),
@@ -187,7 +193,7 @@ export default function BuildingDetailScreen() {
       {id: amenityToDelete.id, buildingId},
       {
         onSuccess: () => {
-          toast.success('Amenity eliminado correctamente.');
+          toast.success(t('Buildings.amenityDeleteSuccess'));
           setAmenityToDelete(null);
         },
         onError: error => toast.error(errorMessage(error)),
@@ -205,8 +211,12 @@ export default function BuildingDetailScreen() {
     return (
       <RequireAccess path="/buildings">
         <Screen>
-          <AppHeader title="Edificio" showBell={false} onBack={() => router.back()} />
-          <LoadingState message="Cargando edificio..." />
+          <AppHeader
+            title={t('Buildings.detailTitle')}
+            showBell={false}
+            onBack={() => router.back()}
+          />
+          <LoadingState message={t('Buildings.loadingDetail')} />
         </Screen>
       </RequireAccess>
     );
@@ -216,9 +226,13 @@ export default function BuildingDetailScreen() {
     return (
       <RequireAccess path="/buildings">
         <Screen>
-          <AppHeader title="Edificio" showBell={false} onBack={() => router.back()} />
+          <AppHeader
+            title={t('Buildings.detailTitle')}
+            showBell={false}
+            onBack={() => router.back()}
+          />
           <ErrorState
-            message="No pudimos cargar el edificio."
+            message={t('Buildings.loadDetailError')}
             onRetry={() => buildingQuery.refetch()}
           />
         </Screen>
@@ -252,37 +266,47 @@ export default function BuildingDetailScreen() {
                 size={18}
                 color={colors.primary}
               />
-              <Text style={styles.infoText}>CUIT {building.taxId}</Text>
+              <Text style={styles.infoText}>
+                {t('Buildings.taxIdLine', {taxId: building.taxId})}
+              </Text>
             </View>
           ) : null}
           <View style={styles.infoFooter}>
             <Badge
-              label={building.active ? 'Activo' : 'Inactivo'}
+              label={
+                building.active ? t('Common.active') : t('Common.inactive')
+              }
               intent={building.active ? 'success' : 'danger'}
             />
             <Badge
-              label={canManage ? 'Administrador' : 'Solo lectura'}
+              label={canManage ? t('Users.admin') : t('Buildings.readOnly')}
               intent={canManage ? 'primary' : 'default'}
             />
-            <Badge label={`${units.length} unidades`} />
+            <Badge
+              label={t('Buildings.unitsCount', {count: units.length})}
+            />
           </View>
         </Card>
 
         <View style={styles.sections}>
           <Section
-            title="Unidades"
+            title={t('Buildings.unitsTitle')}
             action={
               canManage ? (
-                <Button title="Agregar" size="sm" onPress={openCreateUnit} />
+                <Button
+                  title={t('Common.add')}
+                  size="sm"
+                  onPress={openCreateUnit}
+                />
               ) : undefined
             }>
             {unitsQuery.isLoading ? (
-              <LoadingState message="Cargando unidades..." />
+              <LoadingState message={t('Buildings.loadingUnits')} />
             ) : units.length === 0 ? (
               <EmptyState
                 icon="home-outline"
-                title="Sin unidades"
-                description="Agregá las unidades para poder cargar expensas y reservas."
+                title={t('Buildings.noUnits')}
+                description={t('Buildings.unitsEmptyMobile')}
               />
             ) : (
               <View style={styles.list}>
@@ -294,15 +318,20 @@ export default function BuildingDetailScreen() {
                     <View style={styles.unitText}>
                       <Text style={styles.unitName}>{unit.name}</Text>
                       <Text style={styles.unitMeta}>
-                        Piso {unit.floor || '-'} · Coeficiente{' '}
-                        {unit.coefficient ?? '-'}
+                        {t('Buildings.unitMeta', {
+                          floor: unit.floor || '-',
+                          coefficient: unit.coefficient ?? '-',
+                        })}
                       </Text>
                     </View>
                     {canManage ? (
                       <>
                         <Pressable
                           accessibilityRole="button"
-                          accessibilityLabel={`Editar unidad ${unit.name}`}
+                          accessibilityLabel={t(
+                            'Buildings.editUnitAccessibility',
+                            {name: unit.name},
+                          )}
                           hitSlop={6}
                           onPress={() => openEditUnit(unit)}
                           style={styles.action}>
@@ -314,7 +343,10 @@ export default function BuildingDetailScreen() {
                         </Pressable>
                         <Pressable
                           accessibilityRole="button"
-                          accessibilityLabel={`Eliminar unidad ${unit.name}`}
+                          accessibilityLabel={t(
+                            'Buildings.deleteUnitAccessibility',
+                            {name: unit.name},
+                          )}
                           hitSlop={6}
                           onPress={() => setUnitToDelete(unit)}
                           style={styles.action}>
@@ -333,18 +365,18 @@ export default function BuildingDetailScreen() {
           </Section>
 
           <Section
-            title="Amenities"
+            title={t('Buildings.amenitiesTitle')}
             action={
               <View style={styles.sectionActions}>
                 <Button
-                  title="Reservar"
+                  title={t('Buildings.reserve')}
                   size="sm"
                   variant="secondary"
                   onPress={() => router.push('/amenities')}
                 />
                 {canManage ? (
                   <Button
-                    title="Agregar"
+                    title={t('Common.add')}
                     size="sm"
                     onPress={() => setAmenityCreateOpen(true)}
                   />
@@ -352,12 +384,12 @@ export default function BuildingDetailScreen() {
               </View>
             }>
             {amenitiesQuery.isLoading ? (
-              <LoadingState message="Cargando amenities..." />
+              <LoadingState message={t('Buildings.loadingAmenities')} />
             ) : amenities.length === 0 ? (
               <EmptyState
                 icon="sparkles-outline"
-                title="Sin amenities"
-                description="Agregá espacios comunes para que los vecinos puedan reservarlos."
+                title={t('Buildings.noAmenities')}
+                description={t('Buildings.amenitiesEmptyMobile')}
               />
             ) : (
               <View style={styles.list}>
@@ -376,13 +408,21 @@ export default function BuildingDetailScreen() {
                           {item.amenity.name}
                         </Text>
                         <Text style={styles.amenityMeta}>
-                          {item.amenity.isSystem ? 'Catálogo' : 'Personalizado'} ·{' '}
-                          {item.slotMinutes} min · {item.openTime}–{item.closeTime}
+                          {t(
+                            item.amenity.isSystem
+                              ? 'Buildings.amenityTypeCatalog'
+                              : 'Buildings.amenityTypeCustom',
+                          )}{' '}
+                          · {item.slotMinutes} min · {item.openTime}–
+                          {item.closeTime}
                         </Text>
                       </View>
                       {canManage ? (
                         <Switch
-                          accessibilityLabel={`Habilitar ${item.amenity.name}`}
+                          accessibilityLabel={t(
+                            'Buildings.toggleAmenityAccessibility',
+                            {name: item.amenity.name},
+                          )}
                           value={item.isEnabled}
                           onValueChange={() => toggleAmenity(item)}
                           trackColor={{
@@ -393,7 +433,11 @@ export default function BuildingDetailScreen() {
                         />
                       ) : (
                         <Badge
-                          label={item.isEnabled ? 'Activo' : 'Inactivo'}
+                          label={
+                            item.isEnabled
+                              ? t('Common.active')
+                              : t('Common.inactive')
+                          }
                           intent={item.isEnabled ? 'success' : 'danger'}
                         />
                       )}
@@ -404,13 +448,13 @@ export default function BuildingDetailScreen() {
                     {canManage ? (
                       <View style={styles.amenityActions}>
                         <Button
-                          title="Configuración"
+                          title={t('Buildings.settings')}
                           size="sm"
                           variant="outline"
                           onPress={() => setSettingsItem(item)}
                         />
                         <Button
-                          title="Eliminar"
+                          title={t('Common.delete')}
                           size="sm"
                           variant="destructive"
                           onPress={() => setAmenityToDelete(item)}
@@ -460,9 +504,11 @@ export default function BuildingDetailScreen() {
 
         <ConfirmDialog
           visible={!!unitToDelete}
-          title="Eliminar unidad"
-          description={`¿Seguro que querés eliminar la unidad ${unitToDelete?.name ?? ''}?`}
-          confirmLabel="Eliminar"
+          title={t('Buildings.deleteUnitTitle')}
+          description={t('Buildings.deleteUnitConfirm', {
+            name: unitToDelete?.name ?? '',
+          })}
+          confirmLabel={t('Common.delete')}
           pending={deleteUnit.isPending}
           onCancel={() => setUnitToDelete(null)}
           onConfirm={confirmDeleteUnit}
@@ -470,9 +516,11 @@ export default function BuildingDetailScreen() {
 
         <ConfirmDialog
           visible={!!amenityToDelete}
-          title="Eliminar amenity"
-          description={`¿Seguro que querés eliminar ${amenityToDelete?.amenity.name ?? 'este amenity'}? Si tiene reservas, no se podrá eliminar.`}
-          confirmLabel="Eliminar"
+          title={t('Buildings.deleteAmenityTitle')}
+          description={t('Buildings.deleteAmenityConfirmNamed', {
+            name: amenityToDelete?.amenity.name ?? '',
+          })}
+          confirmLabel={t('Common.delete')}
           pending={deleteAmenity.isPending}
           onCancel={() => setAmenityToDelete(null)}
           onConfirm={confirmDeleteAmenity}

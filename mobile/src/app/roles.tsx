@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
@@ -27,6 +28,7 @@ import {colors, radius, spacing, typography} from '@/theme';
 
 export default function RolesScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const rolesQuery = useRoles();
   const permissionsQuery = usePermissions();
   const createRole = useCreateRole();
@@ -56,7 +58,7 @@ export default function RolesScreen() {
         {id: editing.id, ...values},
         {
           onSuccess: () => {
-            toast.success('Rol actualizado correctamente.');
+            toast.success(t('Roles.updateSuccess'));
             setFormOpen(false);
             setEditing(null);
           },
@@ -67,7 +69,7 @@ export default function RolesScreen() {
     }
     createRole.mutate(values, {
       onSuccess: () => {
-        toast.success('Rol creado correctamente.');
+        toast.success(t('Roles.createSuccess'));
         setFormOpen(false);
       },
       onError: error => toast.error(errorMessage(error)),
@@ -78,7 +80,7 @@ export default function RolesScreen() {
     if (!roleToDelete) return;
     deleteRole.mutate(roleToDelete.id, {
       onSuccess: () => {
-        toast.success('Rol eliminado correctamente.');
+        toast.success(t('Roles.deleteSuccess'));
         setRoleToDelete(null);
       },
       onError: error => toast.error(errorMessage(error)),
@@ -94,32 +96,32 @@ export default function RolesScreen() {
           permissionsQuery.refetch();
         }}>
         <AppHeader
-          title="Roles y permisos"
-          subtitle="Niveles de acceso y permisos del sistema."
+          title={t('Roles.title')}
+          subtitle={t('Roles.subtitle')}
           showBell={false}
           onBack={() => router.back()}
           right={
-            <Button title="Nuevo" size="sm" onPress={openCreate} />
+            <Button title={t('Roles.new')} size="sm" onPress={openCreate} />
           }
         />
 
         {rolesQuery.isLoading ? (
-          <LoadingState message="Cargando roles..." />
+          <LoadingState message={t('Roles.loading')} />
         ) : rolesQuery.isError ? (
           <ErrorState
-            message="No pudimos cargar los roles."
+            message={t('Roles.loadError')}
             onRetry={() => rolesQuery.refetch()}
           />
         ) : roles.length === 0 ? (
           <EmptyState
             icon="key-outline"
-            title="Sin roles"
-            description="Creá el primer rol para asignar permisos."
-            actionLabel="Crear rol"
+            title={t('Roles.emptyTitle')}
+            description={t('Roles.emptyDescription')}
+            actionLabel={t('Roles.createRoleButtonMobile')}
             onAction={openCreate}
           />
         ) : (
-          <Section title={`Roles (${roles.length})`}>
+          <Section title={t('Roles.listTitle', {count: roles.length})}>
             <View style={styles.list}>
               {roles.map(role => (
                 <Card key={role.id} style={styles.card}>
@@ -130,13 +132,15 @@ export default function RolesScreen() {
                     <View style={styles.text}>
                       <Text style={styles.name}>{role.name}</Text>
                       <Text style={styles.description}>
-                        {role.description || 'Sin descripción'}
+                        {role.description || t('Common.noDescription')}
                       </Text>
                     </View>
                     <View style={styles.actions}>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`Editar rol ${role.name}`}
+                        accessibilityLabel={t('Roles.editRoleAccessibility', {
+                          name: role.name,
+                        })}
                         hitSlop={6}
                         onPress={() => openEdit(role)}
                         style={styles.action}>
@@ -148,7 +152,9 @@ export default function RolesScreen() {
                       </Pressable>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`Eliminar rol ${role.name}`}
+                        accessibilityLabel={t('Roles.deleteRoleAccessibility', {
+                          name: role.name,
+                        })}
                         hitSlop={6}
                         onPress={() => setRoleToDelete(role)}
                         style={styles.action}>
@@ -162,7 +168,7 @@ export default function RolesScreen() {
                   </View>
                   <View style={styles.permissions}>
                     {role.rolePermissions.length === 0 ? (
-                      <Text style={styles.muted}>Sin permisos asignados.</Text>
+                      <Text style={styles.muted}>{t('Roles.noPermissions')}</Text>
                     ) : (
                       role.rolePermissions.slice(0, 6).map(item => (
                         <Badge
@@ -201,9 +207,11 @@ export default function RolesScreen() {
 
         <ConfirmDialog
           visible={!!roleToDelete}
-          title="Eliminar rol"
-          description={`¿Seguro que querés eliminar el rol ${roleToDelete?.name ?? ''}? Los usuarios que lo tengan asignado perderán esos permisos.`}
-          confirmLabel="Eliminar"
+          title={t('Roles.deleteTitle')}
+          description={t('Roles.deleteConfirmNamed', {
+            name: roleToDelete?.name ?? '',
+          })}
+          confirmLabel={t('Common.delete')}
           pending={deleteRole.isPending}
           onCancel={() => setRoleToDelete(null)}
           onConfirm={confirmDelete}

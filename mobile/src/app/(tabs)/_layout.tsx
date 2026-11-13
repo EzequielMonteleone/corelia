@@ -1,9 +1,10 @@
+import {canAccessPath} from '@/lib/navAccess';
+import {useAuthStore} from '@/store/authStore';
+import {colors, typography} from '@/theme';
 import {Ionicons} from '@expo/vector-icons';
 import {Tabs} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import type {ColorValue} from 'react-native';
-import {useAuthStore} from '@/store/authStore';
-import {canAccessPath} from '@/lib/navAccess';
-import {colors, typography} from '@/theme';
 
 function tabIcon(
   name: keyof typeof Ionicons.glyphMap,
@@ -27,6 +28,7 @@ function tabIcon(
 }
 
 export default function TabsLayout() {
+  const {t} = useTranslation();
   const user = useAuthStore(state => state.user);
   const canSeeBuildings = canAccessPath(user, '/buildings');
 
@@ -50,21 +52,21 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Inicio',
+          title: t('Tabs.home'),
           tabBarIcon: tabIcon('home-outline', 'home'),
         }}
       />
       <Tabs.Screen
         name="expenses"
         options={{
-          title: 'Expensas',
+          title: t('Tabs.expenses'),
           tabBarIcon: tabIcon('receipt-outline', 'receipt'),
         }}
       />
       <Tabs.Screen
         name="buildings"
         options={{
-          title: 'Edificios',
+          title: t('Tabs.buildings'),
           href: canSeeBuildings ? undefined : null,
           tabBarIcon: tabIcon('business-outline', 'business'),
         }}
@@ -72,7 +74,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="menu"
         options={{
-          title: 'Menú',
+          title: t('Tabs.menu'),
           tabBarIcon: tabIcon('grid-outline', 'grid'),
         }}
       />

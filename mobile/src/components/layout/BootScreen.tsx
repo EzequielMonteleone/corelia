@@ -1,12 +1,15 @@
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
 import {colors, spacing, typography} from '@/theme';
 
 export function BootScreen() {
+  const {t} = useTranslation();
+
   return (
     <View style={styles.root}>
-      <Text style={styles.logo}>Corelia</Text>
+      <Text style={styles.logo}>{t('Common.title')}</Text>
       <ActivityIndicator color={colors.primary} />
-      <Text style={styles.text}>Cargando tu cuenta...</Text>
+      <Text style={styles.text}>{t('Common.loadingAccount')}</Text>
     </View>
   );
 }

@@ -1,9 +1,4 @@
-import {
-  formatCurrency,
-  formatLongDate,
-  initials,
-  pluralize,
-} from '@/lib/format';
+import {formatCurrency, formatLongDate, initials} from '@/lib/format';
 
 describe('format', () => {
   it('formats currency with two decimals', () => {
@@ -17,10 +12,7 @@ describe('format', () => {
     expect(initials()).toBe('?');
   });
 
-  it('pluralizes based on the count', () => {
-    expect(pluralize(1, 'unidad', 'unidades')).toBe('unidad');
-    expect(pluralize(2, 'unidad', 'unidades')).toBe('unidades');
-  });
+  
 
   it('formats a long date in the requested timezone', () => {
     const value = new Date('2026-11-12T15:00:00.000Z');

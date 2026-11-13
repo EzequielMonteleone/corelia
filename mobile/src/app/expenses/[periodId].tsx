@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useLocalSearchParams, useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
@@ -32,11 +33,17 @@ import {colors, radius, spacing, typography} from '@/theme';
 
 const EXPENSE_STATUS: Record<
   ExpenseStatus,
-  {label: string; intent: BadgeIntent}
+  {
+    labelKey:
+      | 'Expenses.statusUnpaidExpense'
+      | 'Expenses.statusPendingPayment'
+      | 'Expenses.statusPaidExpense';
+    intent: BadgeIntent;
+  }
 > = {
-  UNPAID: {label: 'Impaga', intent: 'danger'},
-  PENDING: {label: 'Pago pendiente', intent: 'warning'},
-  PAID: {label: 'Paga', intent: 'success'},
+  UNPAID: {labelKey: 'Expenses.statusUnpaidExpense', intent: 'danger'},
+  PENDING: {labelKey: 'Expenses.statusPendingPayment', intent: 'warning'},
+  PAID: {labelKey: 'Expenses.statusPaidExpense', intent: 'success'},
 };
 
 function completedPayments(expense: Expense) {
@@ -54,6 +61,7 @@ function remainingAmount(expense: Expense) {
 
 export default function ExpensePeriodScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const {periodId} = useLocalSearchParams<{periodId: string}>();
   const id = periodId ?? null;
 
@@ -95,19 +103,19 @@ export default function ExpensePeriodScreen() {
   const addExpense = () => {
     if (!id) return;
     if (!selectedUnitId) {
-      toast.error('Seleccioná una unidad.');
+      toast.error(t('Expenses.selectUnitError'));
       return;
     }
     const amount = Number(newAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error('Ingresá un monto válido.');
+      toast.error(t('Expenses.invalidAmount'));
       return;
     }
     createExpense.mutate(
       {periodId: id, unitId: selectedUnitId, amount},
       {
         onSuccess: () => {
-          toast.success('Expensa agregada correctamente.');
+          toast.success(t('Expenses.addExpenseSuccess'));
           setSelectedUnitId('');
           setNewAmount('');
         },
@@ -125,14 +133,14 @@ export default function ExpensePeriodScreen() {
     if (!id) return;
     const amount = Number(editAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error('Ingresá un monto válido.');
+      toast.error(t('Expenses.invalidAmount'));
       return;
     }
     updateExpense.mutate(
       {expenseId: expense.id, periodId: id, amount},
       {
         onSuccess: () => {
-          toast.success('Expensa actualizada correctamente.');
+          toast.success(t('Expenses.editExpenseSuccess'));
           setEditingExpenseId(null);
           setEditAmount('');
         },
@@ -147,7 +155,7 @@ export default function ExpensePeriodScreen() {
       {expenseId: expenseToDelete.id, periodId: id},
       {
         onSuccess: () => {
-          toast.success('Expensa eliminada correctamente.');
+          toast.success(t('Expenses.deleteExpenseSuccess'));
           setExpenseToDelete(null);
         },
         onError: error => toast.error(errorMessage(error)),
@@ -163,9 +171,11 @@ export default function ExpensePeriodScreen() {
       {
         onSuccess: () =>
           toast.success(
-            next === 'OPEN'
-              ? 'Período reabierto correctamente.'
-              : 'Período cerrado correctamente.',
+            t(
+              next === 'OPEN'
+                ? 'Expenses.periodReopened'
+                : 'Expenses.periodClosed',
+            ),
           ),
         onError: error => toast.error(errorMessage(error)),
       },
@@ -177,7 +187,7 @@ export default function ExpensePeriodScreen() {
     setExporting(format);
     try {
       await downloadExpensePeriodExport(id, format);
-      toast.success('Exportación generada correctamente.');
+      toast.success(t('Expenses.exportSuccess'));
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -190,11 +200,11 @@ export default function ExpensePeriodScreen() {
       <RequireAccess path="/expenses">
         <Screen>
           <AppHeader
-            title="Expensas"
+            title={t('Expenses.title')}
             showBell={false}
             onBack={() => router.back()}
           />
-          <LoadingState message="Cargando período..." />
+          <LoadingState message={t('Expenses.loadingPeriod')} />
         </Screen>
       </RequireAccess>
     );
@@ -205,12 +215,12 @@ export default function ExpensePeriodScreen() {
       <RequireAccess path="/expenses">
         <Screen>
           <AppHeader
-            title="Expensas"
+            title={t('Expenses.title')}
             showBell={false}
             onBack={() => router.back()}
           />
           <ErrorState
-            message="No pudimos cargar el período de expensas."
+            message={t('Expenses.loadErrorPeriod')}
             onRetry={() => periodQuery.refetch()}
           />
         </Screen>
@@ -238,31 +248,37 @@ export default function ExpensePeriodScreen() {
             <View style={styles.headerText}>
               <Text style={styles.headerPeriod}>{period.period}</Text>
               <Text style={styles.headerMeta}>
-                Generado el {formatDate(period.generatedAt)}
+                {t('Expenses.generatedOn', {
+                  date: formatDate(period.generatedAt),
+                })}
               </Text>
             </View>
             <Badge
-              label={isOpen ? 'Abierto' : 'Cerrado'}
+              label={
+                isOpen
+                  ? t('Expenses.statusOpen')
+                  : t('Expenses.statusClosed')
+              }
               intent={isOpen ? 'success' : 'default'}
             />
           </View>
           <View style={styles.stats}>
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statLabel}>{t('Expenses.total')}</Text>
               <Text style={styles.statValue}>
                 {formatCurrency(totalInvoiced)}
               </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Cobrado</Text>
+              <Text style={styles.statLabel}>{t('Expenses.paid')}</Text>
               <Text style={[styles.statValue, {color: colors.success}]}>
                 {formatCurrency(totalPaid)}
               </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Saldo</Text>
+              <Text style={styles.statLabel}>{t('Expenses.balance')}</Text>
               <Text
                 style={[
                   styles.statValue,
@@ -278,11 +294,17 @@ export default function ExpensePeriodScreen() {
             />
           </View>
           <Text style={styles.progressLabel}>
-            {collectionRate.toFixed(1)}% de cobranza
+            {t('Expenses.collectionProgress', {
+              rate: collectionRate.toFixed(1),
+            })}
           </Text>
           {canManage ? (
             <Button
-              title={isOpen ? 'Cerrar período' : 'Reabrir período'}
+              title={
+                isOpen
+                  ? t('Expenses.closePeriod')
+                  : t('Expenses.reopenPeriod')
+              }
               variant={isOpen ? 'secondary' : 'primary'}
               size="sm"
               loading={updateStatus.isPending}
@@ -293,7 +315,7 @@ export default function ExpensePeriodScreen() {
 
         <View style={styles.exportRow}>
           <Button
-            title="Exportar CSV"
+            title={t('Expenses.exportCsv')}
             icon={<Ionicons name="download-outline" size={17} color={colors.text} />}
             variant="outline"
             size="sm"
@@ -303,7 +325,7 @@ export default function ExpensePeriodScreen() {
             style={styles.exportButton}
           />
           <Button
-            title="Exportar PDF"
+            title={t('Expenses.exportPdf')}
             icon={<Ionicons name="download-outline" size={17} color={colors.text} />}
             variant="outline"
             size="sm"
@@ -316,35 +338,38 @@ export default function ExpensePeriodScreen() {
 
         <View style={styles.sections}>
           {canManage && isOpen ? (
-            <Section title="Agregar expensa">
+            <Section title={t('Expenses.addExpenseTitle')}>
               <Card style={styles.addCard}>
                 {availableUnits.length === 0 ? (
                   <Text style={styles.muted}>
-                    Todas las unidades ya tienen una expensa en este período.
+                    {t('Expenses.allUnitsHaveExpense')}
                   </Text>
                 ) : (
                   <>
                     <Select
-                      label="Unidad"
+                      label={t('Expenses.unit')}
                       value={selectedUnitId}
                       onChange={setSelectedUnitId}
-                      placeholder="Seleccionar unidad"
+                      placeholder={t('Expenses.selectUnit')}
                       options={availableUnits.map(unit => ({
                         label: unit.floor
-                          ? `${unit.name} · Piso ${unit.floor}`
+                          ? t('Expenses.unitWithFloor', {
+                              unit: unit.name,
+                              floor: unit.floor,
+                            })
                           : unit.name,
                         value: unit.id,
                       }))}
                     />
                     <Input
-                      label="Monto"
+                      label={t('Expenses.amount')}
                       value={newAmount}
                       onChangeText={setNewAmount}
                       keyboardType="decimal-pad"
-                      placeholder="0.00"
+                      placeholder={t('Expenses.amountPlaceholder')}
                     />
                     <Button
-                      title="Agregar expensa"
+                      title={t('Expenses.addExpenseTitle')}
                       loading={createExpense.isPending}
                       disabled={!selectedUnitId || !newAmount.trim()}
                       fullWidth
@@ -356,12 +381,13 @@ export default function ExpensePeriodScreen() {
             </Section>
           ) : null}
 
-          <Section title={`Expensas (${expenses.length})`}>
+          <Section
+            title={t('Expenses.expensesCount', {count: expenses.length})}>
             {expenses.length === 0 ? (
               <EmptyState
                 icon="receipt-outline"
-                title="Sin expensas"
-                description="Todavía no se cargaron expensas en este período."
+                title={t('Expenses.noExpensesTitle')}
+                description={t('Expenses.noExpensesDescription')}
               />
             ) : (
               <View style={styles.list}>
@@ -388,12 +414,17 @@ export default function ExpensePeriodScreen() {
                             </Text>
                             <Text style={styles.expenseFloor}>
                               {expense.unit.floor
-                                ? `Piso ${expense.unit.floor}`
-                                : 'Sin piso'}
+                                ? t('Expenses.floorValue', {
+                                    floor: expense.unit.floor,
+                                  })
+                                : t('Expenses.noFloor')}
                             </Text>
                           </View>
                         </View>
-                        <Badge label={status.label} intent={status.intent} />
+                        <Badge
+                          label={t(status.labelKey)}
+                          intent={status.intent}
+                        />
                       </View>
 
                       {editing ? (
@@ -405,13 +436,13 @@ export default function ExpensePeriodScreen() {
                             containerStyle={styles.editInput}
                           />
                           <Button
-                            title="Guardar"
+                            title={t('Common.save')}
                             size="sm"
                             loading={updateExpense.isPending}
                             onPress={() => saveEdit(expense)}
                           />
                           <Button
-                            title="Cancelar"
+                            title={t('Common.cancel')}
                             size="sm"
                             variant="ghost"
                             onPress={() => setEditingExpenseId(null)}
@@ -420,14 +451,17 @@ export default function ExpensePeriodScreen() {
                       ) : (
                         <>
                           <View style={styles.amounts}>
-                            <Amount label="Monto" value={formatCurrency(expense.amount)} />
                             <Amount
-                              label="Pagado"
+                              label={t('Expenses.amount')}
+                              value={formatCurrency(expense.amount)}
+                            />
+                            <Amount
+                              label={t('Expenses.paid')}
                               value={formatCurrency(paid)}
                               tint={colors.success}
                             />
                             <Amount
-                              label="Saldo"
+                              label={t('Expenses.balance')}
                               value={formatCurrency(remaining)}
                               tint={
                                 remaining > 0 ? colors.warning : colors.success
@@ -436,7 +470,11 @@ export default function ExpensePeriodScreen() {
                           </View>
                           <View style={styles.expenseActions}>
                             <Button
-                              title={canManage ? 'Pagos' : 'Notificar pago'}
+                              title={
+                                canManage
+                                  ? t('Expenses.paymentStatusTitle')
+                                  : t('Expenses.notifyPayment')
+                              }
                               size="sm"
                               variant="secondary"
                               onPress={() => setPaymentExpense(expense)}
@@ -444,13 +482,13 @@ export default function ExpensePeriodScreen() {
                             {canManage && isOpen ? (
                               <>
                                 <Button
-                                  title="Editar"
+                                  title={t('Expenses.edit')}
                                   size="sm"
                                   variant="outline"
                                   onPress={() => startEdit(expense)}
                                 />
                                 <Button
-                                  title="Eliminar"
+                                  title={t('Common.delete')}
                                   size="sm"
                                   variant="destructive"
                                   onPress={() => setExpenseToDelete(expense)}
@@ -468,11 +506,11 @@ export default function ExpensePeriodScreen() {
           </Section>
 
           {canManage ? (
-            <Section title="Actividad del período">
+            <Section title={t('Expenses.activityTitle')}>
               {auditQuery.isLoading ? (
-                <LoadingState message="Cargando actividad..." />
+                <LoadingState message={t('Expenses.loadingActivity')} />
               ) : (auditQuery.data ?? []).length === 0 ? (
-                <Text style={styles.muted}>Todavía no hay movimientos.</Text>
+                <Text style={styles.muted}>{t('Expenses.activityEmpty')}</Text>
               ) : (
                 <View style={styles.list}>
                   {(auditQuery.data ?? []).slice(0, 12).map(log => (
@@ -508,9 +546,11 @@ export default function ExpensePeriodScreen() {
 
         <ConfirmDialog
           visible={!!expenseToDelete}
-          title="Eliminar expensa"
-          description={`¿Seguro que querés eliminar la expensa de ${expenseToDelete?.unit.name ?? 'esta unidad'}?`}
-          confirmLabel="Eliminar"
+          title={t('Expenses.deleteExpenseTitle')}
+          description={t('Expenses.deleteExpenseConfirmNamed', {
+            unit: expenseToDelete?.unit.name ?? '',
+          })}
+          confirmLabel={t('Common.delete')}
           pending={deleteExpense.isPending}
           onCancel={() => setExpenseToDelete(null)}
           onConfirm={confirmDeleteExpense}

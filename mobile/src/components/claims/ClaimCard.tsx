@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
 import {Badge, type BadgeIntent} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
@@ -12,11 +13,11 @@ import {
 } from '@/types/claims';
 import {colors, radius, spacing, typography} from '@/theme';
 
-const STATUS_LABELS: Record<ClaimStatus, string> = {
-  OPEN: 'Abierto',
-  IN_PROGRESS: 'En curso',
-  CLOSED: 'Cerrado',
-};
+const STATUS_LABEL_KEYS = {
+  OPEN: 'Claims.status.OPEN',
+  IN_PROGRESS: 'Claims.status.IN_PROGRESS',
+  CLOSED: 'Claims.status.CLOSED',
+} as const;
 
 const STATUS_INTENTS: Record<ClaimStatus, BadgeIntent> = {
   OPEN: 'warning',
@@ -35,13 +36,14 @@ export function ClaimCard({
   highlighted?: boolean;
   onSave: (input: ClaimUpdateInput) => void;
 }) {
+  const {t} = useTranslation();
   const [status, setStatus] = useState<ClaimStatus>(claim.status);
   const [reply, setReply] = useState(claim.reply ?? '');
 
   const author = `${claim.author.firstName} ${claim.author.lastName}`;
   const meta = claim.amenityName
-    ? `Amenity ${claim.amenityName} · ${author}`
-    : `Unidad ${claim.unitName ?? '-'} · ${author}`;
+    ? t('Claims.metaAmenity', {amenity: claim.amenityName, author})
+    : t('Claims.meta', {unit: claim.unitName ?? '-', author});
 
   const save = () => {
     const next: ClaimUpdateInput = {};
@@ -58,7 +60,10 @@ export function ClaimCard({
           <Text style={styles.title}>{claim.title}</Text>
           <Text style={styles.meta}>{meta}</Text>
         </View>
-        <Badge label={STATUS_LABELS[claim.status]} intent={STATUS_INTENTS[claim.status]} />
+        <Badge
+          label={t(STATUS_LABEL_KEYS[claim.status])}
+          intent={STATUS_INTENTS[claim.status]}
+        />
       </View>
 
       <Text style={styles.body}>{claim.body}</Text>
@@ -68,23 +73,23 @@ export function ClaimCard({
       {claim.canManage ? (
         <View style={styles.editor}>
           <Select
-            label="Estado"
+            label={t('Claims.statusLabel')}
             value={status}
             onChange={value => setStatus(value as ClaimStatus)}
             options={CLAIM_STATUSES.map(value => ({
               value,
-              label: STATUS_LABELS[value],
+              label: t(STATUS_LABEL_KEYS[value]),
             }))}
           />
           <Input
-            label="Respuesta"
+            label={t('Claims.replyLabel')}
             value={reply}
             onChangeText={setReply}
-            placeholder="Escribí una respuesta..."
+            placeholder={t('Claims.replyPlaceholder')}
             multiline
           />
           <Button
-            title="Guardar"
+            title={t('Claims.save')}
             size="sm"
             loading={pending}
             onPress={save}
@@ -93,10 +98,8 @@ export function ClaimCard({
         </View>
       ) : (
         <View style={styles.replyBlock}>
-          <Text style={styles.replyLabel}>Respuesta</Text>
-          <Text style={styles.reply}>
-            {claim.reply || 'Todavía no hay respuesta.'}
-          </Text>
+          <Text style={styles.replyLabel}>{t('Claims.replyLabel')}</Text>
+          <Text style={styles.reply}>{claim.reply || t('Claims.noReply')}</Text>
         </View>
       )}
     </View>

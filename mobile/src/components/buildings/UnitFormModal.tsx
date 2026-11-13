@@ -1,10 +1,11 @@
-import {useState} from 'react';
-import {StyleSheet, View} from 'react-native';
-import {ModalSheet} from '@/components/ui/ModalSheet';
 import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
-import type {Unit} from '@/types/unit';
+import {ModalSheet} from '@/components/ui/ModalSheet';
 import {spacing} from '@/theme';
+import type {Unit} from '@/types/unit';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, View} from 'react-native';
 
 export type UnitFormValues = {
   name: string;
@@ -25,6 +26,7 @@ export function UnitFormModal({
   onClose: () => void;
   onSubmit: (values: UnitFormValues) => void;
 }) {
+  const {t} = useTranslation();
   const [name, setName] = useState(unit?.name ?? '');
   const [floor, setFloor] = useState(unit?.floor ?? '');
   const [coefficient, setCoefficient] = useState(
@@ -35,13 +37,13 @@ export function UnitFormModal({
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError('Ingresá el nombre de la unidad.');
+      setError(t('Buildings.unitNameError'));
       return;
     }
     const parsed =
       coefficient.trim() === '' ? undefined : Number(coefficient.trim());
     if (parsed !== undefined && (!Number.isFinite(parsed) || parsed < 0)) {
-      setError('El coeficiente debe ser un número válido.');
+      setError(t('Buildings.unitCoefficientError'));
       return;
     }
     setError(null);
@@ -56,30 +58,30 @@ export function UnitFormModal({
     <ModalSheet
       visible={visible}
       onClose={onClose}
-      title={unit ? 'Editar unidad' : 'Nueva unidad'}>
+      title={unit ? t('Buildings.unitEditTitle') : t('Buildings.unitNewTitle')}>
       <View style={styles.form}>
         <Input
-          label="Nombre"
-          placeholder="Ej: 4° B"
+          label={t('Buildings.unitName')}
+          placeholder={t('Buildings.unitNameExample')}
           value={name}
           onChangeText={setName}
           error={error ?? undefined}
         />
         <Input
-          label="Piso"
-          placeholder="Ej: 4"
+          label={t('Buildings.unitFloorLabel')}
+          placeholder={t('Buildings.unitFloorExample')}
           value={floor}
           onChangeText={setFloor}
         />
         <Input
-          label="Coeficiente"
-          placeholder="Ej: 0.0833"
+          label={t('Buildings.unitCoefficientLabel')}
+          placeholder={t('Buildings.unitCoefficientExample')}
           value={coefficient}
           onChangeText={setCoefficient}
           keyboardType="decimal-pad"
         />
         <Button
-          title={unit ? 'Guardar cambios' : 'Agregar unidad'}
+          title={unit ? t('Buildings.saveChanges') : t('Buildings.addUnit')}
           loading={pending}
           fullWidth
           onPress={submit}

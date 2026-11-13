@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {RequireAccess} from '@/components/layout/RequireAccess';
 import {UserFormModal} from '@/components/users/UserFormModal';
@@ -31,6 +32,7 @@ import {colors, spacing, typography} from '@/theme';
 
 export default function UsersScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const actor = useAuthStore(state => state.user);
   const usersQuery = useUsers();
   const buildingsQuery = useBuildings();
@@ -77,7 +79,7 @@ export default function UsersScreen() {
 
   const createUser = (values: UserCreateFormValues) => {
     const onSuccess = () => {
-      toast.success('Usuario creado correctamente.');
+      toast.success(t('Users.createSuccess'));
       setFormOpen(false);
     };
     const onError = (error: unknown) => toast.error(errorMessage(error));
@@ -112,7 +114,7 @@ export default function UsersScreen() {
       },
       {
         onSuccess: () => {
-          toast.success('Usuario actualizado correctamente.');
+          toast.success(t('Users.updateSuccess'));
           setFormOpen(false);
           setEditing(null);
         },
@@ -125,7 +127,7 @@ export default function UsersScreen() {
     if (!userToDelete) return;
     deleteUser.mutate(userToDelete.id, {
       onSuccess: () => {
-        toast.success('Usuario eliminado correctamente.');
+        toast.success(t('Users.deleteSuccess'));
         setUserToDelete(null);
       },
       onError: error => toast.error(errorMessage(error)),
@@ -141,28 +143,28 @@ export default function UsersScreen() {
           buildingsQuery.refetch();
         }}>
         <AppHeader
-          title="Usuarios"
-          subtitle="Invitaciones, roles y accesos."
+          title={t('Users.title')}
+          subtitle={t('Users.subtitle')}
           showBell={false}
           onBack={() => router.back()}
           right={
             canCreate ? (
-              <Button title="Nuevo" size="sm" onPress={openCreate} />
+              <Button title={t('Users.new')} size="sm" onPress={openCreate} />
             ) : undefined
           }
         />
 
         {usersQuery.isLoading ? (
-          <LoadingState message="Cargando usuarios..." />
+          <LoadingState message={t('Users.loading')} />
         ) : usersQuery.isError ? (
           <ErrorState
-            message="No pudimos cargar los usuarios."
+            message={t('Users.loadError')}
             onRetry={() => usersQuery.refetch()}
           />
         ) : (
           <View style={styles.content}>
             <Input
-              placeholder="Buscar por nombre o email..."
+              placeholder={t('Users.searchPlaceholder')}
               value={search}
               onChangeText={setSearch}
               autoCapitalize="none"
@@ -170,21 +172,26 @@ export default function UsersScreen() {
             />
 
             <Text style={styles.count}>
-              {filtered.length}{' '}
-              {filtered.length === 1 ? 'usuario' : 'usuarios'}
+              {t('Users.count', {count: filtered.length})}
             </Text>
 
             {filtered.length === 0 ? (
               <EmptyState
                 icon="people-outline"
-                title={users.length === 0 ? 'Sin usuarios' : 'Sin resultados'}
+                title={
+                  users.length === 0
+                    ? t('Users.emptyTitle')
+                    : t('Users.noResults')
+                }
                 description={
                   users.length === 0
-                    ? 'Creá el primer usuario para el edificio.'
-                    : 'Probá con otro nombre o email.'
+                    ? t('Users.emptyDescription')
+                    : t('Users.noResultsDescription')
                 }
                 actionLabel={
-                  users.length === 0 && canCreate ? 'Crear usuario' : undefined
+                  users.length === 0 && canCreate
+                    ? t('Users.createUser')
+                    : undefined
                 }
                 onAction={
                   users.length === 0 && canCreate ? openCreate : undefined
@@ -236,9 +243,11 @@ export default function UsersScreen() {
 
         <ConfirmDialog
           visible={!!userToDelete}
-          title="Eliminar usuario"
-          description={`¿Seguro que querés eliminar a ${userToDelete?.firstName ?? ''} ${userToDelete?.lastName ?? ''}? Se revocarán todos sus accesos.`}
-          confirmLabel="Eliminar"
+          title={t('Users.deleteTitle')}
+          description={t('Users.deleteConfirmNamed', {
+            name: `${userToDelete?.firstName ?? ''} ${userToDelete?.lastName ?? ''}`.trim(),
+          })}
+          confirmLabel={t('Common.delete')}
           pending={deleteUser.isPending}
           onCancel={() => setUserToDelete(null)}
           onConfirm={confirmDelete}

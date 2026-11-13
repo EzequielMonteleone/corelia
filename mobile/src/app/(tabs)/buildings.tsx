@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader, IconButton} from '@/components/layout/AppHeader';
 import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
@@ -26,6 +27,7 @@ import {colors, radius, spacing, typography} from '@/theme';
 
 export default function BuildingsScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const user = useAuthStore(state => state.user);
   const {buildings, isLoading, isRefetching, isError, refetch} =
     useActiveBuilding();
@@ -55,7 +57,7 @@ export default function BuildingsScreen() {
         {id: editing.id, ...values},
         {
           onSuccess: () => {
-            toast.success('Edificio actualizado correctamente.');
+            toast.success(t('Buildings.updateSuccess'));
             setFormOpen(false);
             setEditing(null);
           },
@@ -66,7 +68,7 @@ export default function BuildingsScreen() {
     }
     createBuilding.mutate(values, {
       onSuccess: () => {
-        toast.success('Edificio registrado correctamente.');
+        toast.success(t('Buildings.createSuccess'));
         setFormOpen(false);
       },
       onError: error => toast.error(errorMessage(error)),
@@ -77,7 +79,7 @@ export default function BuildingsScreen() {
     if (!buildingToDelete) return;
     deleteBuilding.mutate(buildingToDelete.id, {
       onSuccess: () => {
-        toast.success('Edificio eliminado correctamente.');
+        toast.success(t('Buildings.deleteSuccess'));
         setBuildingToDelete(null);
       },
       onError: error => toast.error(errorMessage(error)),
@@ -86,17 +88,15 @@ export default function BuildingsScreen() {
 
   return (
     <RequireAccess path="/buildings">
-      <Screen
-        refreshing={isRefetching}
-        onRefresh={() => refetch()}>
+      <Screen refreshing={isRefetching} onRefresh={() => refetch()}>
         <AppHeader
-          title="Edificios"
-          subtitle="Propiedades y unidades que administrás."
+          title={t('Buildings.title')}
+          subtitle={t('Buildings.subtitle')}
           right={
             isSuperAdmin ? (
               <IconButton
                 icon="add"
-                label="Nuevo edificio"
+                label={t('Buildings.newBuilding')}
                 onPress={openCreate}
               />
             ) : undefined
@@ -104,22 +104,24 @@ export default function BuildingsScreen() {
         />
 
         {isLoading ? (
-          <LoadingState message="Cargando edificios..." />
+          <LoadingState message={t('Buildings.loading')} />
         ) : isError ? (
           <ErrorState
-            message="No pudimos cargar los edificios."
+            message={t('Buildings.loadError')}
             onRetry={() => refetch()}
           />
         ) : buildings.length === 0 ? (
           <EmptyState
             icon="business-outline"
-            title="Sin edificios"
-            description="Todavía no tenés edificios asignados."
-            actionLabel={isSuperAdmin ? 'Registrar edificio' : undefined}
+            title={t('Buildings.emptyTitle')}
+            description={t('Buildings.emptyDescription')}
+            actionLabel={
+              isSuperAdmin ? t('Buildings.registerBuilding') : undefined
+            }
             onAction={isSuperAdmin ? openCreate : undefined}
           />
         ) : (
-          <Section title="Tus edificios">
+          <Section title={t('Buildings.yourBuildings')}>
             <View style={styles.list}>
               {buildings.map(building => (
                 <Card
@@ -150,7 +152,11 @@ export default function BuildingsScreen() {
                       </Text>
                     </View>
                     <Badge
-                      label={building.active ? 'Activo' : 'Inactivo'}
+                      label={
+                        building.active
+                          ? t('Common.active')
+                          : t('Common.inactive')
+                      }
                       intent={building.active ? 'success' : 'danger'}
                     />
                   </View>
@@ -163,7 +169,9 @@ export default function BuildingsScreen() {
                           size={14}
                           color={colors.indigo}
                         />
-                        <Text style={styles.metaText}>Administrás este edificio</Text>
+                        <Text style={styles.metaText}>
+                          {t('Buildings.manage')}
+                        </Text>
                       </View>
                     ) : (
                       <View style={styles.meta}>
@@ -172,14 +180,19 @@ export default function BuildingsScreen() {
                           size={14}
                           color={colors.textMuted}
                         />
-                        <Text style={styles.metaText}>Solo lectura</Text>
+                        <Text style={styles.metaText}>
+                          {t('Buildings.readOnly')}
+                        </Text>
                       </View>
                     )}
                     <View style={styles.actions}>
                       {building.canManage ? (
                         <Pressable
                           accessibilityRole="button"
-                          accessibilityLabel={`Editar ${building.name}`}
+                          accessibilityLabel={t(
+                            'Buildings.editBuildingAccessibility',
+                            {name: building.name},
+                          )}
                           hitSlop={6}
                           onPress={() => openEdit(building)}
                           style={styles.action}>
@@ -193,7 +206,10 @@ export default function BuildingsScreen() {
                       {building.canDelete ? (
                         <Pressable
                           accessibilityRole="button"
-                          accessibilityLabel={`Eliminar ${building.name}`}
+                          accessibilityLabel={t(
+                            'Buildings.deleteBuildingAccessibility',
+                            {name: building.name},
+                          )}
                           hitSlop={6}
                           onPress={() => setBuildingToDelete(building)}
                           style={styles.action}>
@@ -242,9 +258,11 @@ export default function BuildingsScreen() {
 
         <ConfirmDialog
           visible={!!buildingToDelete}
-          title="Eliminar edificio"
-          description={`¿Seguro que querés eliminar ${buildingToDelete?.name ?? 'este edificio'}? Esta acción no se puede deshacer.`}
-          confirmLabel="Eliminar"
+          title={t('Buildings.deleteTitle')}
+          description={t('Buildings.deleteConfirmNamed', {
+            name: buildingToDelete?.name ?? '',
+          })}
+          confirmLabel={t('Common.delete')}
           pending={deleteBuilding.isPending}
           onCancel={() => setBuildingToDelete(null)}
           onConfirm={confirmDelete}

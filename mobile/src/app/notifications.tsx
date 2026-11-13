@@ -1,23 +1,25 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {RequireAccess} from '@/components/layout/RequireAccess';
-import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {Screen} from '@/components/ui/Screen';
+import {EmptyState, ErrorState, LoadingState} from '@/components/ui/States';
 import {
   useMarkNotificationRead,
   useNotifications,
 } from '@/hooks/queries/useNotifications';
 import {formatDateTime} from '@/lib/format';
-import {notificationPhrase} from '@/lib/notificationText';
 import {notificationTarget} from '@/lib/notificationLink';
+import {notificationPhrase} from '@/lib/notificationText';
 import {useAppStore} from '@/store/appStore';
-import type {NotificationItem} from '@/types/notification';
 import {colors, radius, spacing, typography} from '@/theme';
+import type {NotificationItem} from '@/types/notification';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const notificationsQuery = useNotifications();
   const markRead = useMarkNotificationRead();
   const setSelectedBuildingId = useAppStore(
@@ -40,34 +42,36 @@ export default function NotificationsScreen() {
         refreshing={notificationsQuery.isRefetching}
         onRefresh={() => notificationsQuery.refetch()}>
         <AppHeader
-          title="Avisos"
+          title={t('Notifications.title')}
           subtitle={
             unread.length > 0
-              ? `${unread.length} sin leer`
-              : 'Estás al día con las novedades.'
+              ? t('Notifications.subtitleUnread', {count: unread.length})
+              : t('Notifications.subtitleCaughtUp')
           }
           showBell={false}
           onBack={() => router.back()}
         />
 
         {notificationsQuery.isLoading ? (
-          <LoadingState message="Cargando avisos..." />
+          <LoadingState message={t('Notifications.loading')} />
         ) : notificationsQuery.isError ? (
           <ErrorState
-            message="No pudimos cargar los avisos."
+            message={t('Notifications.loadError')}
             onRetry={() => notificationsQuery.refetch()}
           />
         ) : notifications.length === 0 ? (
           <EmptyState
             icon="notifications-outline"
-            title="Sin avisos"
-            description="Cuando se publique un documento o cambie un reclamo, te avisamos acá."
+            title={t('Notifications.emptyTitle')}
+            description={t('Notifications.emptyDescription')}
           />
         ) : (
           <View style={styles.content}>
             {unread.length > 0 ? (
               <View style={styles.group}>
-                <Text style={styles.groupTitle}>Sin leer</Text>
+                <Text style={styles.groupTitle}>
+                  {t('Notifications.unread')}
+                </Text>
                 <View style={styles.list}>
                   {unread.map(item => (
                     <NotificationRow
@@ -83,7 +87,9 @@ export default function NotificationsScreen() {
 
             {read.length > 0 ? (
               <View style={styles.group}>
-                <Text style={styles.groupTitle}>Anteriores</Text>
+                <Text style={styles.groupTitle}>
+                  {t('Notifications.previous')}
+                </Text>
                 <View style={styles.list}>
                   {read.map(item => (
                     <NotificationRow

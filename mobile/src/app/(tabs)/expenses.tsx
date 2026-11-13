@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader, IconButton} from '@/components/layout/AppHeader';
 import {BuildingSwitcher} from '@/components/layout/BuildingSwitcher';
 import {Section} from '@/components/layout/Section';
@@ -27,6 +28,7 @@ import {colors, spacing, typography} from '@/theme';
 
 export default function ExpensesScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const {
     buildings,
     activeBuilding,
@@ -63,14 +65,14 @@ export default function ExpensesScreen() {
     if (!activeBuildingId) return;
     const value = period.trim();
     if (!value) {
-      setPeriodError('Ingresá el nombre del período.');
+      setPeriodError(t('Expenses.periodRequired'));
       return;
     }
     createPeriod.mutate(
       {buildingId: activeBuildingId, period: value},
       {
         onSuccess: () => {
-          toast.success('Período creado correctamente.');
+          toast.success(t('Expenses.createPeriodSuccess'));
           setCreateOpen(false);
         },
         onError: error => {
@@ -89,7 +91,7 @@ export default function ExpensesScreen() {
       },
       {
         onSuccess: () => {
-          toast.success('Período eliminado correctamente.');
+          toast.success(t('Expenses.deletePeriodSuccess'));
           setPeriodToDelete(null);
         },
         onError: error => {
@@ -102,8 +104,8 @@ export default function ExpensesScreen() {
   if (loadingBuildings) {
     return (
       <Screen>
-        <AppHeader title="Expensas" />
-        <LoadingState message="Cargando expensas..." />
+        <AppHeader title={t('Expenses.title')} />
+        <LoadingState message={t('Expenses.loading')} />
       </Screen>
     );
   }
@@ -111,9 +113,9 @@ export default function ExpensesScreen() {
   if (buildingsError) {
     return (
       <Screen>
-        <AppHeader title="Expensas" />
+        <AppHeader title={t('Expenses.title')} />
         <ErrorState
-          message="No pudimos cargar tus edificios."
+          message={t('Expenses.buildingsError')}
           onRetry={() => refetchBuildings()}
         />
       </Screen>
@@ -129,11 +131,15 @@ export default function ExpensesScreen() {
         summaryQuery.refetch();
       }}>
       <AppHeader
-        title="Expensas"
-        subtitle="Períodos, pagos y estado de cobranza."
+        title={t('Expenses.title')}
+        subtitle={t('Expenses.subtitle')}
         right={
           canManage ? (
-            <IconButton icon="add" label="Nuevo período" onPress={openCreate} />
+            <IconButton
+              icon="add"
+              label={t('Expenses.newPeriodTitle')}
+              onPress={openCreate}
+            />
           ) : undefined
         }
       />
@@ -147,14 +153,14 @@ export default function ExpensesScreen() {
       {!activeBuildingId ? (
         <EmptyState
           icon="receipt-outline"
-          title="Elegí un edificio"
-          description="Seleccioná un edificio para ver sus períodos de expensas."
+          title={t('Expenses.selectBuilding')}
+          description={t('Expenses.chooseBuildingDesc')}
         />
       ) : periodsQuery.isLoading ? (
-        <LoadingState message="Cargando períodos..." />
+        <LoadingState message={t('Expenses.loadingPeriods')} />
       ) : periodsQuery.isError ? (
         <ErrorState
-          message="No pudimos cargar los períodos."
+          message={t('Expenses.loadErrorPeriods')}
           onRetry={() => periodsQuery.refetch()}
         />
       ) : (
@@ -162,21 +168,25 @@ export default function ExpensesScreen() {
           {canManage && summary ? (
             <Card style={styles.summary}>
               <View style={styles.summaryCell}>
-                <Text style={styles.summaryLabel}>Deuda</Text>
+                <Text style={styles.summaryLabel}>{t('Expenses.debt')}</Text>
                 <Text style={[styles.summaryValue, {color: colors.danger}]}>
                   {formatCurrency(summary.debtTotal)}
                 </Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryCell}>
-                <Text style={styles.summaryLabel}>Cobrado</Text>
+                <Text style={styles.summaryLabel}>
+                  {t('Expenses.collected')}
+                </Text>
                 <Text style={[styles.summaryValue, {color: colors.success}]}>
                   {formatCurrency(summary.totalPaid)}
                 </Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryCell}>
-                <Text style={styles.summaryLabel}>Cobranza</Text>
+                <Text style={styles.summaryLabel}>
+                  {t('Expenses.collection')}
+                </Text>
                 <Text style={styles.summaryValue}>
                   {summary.collectionRate.toFixed(1)}%
                 </Text>
@@ -185,15 +195,15 @@ export default function ExpensesScreen() {
           ) : null}
 
           <Section
-            title={`Períodos de ${activeBuilding?.name ?? ''}`}
+            title={t('Expenses.periodsOf', {
+              building: activeBuilding?.name ?? '',
+            })}
             action={
               canManage ? (
                 <Button
-                  title="Nuevo"
+                  title={t('Expenses.newShort')}
                   size="sm"
-                  icon={
-                    <Text style={styles.plus}>+</Text>
-                  }
+                  icon={<Text style={styles.plus}>+</Text>}
                   onPress={openCreate}
                 />
               ) : undefined
@@ -201,13 +211,15 @@ export default function ExpensesScreen() {
             {periods.length === 0 ? (
               <EmptyState
                 icon="calendar-outline"
-                title="Sin períodos"
+                title={t('Expenses.noPeriodsTitle')}
                 description={
                   canManage
-                    ? 'Creá el primer período para cargar las expensas del edificio.'
-                    : 'Todavía no hay períodos de expensas publicados.'
+                    ? t('Expenses.noPeriodsCanManage')
+                    : t('Expenses.noPeriodsCannotManage')
                 }
-                actionLabel={canManage ? 'Crear período' : undefined}
+                actionLabel={
+                  canManage ? t('Expenses.createPeriodAction') : undefined
+                }
                 onAction={canManage ? openCreate : undefined}
               />
             ) : (
@@ -235,11 +247,11 @@ export default function ExpensesScreen() {
       <ModalSheet
         visible={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Nuevo período">
+        title={t('Expenses.newPeriodTitle')}>
         <View style={styles.form}>
           <Input
-            label="Período"
-            placeholder="Ej: Noviembre 2026 o 2026-11"
+            label={t('Expenses.periodLabel')}
+            placeholder={t('Expenses.periodPlaceholderMobile')}
             value={period}
             onChangeText={value => {
               setPeriod(value);
@@ -249,7 +261,7 @@ export default function ExpensesScreen() {
             autoCapitalize="sentences"
           />
           <Button
-            title="Crear período"
+            title={t('Expenses.createPeriodAction')}
             loading={createPeriod.isPending}
             disabled={!period.trim()}
             fullWidth
@@ -260,9 +272,11 @@ export default function ExpensesScreen() {
 
       <ConfirmDialog
         visible={!!periodToDelete}
-        title="Eliminar período"
-        description={`¿Seguro que querés eliminar el período ${periodToDelete?.period ?? ''}? Se eliminarán sus expensas y pagos.`}
-        confirmLabel="Eliminar"
+        title={t('Expenses.deletePeriodTitle')}
+        description={t('Expenses.deletePeriodConfirmNamed', {
+          period: periodToDelete?.period ?? '',
+        })}
+        confirmLabel={t('Common.delete')}
         pending={deletePeriod.isPending}
         onCancel={() => setPeriodToDelete(null)}
         onConfirm={confirmDelete}

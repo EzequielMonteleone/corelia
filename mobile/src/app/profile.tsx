@@ -1,33 +1,36 @@
-import {useEffect, useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {Ionicons} from '@expo/vector-icons';
-import {useRouter} from 'expo-router';
 import {AppHeader} from '@/components/layout/AppHeader';
-import {Section} from '@/components/layout/Section';
 import {RequireAccess} from '@/components/layout/RequireAccess';
+import {Section} from '@/components/layout/Section';
 import {Badge} from '@/components/ui/Badge';
 import {Button} from '@/components/ui/Button';
 import {Card} from '@/components/ui/Card';
 import {ConfirmDialog} from '@/components/ui/ConfirmDialog';
 import {Input} from '@/components/ui/Input';
-import {ErrorState, LoadingState} from '@/components/ui/States';
 import {Screen} from '@/components/ui/Screen';
+import {ErrorState, LoadingState} from '@/components/ui/States';
 import {useProfile, useUpdateUser} from '@/hooks/queries/useUsers';
-import {profileSchema, type ProfileFormValues} from '@/schemas/user';
 import {errorMessage} from '@/lib/apiError';
 import {initials} from '@/lib/format';
+import {validationMessage} from '@/lib/validation';
+import {profileSchema, type ProfileFormValues} from '@/schemas/user';
 import {useAuthStore} from '@/store/authStore';
 import {toast} from '@/store/toastStore';
-import {colors, radius, spacing, typography} from '@/theme';
+import {colors, spacing, typography} from '@/theme';
+import {Ionicons} from '@expo/vector-icons';
+import {useRouter} from 'expo-router';
+import {useEffect, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
 
-const ROLE_LABELS: Record<string, string> = {
-  Admin: 'Administrador',
-  Owner: 'Propietario',
-  Roomer: 'Inquilino',
-};
+const ROLE_LABEL_KEYS = {
+  Admin: 'Users.admin',
+  Owner: 'Users.owner',
+  Roomer: 'Users.roomer',
+} as const;
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const authUser = useAuthStore(state => state.user);
   const patchUser = useAuthStore(state => state.patchUser);
   const logout = useAuthStore(state => state.logout);
@@ -58,7 +61,7 @@ export default function ProfileScreen() {
   const submit = () => {
     if (!profile) return;
     if (password && !currentPassword.trim()) {
-      setErrors({currentPassword: 'Ingresá tu contraseña actual.'});
+      setErrors({currentPassword: t('Users.currentPasswordRequired')});
       return;
     }
     const payload: ProfileFormValues = {
@@ -74,7 +77,9 @@ export default function ProfileScreen() {
       const next: Record<string, string> = {};
       for (const issue of result.error.issues) {
         const field = String(issue.path[0] ?? 'form');
-        if (!next[field]) next[field] = issue.message;
+        if (!next[field]) {
+          next[field] = validationMessage(t, issue.message) ?? issue.message;
+        }
       }
       setErrors(next);
       return;
@@ -103,7 +108,7 @@ export default function ProfileScreen() {
           setPassword('');
           setCurrentPassword('');
           setErrors({});
-          toast.success('Perfil actualizado correctamente.');
+          toast.success(t('Profile.updateSuccess'));
         },
         onError: error => toast.error(errorMessage(error)),
       },
@@ -115,11 +120,11 @@ export default function ProfileScreen() {
       <RequireAccess path="/profile">
         <Screen>
           <AppHeader
-            title="Mi perfil"
+            title={t('Menu.profileLabel')}
             showBell={false}
             onBack={() => router.back()}
           />
-          <LoadingState message="Cargando perfil..." />
+          <LoadingState message={t('Profile.loading')} />
         </Screen>
       </RequireAccess>
     );
@@ -130,12 +135,12 @@ export default function ProfileScreen() {
       <RequireAccess path="/profile">
         <Screen>
           <AppHeader
-            title="Mi perfil"
+            title={t('Menu.profileLabel')}
             showBell={false}
             onBack={() => router.back()}
           />
           <ErrorState
-            message="No pudimos cargar tu perfil."
+            message={t('Profile.loadError')}
             onRetry={() => profileQuery.refetch()}
           />
         </Screen>
@@ -154,8 +159,8 @@ export default function ProfileScreen() {
         refreshing={profileQuery.isRefetching}
         onRefresh={() => profileQuery.refetch()}>
         <AppHeader
-          title="Mi perfil"
-          subtitle="Tus datos personales y seguridad."
+          title={t('Menu.profileLabel')}
+          subtitle={t('Profile.subtitle')}
           showBell={false}
           onBack={() => router.back()}
         />
@@ -174,31 +179,49 @@ export default function ProfileScreen() {
             <View style={styles.badges}>
               <Badge
                 label={
-                  profile.globalRole === 'SUPERADMIN' ? 'Superadmin' : 'Usuario'
+                  profile.globalRole === 'SUPERADMIN'
+                    ? t('Common.superadmin')
+                    : t('Profile.user')
                 }
-                intent={profile.globalRole === 'SUPERADMIN' ? 'purple' : 'default'}
+                intent={
+                  profile.globalRole === 'SUPERADMIN' ? 'purple' : 'default'
+                }
               />
-              {buildingRoles.map(link => (
-                <Badge
-                  key={link.id}
-                  label={
-                    link.role
-                      ? `${ROLE_LABELS[link.role.name] ?? link.role.name} · ${
-                          link.building?.name ?? 'Edificio'
-                        }`
-                      : (link.building?.name ?? 'Edificio')
-                  }
-                  intent="primary"
-                />
-              ))}
+              {buildingRoles.map(link => {
+                const roleName = link.role?.name;
+                const roleLabel =
+                  roleName && roleName in ROLE_LABEL_KEYS
+                    ? t(
+                        ROLE_LABEL_KEYS[
+                          roleName as keyof typeof ROLE_LABEL_KEYS
+                        ],
+                      )
+                    : roleName;
+                const buildingName =
+                  link.building?.name ?? t('Common.building');
+                return (
+                  <Badge
+                    key={link.id}
+                    label={
+                      roleLabel
+                        ? t('Profile.roleBuilding', {
+                            role: roleLabel,
+                            building: buildingName,
+                          })
+                        : buildingName
+                    }
+                    intent="primary"
+                  />
+                );
+              })}
             </View>
           </Card>
 
-          <Section title="Datos personales">
+          <Section title={t('Profile.personalData')}>
             <Card style={styles.form}>
               <View style={styles.row}>
                 <Input
-                  label="Nombre"
+                  label={t('Profile.firstName')}
                   value={firstName}
                   onChangeText={value => {
                     setFirstName(value);
@@ -210,7 +233,7 @@ export default function ProfileScreen() {
                   containerStyle={styles.half}
                 />
                 <Input
-                  label="Apellido"
+                  label={t('Profile.lastName')}
                   value={lastName}
                   onChangeText={value => {
                     setLastName(value);
@@ -223,7 +246,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <Input
-                label="Email"
+                label={t('Profile.email')}
                 value={email}
                 onChangeText={value => {
                   setEmail(value);
@@ -236,7 +259,7 @@ export default function ProfileScreen() {
                 error={errors.email || undefined}
               />
               <Input
-                label="Teléfono"
+                label={t('Profile.phone')}
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
@@ -245,10 +268,10 @@ export default function ProfileScreen() {
             </Card>
           </Section>
 
-          <Section title="Seguridad">
+          <Section title={t('Profile.security')}>
             <Card style={styles.form}>
               <Input
-                label="Nueva contraseña (opcional)"
+                label={t('Profile.newPasswordOptional')}
                 value={password}
                 onChangeText={value => {
                   setPassword(value);
@@ -258,11 +281,11 @@ export default function ProfileScreen() {
                 }}
                 secureTextEntry
                 error={errors.password || undefined}
-                hint="Mínimo 8 caracteres."
+                hint={t('Profile.passwordHint')}
               />
               {password ? (
                 <Input
-                  label="Contraseña actual"
+                  label={t('Profile.currentPassword')}
                   value={currentPassword}
                   onChangeText={value => {
                     setCurrentPassword(value);
@@ -278,7 +301,7 @@ export default function ProfileScreen() {
           </Section>
 
           <Button
-            title="Guardar cambios"
+            title={t('Profile.saveChanges')}
             fullWidth
             size="lg"
             loading={updateUser.isPending}
@@ -287,7 +310,7 @@ export default function ProfileScreen() {
           />
 
           <Button
-            title="Cerrar sesión"
+            title={t('Profile.logout')}
             variant="destructive"
             fullWidth
             icon={
@@ -301,15 +324,15 @@ export default function ProfileScreen() {
           />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Corelia · Gestión de edificios</Text>
+            <Text style={styles.footerText}>{t('Profile.footer')}</Text>
           </View>
         </View>
 
         <ConfirmDialog
           visible={logoutOpen}
-          title="Cerrar sesión"
-          description="¿Seguro que querés salir de tu cuenta?"
-          confirmLabel="Cerrar sesión"
+          title={t('Profile.logout')}
+          description={t('Profile.logoutConfirmDescription')}
+          confirmLabel={t('Profile.logout')}
           onCancel={() => setLogoutOpen(false)}
           onConfirm={() => {
             setLogoutOpen(false);
@@ -323,7 +346,11 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   content: {gap: spacing.xl},
-  identity: {alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.xl},
+  identity: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xl,
+  },
   avatar: {
     alignItems: 'center',
     backgroundColor: colors.indigoSoft,
@@ -358,5 +385,4 @@ const styles = StyleSheet.create({
   half: {flex: 1},
   footer: {alignItems: 'center', paddingVertical: spacing.md},
   footerText: {color: colors.textMuted, fontSize: typography.caption},
-  radiusNote: {borderRadius: radius.md},
 });

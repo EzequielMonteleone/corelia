@@ -12,6 +12,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {AppHeader} from '@/components/layout/AppHeader';
 import {RequireAccess} from '@/components/layout/RequireAccess';
 import {Card} from '@/components/ui/Card';
@@ -28,14 +29,15 @@ import {toast} from '@/store/toastStore';
 import type {ChatMessage} from '@/types/chat';
 import {colors, radius, spacing, typography} from '@/theme';
 
-const SUGGESTIONS = [
-  'Quiero reservar el SUM',
-  'Tengo un problema en mi unidad',
-  '¿Cuánto tengo que pagar de expensas?',
-];
+const SUGGESTION_KEYS = [
+  'Chat.suggestionBook',
+  'Chat.suggestionClaim',
+  'Chat.suggestionExpenses',
+] as const;
 
 export default function ChatScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const threadQuery = useChatThread();
   const sendMessage = useSendChatMessage();
   const confirmDraft = useConfirmChatDraft();
@@ -63,14 +65,14 @@ export default function ChatScreen() {
 
   const confirmReservation = (draftId: string) => {
     confirmDraft.mutate(draftId, {
-      onSuccess: () => toast.success('Reserva confirmada.'),
+      onSuccess: () => toast.success(t('Chat.reserveConfirmed')),
       onError: error => toast.error(errorMessage(error)),
     });
   };
 
   const confirmClaim = (draftId: string) => {
     confirmClaimDraft.mutate(draftId, {
-      onSuccess: () => toast.success('Reclamo actualizado.'),
+      onSuccess: () => toast.success(t('Chat.claimUpdated')),
       onError: error => toast.error(errorMessage(error)),
     });
   };
@@ -80,8 +82,8 @@ export default function ChatScreen() {
       <SafeAreaView edges={['top']} style={styles.safe}>
         <View style={styles.header}>
           <AppHeader
-            title="Asistente Corelia"
-            subtitle="Reservas, reclamos y consultas en un chat."
+            title={t('Chat.screenTitle')}
+            subtitle={t('Chat.screenSubtitle')}
             showBell={false}
             onBack={() => router.back()}
           />
@@ -92,10 +94,10 @@ export default function ChatScreen() {
           keyboardVerticalOffset={0}
           style={styles.flex}>
           {threadQuery.isLoading ? (
-            <LoadingState message="Cargando conversación..." />
+            <LoadingState message={t('Chat.loading')} />
           ) : threadQuery.isError ? (
             <ErrorState
-              message="No pudimos cargar la conversación."
+              message={t('Chat.loadError')}
               onRetry={() => threadQuery.refetch()}
             />
           ) : (
@@ -124,21 +126,25 @@ export default function ChatScreen() {
                       color={colors.indigo}
                     />
                   </View>
-                  <Text style={styles.emptyTitle}>¿En qué te puedo ayudar?</Text>
+                  <Text style={styles.emptyTitle}>{t('Chat.emptyTitle')}</Text>
                   <Text style={styles.emptyText}>
-                    Podés pedirme que reserve un amenity, que cree un reclamo o
-                    que consulte tus expensas.
+                    {t('Chat.emptyDescription')}
                   </Text>
                   <View style={styles.suggestions}>
-                    {SUGGESTIONS.map(suggestion => (
-                      <Pressable
-                        key={suggestion}
-                        accessibilityRole="button"
-                        onPress={() => send(suggestion)}
-                        style={styles.suggestion}>
-                        <Text style={styles.suggestionText}>{suggestion}</Text>
-                      </Pressable>
-                    ))}
+                    {SUGGESTION_KEYS.map(key => {
+                      const suggestion = t(key);
+                      return (
+                        <Pressable
+                          key={key}
+                          accessibilityRole="button"
+                          onPress={() => send(suggestion)}
+                          style={styles.suggestion}>
+                          <Text style={styles.suggestionText}>
+                            {suggestion}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
                 </View>
               }
@@ -152,7 +158,9 @@ export default function ChatScreen() {
                           size={18}
                           color={colors.primary}
                         />
-                        <Text style={styles.draftTitle}>Reserva pendiente</Text>
+                        <Text style={styles.draftTitle}>
+                          {t('Chat.pendingReservation')}
+                        </Text>
                       </View>
                       <Text style={styles.draftLine}>
                         {draft.amenityName} · {draft.unitName}
@@ -164,7 +172,7 @@ export default function ChatScreen() {
                         <Text style={styles.draftMeta}>{draft.notes}</Text>
                       ) : null}
                       <ButtonRow
-                        title="Confirmar reserva"
+                        title={t('Chat.confirm')}
                         pending={confirmDraft.isPending}
                         onPress={() => confirmReservation(draft.id)}
                       />
@@ -181,8 +189,8 @@ export default function ChatScreen() {
                         />
                         <Text style={styles.draftTitle}>
                           {draft.kind === 'CREATE'
-                            ? 'Reclamo pendiente'
-                            : 'Actualización de reclamo'}
+                            ? t('Chat.pendingClaim')
+                            : t('Chat.claimUpdate')}
                         </Text>
                       </View>
                       <Text style={styles.draftLine}>{draft.title}</Text>
@@ -195,7 +203,7 @@ export default function ChatScreen() {
                         {draft.nextStatus ? ` · ${draft.nextStatus}` : ''}
                       </Text>
                       <ButtonRow
-                        title="Confirmar reclamo"
+                        title={t('Chat.confirmClaim')}
                         pending={confirmClaimDraft.isPending}
                         onPress={() => confirmClaim(draft.id)}
                       />
@@ -205,7 +213,7 @@ export default function ChatScreen() {
                   {sendMessage.isPending ? (
                     <View style={styles.typing}>
                       <ActivityDots />
-                      <Text style={styles.typingText}>Corelia está escribiendo…</Text>
+                      <Text style={styles.typingText}>{t('Chat.typing')}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -217,7 +225,7 @@ export default function ChatScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder="Escribí tu mensaje..."
+              placeholder={t('Chat.messagePlaceholder')}
               placeholderTextColor={colors.textMuted}
               style={styles.input}
               multiline
@@ -226,7 +234,7 @@ export default function ChatScreen() {
             />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Enviar mensaje"
+              accessibilityLabel={t('Chat.sendMessageAccessibility')}
               disabled={!input.trim() || sendMessage.isPending}
               onPress={() => send(input)}
               style={[
@@ -292,6 +300,8 @@ function ButtonRow({
   pending: boolean;
   onPress: () => void;
 }) {
+  const {t} = useTranslation();
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -302,7 +312,9 @@ function ButtonRow({
         pressed && styles.pressed,
         pending && styles.choiceDisabled,
       ]}>
-      <Text style={styles.confirmText}>{pending ? 'Confirmando...' : title}</Text>
+      <Text style={styles.confirmText}>
+        {pending ? t('Chat.confirming') : title}
+      </Text>
     </Pressable>
   );
 }

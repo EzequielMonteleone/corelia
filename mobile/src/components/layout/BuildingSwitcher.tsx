@@ -1,7 +1,8 @@
-import {StyleSheet, View} from 'react-native';
 import {Select} from '@/components/ui/Select';
-import type {Building} from '@/types/building';
 import {spacing} from '@/theme';
+import type {Building} from '@/types/building';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, View} from 'react-native';
 
 export function BuildingSwitcher({
   buildings,
@@ -12,14 +13,16 @@ export function BuildingSwitcher({
   value: string | null;
   onChange: (id: string) => void;
 }) {
+  const {t} = useTranslation();
+
   if (buildings.length <= 1) return null;
 
   return (
     <View style={styles.container}>
       <Select
-        label="Edificio"
+        label={t('Common.building')}
         value={value ?? ''}
-        placeholder="Seleccionar edificio"
+        placeholder={t('Common.selectBuilding')}
         options={buildings.map(building => ({
           label: building.name,
           value: building.id,

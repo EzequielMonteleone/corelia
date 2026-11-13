@@ -1,8 +1,7 @@
-import {useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {Button} from '@/components/ui/Button';
 import {Input} from '@/components/ui/Input';
 import {Select} from '@/components/ui/Select';
-import {Button} from '@/components/ui/Button';
+import {spacing} from '@/theme';
 import type {
   HouseholdMember,
   HouseholdMemberInput,
@@ -13,20 +12,25 @@ import type {
   Vehicle,
   VehicleInput,
 } from '@/types/household';
-import {spacing} from '@/theme';
+import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {StyleSheet, View} from 'react-native';
 
-const RELATIONS: {value: HouseholdRelation; label: string}[] = [
-  {value: 'SPOUSE', label: 'Cónyuge'},
-  {value: 'CHILD', label: 'Hijo/a'},
-  {value: 'PARENT', label: 'Padre/madre'},
-  {value: 'OTHER', label: 'Otro'},
-];
+const RELATION_KEYS = {
+  SPOUSE: 'Household.relations.SPOUSE',
+  CHILD: 'Household.relations.CHILD',
+  PARENT: 'Household.relations.PARENT',
+  OTHER: 'Household.relations.OTHER',
+} as const;
 
-const SPECIES: {value: PetSpecies; label: string}[] = [
-  {value: 'DOG', label: 'Perro'},
-  {value: 'CAT', label: 'Gato'},
-  {value: 'OTHER', label: 'Otro'},
-];
+const SPECIES_KEYS = {
+  DOG: 'Household.species.DOG',
+  CAT: 'Household.species.CAT',
+  OTHER: 'Household.species.OTHER',
+} as const;
+
+const RELATIONS: HouseholdRelation[] = ['SPOUSE', 'CHILD', 'PARENT', 'OTHER'];
+const SPECIES: PetSpecies[] = ['DOG', 'CAT', 'OTHER'];
 
 function Actions({
   pending,
@@ -39,17 +43,19 @@ function Actions({
   onCancel: () => void;
   onSubmit: () => void;
 }) {
+  const {t} = useTranslation();
+
   return (
     <View style={styles.actions}>
       <Button
-        title="Cancelar"
+        title={t('Common.cancel')}
         variant="ghost"
         onPress={onCancel}
         disabled={pending}
         style={styles.action}
       />
       <Button
-        title="Guardar"
+        title={t('Common.save')}
         onPress={onSubmit}
         loading={pending}
         disabled={!canSubmit}
@@ -70,6 +76,7 @@ export function MemberForm({
   onCancel: () => void;
   onSubmit: (input: HouseholdMemberInput) => void;
 }) {
+  const {t} = useTranslation();
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
   const [lastName, setLastName] = useState(initial?.lastName ?? '');
   const [relation, setRelation] = useState<HouseholdRelation>(
@@ -88,29 +95,42 @@ export function MemberForm({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       relation,
-      ...(documentNumber.trim()
-        ? {documentNumber: documentNumber.trim()}
-        : {}),
+      ...(documentNumber.trim() ? {documentNumber: documentNumber.trim()} : {}),
       ...(phone.trim() ? {phone: phone.trim()} : {}),
     });
   };
 
   return (
     <View style={styles.form}>
-      <Input label="Nombre" value={firstName} onChangeText={setFirstName} />
-      <Input label="Apellido" value={lastName} onChangeText={setLastName} />
-      <Select
-        label="Parentesco"
-        value={relation}
-        onChange={value => setRelation(value as HouseholdRelation)}
-        options={RELATIONS}
+      <Input
+        label={t('Household.firstName')}
+        value={firstName}
+        onChangeText={setFirstName}
       />
       <Input
-        label="Documento"
+        label={t('Household.lastName')}
+        value={lastName}
+        onChangeText={setLastName}
+      />
+      <Select
+        label={t('Household.relation')}
+        value={relation}
+        onChange={value => setRelation(value as HouseholdRelation)}
+        options={RELATIONS.map(value => ({
+          value,
+          label: t(RELATION_KEYS[value]),
+        }))}
+      />
+      <Input
+        label={t('Household.documentNumber')}
         value={documentNumber}
         onChangeText={setDocumentNumber}
       />
-      <Input label="Teléfono" value={phone} onChangeText={setPhone} />
+      <Input
+        label={t('Household.phone')}
+        value={phone}
+        onChangeText={setPhone}
+      />
       <Actions
         pending={pending}
         canSubmit={canSubmit}
@@ -132,6 +152,7 @@ export function VehicleForm({
   onCancel: () => void;
   onSubmit: (input: VehicleInput) => void;
 }) {
+  const {t} = useTranslation();
   const [plate, setPlate] = useState(initial?.plate ?? '');
   const [make, setMake] = useState(initial?.make ?? '');
   const [model, setModel] = useState(initial?.model ?? '');
@@ -152,14 +173,22 @@ export function VehicleForm({
   return (
     <View style={styles.form}>
       <Input
-        label="Patente"
+        label={t('Household.plate')}
         value={plate}
         onChangeText={setPlate}
         autoCapitalize="characters"
       />
-      <Input label="Marca" value={make} onChangeText={setMake} />
-      <Input label="Modelo" value={model} onChangeText={setModel} />
-      <Input label="Color" value={color} onChangeText={setColor} />
+      <Input label={t('Household.make')} value={make} onChangeText={setMake} />
+      <Input
+        label={t('Household.model')}
+        value={model}
+        onChangeText={setModel}
+      />
+      <Input
+        label={t('Household.color')}
+        value={color}
+        onChangeText={setColor}
+      />
       <Actions
         pending={pending}
         canSubmit={canSubmit}
@@ -181,6 +210,7 @@ export function PetForm({
   onCancel: () => void;
   onSubmit: (input: PetInput) => void;
 }) {
+  const {t} = useTranslation();
   const [name, setName] = useState(initial?.name ?? '');
   const [species, setSpecies] = useState<PetSpecies>(initial?.species ?? 'DOG');
   const [notes, setNotes] = useState(initial?.notes ?? '');
@@ -198,14 +228,26 @@ export function PetForm({
 
   return (
     <View style={styles.form}>
-      <Input label="Nombre" value={name} onChangeText={setName} />
+      <Input
+        label={t('Household.petName')}
+        value={name}
+        onChangeText={setName}
+      />
       <Select
-        label="Especie"
+        label={t('Household.speciesLabel')}
         value={species}
         onChange={value => setSpecies(value as PetSpecies)}
-        options={SPECIES}
+        options={SPECIES.map(value => ({
+          value,
+          label: t(SPECIES_KEYS[value]),
+        }))}
       />
-      <Input label="Notas" value={notes} onChangeText={setNotes} multiline />
+      <Input
+        label={t('Household.notes')}
+        value={notes}
+        onChangeText={setNotes}
+        multiline
+      />
       <Actions
         pending={pending}
         canSubmit={canSubmit}

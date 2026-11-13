@@ -1,6 +1,7 @@
 import {Modal, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import {colors, radius, spacing, typography} from '@/theme';
 
 export interface ModalSheetProps {
@@ -19,6 +20,7 @@ export function ModalSheet({
   testID,
 }: ModalSheetProps) {
   const insets = useSafeAreaInsets();
+  const {t} = useTranslation();
 
   return (
     <Modal
@@ -29,7 +31,7 @@ export function ModalSheet({
       onRequestClose={onClose}>
       <View style={styles.root} testID={testID}>
         <Pressable
-          accessibilityLabel="Cerrar"
+          accessibilityLabel={t('Common.close')}
           style={styles.backdrop}
           onPress={onClose}
         />
@@ -39,7 +41,7 @@ export function ModalSheet({
             <Text style={styles.title}>{title ?? ''}</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Cerrar"
+              accessibilityLabel={t('Common.close')}
               hitSlop={10}
               onPress={onClose}
               style={styles.closeButton}>

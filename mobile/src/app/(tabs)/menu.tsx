@@ -14,6 +14,7 @@ import {colors, radius, spacing, typography} from '@/theme';
 import {Ionicons} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
 import {useState} from 'react';
+import {useTranslation} from 'react-i18next';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 type MenuLink = {
@@ -33,62 +34,9 @@ type MenuLink = {
   description: string;
 };
 
-const COMMUNITY_LINKS: MenuLink[] = [
-  {
-    href: '/chat',
-    icon: 'sparkles-outline',
-    label: 'Asistente Corelia',
-    description: 'Consultas, reservas y reclamos por chat.',
-  },
-  {
-    href: '/amenities',
-    icon: 'calendar-outline',
-    label: 'Amenities',
-    description: 'Reservá el SUM, la parrilla o el gimnasio.',
-  },
-  {
-    href: '/household',
-    icon: 'people-outline',
-    label: 'Grupo familiar',
-    description: 'Integrantes, vehículos y mascotas.',
-  },
-  {
-    href: '/claims',
-    icon: 'chatbox-ellipses-outline',
-    label: 'Reclamos',
-    description: 'Reportá y seguí incidencias del edificio.',
-  },
-  {
-    href: '/documents',
-    icon: 'document-text-outline',
-    label: 'Documentos',
-    description: 'Reglamentos y avisos del edificio.',
-  },
-];
-
-const ADMIN_LINKS: MenuLink[] = [
-  {
-    href: '/buildings',
-    icon: 'business-outline',
-    label: 'Edificios y unidades',
-    description: 'Configuración de propiedades y amenities.',
-  },
-  {
-    href: '/users',
-    icon: 'people-circle-outline',
-    label: 'Usuarios',
-    description: 'Invitaciones, roles y accesos.',
-  },
-  {
-    href: '/roles',
-    icon: 'key-outline',
-    label: 'Roles y permisos',
-    description: 'Niveles de acceso del sistema.',
-  },
-];
-
 export default function MenuScreen() {
   const router = useRouter();
+  const {t} = useTranslation();
   const user = useAuthStore(state => state.user);
   const logout = useAuthStore(state => state.logout);
   const {buildings, activeBuildingId, setSelectedBuildingId} =
@@ -105,16 +53,70 @@ export default function MenuScreen() {
     ),
   );
 
-  const community = COMMUNITY_LINKS.filter(link =>
+  const communityLinks: MenuLink[] = [
+    {
+      href: '/chat',
+      icon: 'sparkles-outline',
+      label: t('Menu.assistantLabel'),
+      description: t('Menu.assistantDescription'),
+    },
+    {
+      href: '/amenities',
+      icon: 'calendar-outline',
+      label: t('Menu.amenitiesLabel'),
+      description: t('Menu.amenitiesDescription'),
+    },
+    {
+      href: '/household',
+      icon: 'people-outline',
+      label: t('Menu.householdLabel'),
+      description: t('Menu.householdDescription'),
+    },
+    {
+      href: '/claims',
+      icon: 'chatbox-ellipses-outline',
+      label: t('Menu.claimsLabel'),
+      description: t('Menu.claimsDescription'),
+    },
+    {
+      href: '/documents',
+      icon: 'document-text-outline',
+      label: t('Menu.documentsLabel'),
+      description: t('Menu.documentsDescription'),
+    },
+  ];
+
+  const adminLinks: MenuLink[] = [
+    {
+      href: '/buildings',
+      icon: 'business-outline',
+      label: t('Menu.buildingsLabel'),
+      description: t('Menu.buildingsDescription'),
+    },
+    {
+      href: '/users',
+      icon: 'people-circle-outline',
+      label: t('Menu.usersLabel'),
+      description: t('Menu.usersDescription'),
+    },
+    {
+      href: '/roles',
+      icon: 'key-outline',
+      label: t('Menu.rolesLabel'),
+      description: t('Menu.rolesDescription'),
+    },
+  ];
+
+  const community = communityLinks.filter(link =>
     canAccessPath(user, link.href),
   );
-  const administration = ADMIN_LINKS.filter(link =>
+  const administration = adminLinks.filter(link =>
     canAccessPath(user, link.href),
   );
 
   return (
     <Screen>
-      <AppHeader title="Menú" subtitle="Todo lo demás, en un solo lugar." />
+      <AppHeader title={t('Menu.title')} subtitle={t('Menu.subtitle')} />
 
       <BuildingSwitcher
         buildings={buildings}
@@ -125,7 +127,7 @@ export default function MenuScreen() {
       <View style={styles.content}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Ver mi perfil"
+          accessibilityLabel={t('Menu.viewProfile')}
           onPress={() => router.push('/profile')}
           style={({pressed}) => [
             styles.profileCard,
@@ -138,14 +140,16 @@ export default function MenuScreen() {
           </View>
           <View style={styles.profileText}>
             <Text style={styles.name} numberOfLines={1}>
-              {user ? `${user.firstName} ${user.lastName}` : 'Mi cuenta'}
+              {user
+                ? `${user.firstName} ${user.lastName}`
+                : t('Menu.myAccount')}
             </Text>
             <Text style={styles.email} numberOfLines={1}>
               {user?.email ?? ''}
             </Text>
             <View style={styles.badges}>
               {user?.globalRole === 'SUPERADMIN' ? (
-                <Badge label="Superadmin" intent="purple" />
+                <Badge label={t('Common.superadmin')} intent="purple" />
               ) : null}
               {roleNames.map(role => (
                 <Badge key={role} label={role} intent="primary" />
@@ -156,7 +160,7 @@ export default function MenuScreen() {
         </Pressable>
 
         {community.length > 0 ? (
-          <Section title="Comunidad">
+          <Section title={t('Menu.community')}>
             <View style={styles.list}>
               {community.map(link => (
                 <MenuRow
@@ -172,7 +176,7 @@ export default function MenuScreen() {
         ) : null}
 
         {administration.length > 0 ? (
-          <Section title="Administración">
+          <Section title={t('Menu.administration')}>
             <View style={styles.list}>
               {administration.map(link => (
                 <MenuRow
@@ -187,12 +191,12 @@ export default function MenuScreen() {
           </Section>
         ) : null}
 
-        <Section title="Cuenta">
+        <Section title={t('Menu.account')}>
           <View style={styles.list}>
             <MenuRow
               icon="notifications-outline"
-              label="Avisos"
-              description="Novedades de tus edificios."
+              label={t('Menu.notificationsLabel')}
+              description={t('Menu.notificationsDescription')}
               badge={
                 unread > 0 ? (unread > 9 ? '9+' : String(unread)) : undefined
               }
@@ -200,14 +204,14 @@ export default function MenuScreen() {
             />
             <MenuRow
               icon="person-outline"
-              label="Mi perfil"
-              description="Datos personales y contraseña."
+              label={t('Menu.profileLabel')}
+              description={t('Menu.profileDescription')}
               onPress={() => router.push('/profile')}
             />
             <MenuRow
               icon="log-out-outline"
-              label="Cerrar sesión"
-              description="Salir de tu cuenta en este dispositivo."
+              label={t('Menu.logoutLabel')}
+              description={t('Menu.logoutDescription')}
               danger
               onPress={() => setLogoutOpen(true)}
             />
@@ -217,9 +221,9 @@ export default function MenuScreen() {
 
       <ConfirmDialog
         visible={logoutOpen}
-        title="Cerrar sesión"
-        description="¿Seguro que querés salir de tu cuenta?"
-        confirmLabel="Cerrar sesión"
+        title={t('Menu.logoutLabel')}
+        description={t('Menu.logoutConfirmDescription')}
+        confirmLabel={t('Menu.logoutLabel')}
         destructive
         onCancel={() => setLogoutOpen(false)}
         onConfirm={() => {

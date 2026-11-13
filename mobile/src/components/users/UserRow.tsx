@@ -1,15 +1,16 @@
 import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import {Badge} from '@/components/ui/Badge';
 import {initials} from '@/lib/format';
 import type {UserData} from '@/types/user';
 import {colors, radius, spacing, typography} from '@/theme';
 
-const ROLE_LABELS: Record<string, string> = {
-  Admin: 'Administrador',
-  Owner: 'Propietario',
-  Roomer: 'Inquilino',
-};
+const ROLE_LABEL_KEYS = {
+  Admin: 'Users.admin',
+  Owner: 'Users.owner',
+  Roomer: 'Users.roomer',
+} as const;
 
 export function UserRow({
   user,
@@ -26,7 +27,12 @@ export function UserRow({
   canEdit?: boolean;
   canDelete?: boolean;
 }) {
+  const {t} = useTranslation();
   const role = user.buildingUsers?.[0]?.role?.name;
+  const roleLabel =
+    role && role in ROLE_LABEL_KEYS
+      ? t(ROLE_LABEL_KEYS[role as keyof typeof ROLE_LABEL_KEYS])
+      : role;
 
   return (
     <View style={styles.card}>
@@ -48,14 +54,14 @@ export function UserRow({
             {user.email}
           </Text>
           <View style={styles.badges}>
-            {role ? (
-              <Badge label={ROLE_LABELS[role] ?? role} intent="primary" />
+            {roleLabel ? (
+              <Badge label={roleLabel} intent="primary" />
             ) : null}
             {user.globalRole === 'SUPERADMIN' ? (
-              <Badge label="Superadmin" intent="purple" />
+              <Badge label={t('Common.superadmin')} intent="purple" />
             ) : null}
             <Badge
-              label={user.isActive ? 'Activo' : 'Inactivo'}
+              label={user.isActive ? t('Common.active') : t('Common.inactive')}
               intent={user.isActive ? 'success' : 'danger'}
             />
           </View>
@@ -66,7 +72,9 @@ export function UserRow({
         {canEdit ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Editar ${user.firstName}`}
+            accessibilityLabel={t('Users.editUserAccessibility', {
+              name: user.firstName,
+            })}
             hitSlop={6}
             onPress={onEdit}
             style={styles.action}>
@@ -76,7 +84,9 @@ export function UserRow({
         {canDelete ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Eliminar ${user.firstName}`}
+            accessibilityLabel={t('Users.deleteUserAccessibility', {
+              name: user.firstName,
+            })}
             hitSlop={6}
             onPress={onDelete}
             style={styles.action}>
