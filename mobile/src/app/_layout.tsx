@@ -1,5 +1,77 @@
+import {useEffect} from 'react';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {QueryClientProvider} from '@tanstack/react-query';
+import {StatusBar} from 'expo-status-bar';
 import {Stack} from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import {BootScreen} from '@/components/layout/BootScreen';
+import {ToastHost} from '@/components/layout/ToastHost';
+import {queryClient, startAppStateFocusManager} from '@/lib/queryClient';
+import {useAuthStore} from '@/store/authStore';
+import {colors} from '@/theme';
+
+if (__DEV__) {
+  // Initializes Reactotron before the app renders.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/lib/reactotron');
+}
+
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Splash control is best-effort (e.g. web).
+});
+
+function RootNavigator() {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const hydrated = useAuthStore(state => state._hasHydrated);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    SplashScreen.hideAsync().catch(() => {});
+  }, [hydrated]);
+
+  if (!hydrated) return <BootScreen />;
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {backgroundColor: colors.background},
+      }}>
+      <Stack.Protected guard={isAuthenticated}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="buildings/[id]" />
+        <Stack.Screen name="expenses/[periodId]" />
+        <Stack.Screen name="amenities" />
+        <Stack.Screen name="chat" />
+        <Stack.Screen name="claims" />
+        <Stack.Screen name="documents" />
+        <Stack.Screen name="household" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="roles" />
+        <Stack.Screen name="users/index" />
+        <Stack.Screen name="users/[id]" />
+      </Stack.Protected>
+      <Stack.Protected guard={!isAuthenticated}>
+        <Stack.Screen name="login" />
+      </Stack.Protected>
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
-  return <Stack screenOptions={{headerShown: false}} />;
+  useEffect(() => startAppStateFocusManager(), []);
+
+  return (
+    <GestureHandlerRootView style={{flex: 1}}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="light" />
+          <RootNavigator />
+          <ToastHost />
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
 }
